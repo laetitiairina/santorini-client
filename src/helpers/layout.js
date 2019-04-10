@@ -11,4 +11,5 @@ export const BaseContainer = styled.div`
   margin-right: auto;
   padding-right: 15px;
   max-width: ${DESKTOP_WIDTH}px;
+  max-height: 768px;
 `;
