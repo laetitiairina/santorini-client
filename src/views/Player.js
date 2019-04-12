@@ -6,17 +6,18 @@ const Container = styled.div`
   margin: 6px 0;
   width: 280px;
   padding: 10px;
-  border-radius: 6px;
+  border-radius: 40px;
   display: flex;
   align-items: center;
-  border: 1px solid #ffffff26;
+  border: 2.5px solid #2167AC;
+  background-color: transparent;
 `;
 
 const UserName = styled.div`
   font-weight: normal;
   font-family: "American Typewriter",serif;
   font-size: x-large;
-  color: #D6F0E7;
+  color: #227BB6;
   margin-left: 5px;
 `;
 

@@ -1,6 +1,7 @@
 import React from "react";
 import styled from "styled-components";
 import { ReactLogo } from "./ReactLogo";
+import {BaseContainer} from "../helpers/layout";
 
 /**
  * Using styled-components you can visual HTML primitives and use props with it!
@@ -19,10 +20,32 @@ const Container = styled.div`
 const Title = styled.h1`
   font-weight: normal;
   font-size: 70px;
-  color: #D6F0E7;
+  color: #2167AC;
   text-align: center;
-  font-family: "American Typewriter",serif;
 `;
+
+const ButtonContainer = styled(BaseContainer)`
+  position: absolute;
+  right: 100px;
+  overflow: hidden;
+  color: #3E5774;
+`;
+
+const Exit = styled.button`
+  &:hover {
+    background: #3E5774;
+  }
+  
+  box-sizing: border-box;
+  background: transparent;
+  border: 2.5px solid #2167AC;
+  padding: 10px;
+  border-radius: 40px;
+  color: #E4F5B2;
+  text-align: center;
+  right: 100px;
+`;
+
 /**
  * This is an example of a Functional and stateless component (View) in React. Functional components are not classes and thus don't handle internal state changes.
  * Conceptually, components are like JavaScript functions. They accept arbitrary inputs (called “props”) and return React elements describing what should appear on the screen.
@@ -35,7 +58,9 @@ const Header = props => {
   return (
     <Container height={props.height}>
       <Title>Santorini</Title>
-      {/*<ReactLogo width={60} height={60} />*/}
+      <ButtonContainer>
+        <Exit>EXIT</Exit>
+      </ButtonContainer>
     </Container>
   );
 };

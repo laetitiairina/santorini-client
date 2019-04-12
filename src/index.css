@@ -6,8 +6,9 @@ This file contains the general and shared style of your application.
 body {
   margin: 0;
   padding: 0;
-  font-family: "Open Sans", sans-serif;
-  background: #5872B5;
+  font-family: "American Typewriter",serif;
+  background-image: url("views/design/background-gradient.png");
+  /*background-color: #5872B5;*/
 }
 
 input,
