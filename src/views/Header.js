@@ -1,7 +1,7 @@
 import React from "react";
 import styled from "styled-components";
-import { ReactLogo } from "./ReactLogo";
 import {BaseContainer} from "../helpers/layout";
+import {Button} from '../views/design/Button'
 
 /**
  * Using styled-components you can visual HTML primitives and use props with it!
@@ -31,18 +31,11 @@ const ButtonContainer = styled(BaseContainer)`
   color: #3E5774;
 `;
 
-const Exit = styled.button`
-  &:hover {
-    background: #3E5774;
-  }
-  
-  box-sizing: border-box;
-  background: transparent;
-  border: 2.5px solid #2167AC;
-  padding: 10px;
+const Exit = styled(Button)`
   border-radius: 40px;
-  color: #E4F5B2;
-  text-align: center;
+  box-sizing: border-box;
+  
+  padding: 10px;
   right: 100px;
 `;
 
