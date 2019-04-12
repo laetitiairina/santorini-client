@@ -94,6 +94,7 @@ class StartPage extends React.Component {
   constructor() {
     super();
     this.state = {
+      token: null,
       users: null,
       isGodMode: false,
       inQueue: false,
@@ -130,6 +131,77 @@ class StartPage extends React.Component {
     // three.js prototype
     init();
     animate();
+  }
+
+  addPlayer () {
+    fetch(`${getDomain()}/players`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        token: this.state.token,
+        isGodMode: this.state.isGodMode
+      })
+    })
+      .then(response => response.json())
+      .then(async returnedPlayer => {
+        const player = new Player(returnedPlayer);
+      })
+      .catch(err => {
+        console.log(err);
+        alert("Something went wrong creating the player: " + err);
+      });
+  }
+
+  addPlayerToQueue(isGodMode) {
+    fetch(`${getDomain()}/players`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        isGodMode: this.state.isGodMode
+      })
+    })
+      .then(response => response.json())
+      .then(player => {
+        console.log(player);
+        this.setState({inQueue: true});
+        let url = `${getDomain()}/players/${player.id}`;
+        this.poller = setInterval(() => this.poll(url, ['game_id']), 1000);
+      })
+      .catch(err => {
+        console.log(err);
+      });
+  }
+
+  poll(url, fields) {
+    fetch(`${url}/?fields=${fields.join('&')}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json"
+      },
+    })
+      .then(response => response.json())
+      .then(response => {
+        if(response.game_id !== (null || undefined)){
+          this.setState(
+            {
+              game_id: response.game_id,
+              inQueue: false
+            }
+          );
+          clearInterval(this.poller);
+        }
+      })
+      .catch(err => {
+        console.log(err);
+      });
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.poller);
   }
 
   render() {
@@ -176,6 +248,7 @@ class StartPage extends React.Component {
                      }}
                      onClick={() => {
                        this.setState({inQueue : true, startButtonColor : "#3E5774", animationButton : Spin, animationText: NoSpin, loaderStrip: "white"});
+                       this.addPlayerToQueue(this.state.isGodMode);
                      }}
         >
           <LoaderText animation={this.state.animationText}>
