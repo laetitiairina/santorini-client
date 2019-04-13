@@ -1,30 +1,29 @@
 import React from "react";
+import circle from "./design/circle.png";
 import styled from "styled-components";
 
 const Container = styled.div`
   margin: 6px 0;
   width: 280px;
   padding: 10px;
-  border-radius: 6px;
+  border-radius: 40px;
   display: flex;
   align-items: center;
-  border: 1px solid #ffffff26;
+  border: 2.5px solid #2167AC;
+  background-color: transparent;
 `;
 
 const UserName = styled.div`
-  font-weight: lighter;
+  font-weight: normal;
+  font-family: "American Typewriter",serif;
+  font-size: x-large;
+  color: #227BB6;
   margin-left: 5px;
 `;
 
-const Name = styled.div`
-  font-weight: bold;
-  color: #06c4ff;
-`;
-
-const Id = styled.div`
+const Symbol = styled.div`
   margin-left: auto;
   margin-right: 10px;
-  font-weight: bold;
 `;
 
 /**
@@ -38,8 +37,10 @@ const Id = styled.div`
 const Player = ({ user }) => {
   return (
     <Container>
-      <Name>{user.name}</Name> <UserName>{user.username}</UserName>
-      <Id>Id: {user.id}</Id>
+      <UserName>{user.username}</UserName>
+      <Symbol>
+        <img src={circle} alt={"Online"} width={"20px"} height={"auto"}/>
+      </Symbol>
     </Container>
   );
 };

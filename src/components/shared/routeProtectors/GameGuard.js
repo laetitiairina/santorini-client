@@ -14,5 +14,6 @@ export const GameGuard = props => {
   if (localStorage.getItem("token")) {
     return props.children;
   }
-  return <Redirect to={"/login"} />;
+  // switch to /login when users are implemented
+  return <Redirect to={"/game"} />;
 };
