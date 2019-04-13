@@ -11,9 +11,12 @@ import { Redirect } from "react-router-dom";
  * @param props
  */
 export const GameGuard = props => {
+  /* TODO: change as soon as users are implemented
   if (localStorage.getItem("token")) {
     return props.children;
-  }
-  // switch to /login when users are implemented
+
+  // TODO: switch to /login when users are implemented
   return <Redirect to={"/game"} />;
+  }*/
+  return props.children;
 };
