@@ -91,13 +91,18 @@ const LoaderText = styled.div`
 `;
 
 class StartPage extends React.Component {
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
+    this.addPlayerToQueue = this.addPlayerToQueue.bind(this);
+    this.startPolling = this.startPolling.bind(this);
+    this.poll = this.poll.bind(this);
+    this.poller = null;
     this.state = {
       token: null,
       users: null,
       isGodMode: false,
       inQueue: false,
+      amountOfPolls: 0,
       godColor: "transparent",
       simpleColor: "#3E5774",
       startButtonColor: "transparent",
@@ -167,16 +172,51 @@ class StartPage extends React.Component {
     .then(response => response.json())
     .then(player => {
       console.log(player);
-      this.setState({inQueue: true});
-      let url = `${getDomain()}/players/${player.id}`;
-      this.poller = setInterval(() => this.poll(url, ['game_id']), 1000);
+      this.setState({inQueue: true, amountOfPolls: 0});
+      const url = `${getDomain()}/players/${player.id}`;
+      const fields = ['game_id'];
+      return this.startPolling(url, fields);
     })
+    // Handle resolved or rejected Promise form startPolling
+    .then(result => {
+      clearInterval(this.poller);
+      this.setState(
+          {
+            game_id: result,
+            inQueue: false,
+            animationButton: "normal",
+            animationText: "normal"
+          }
+      );
+      alert('Opponent found!');
+      localStorage.setItem('game_id', result);
+      this.props.history.push('../gamescreen')
+      },
+      rejected => {
+        clearInterval(this.poller);
+        this.setState(
+            {
+              inQueue: false,
+              animationButton: "normal",
+              animationText: "normal"
+            }
+        );
+        alert(rejected);
+      }
+    )
     .catch(err => {
       console.log(err);
     });
   }
 
-  poll(url, fields) {
+  startPolling(url, fields){
+    return new Promise((resolve, reject) => {
+        this.poller = setInterval(() => this.poll(url, fields, 60, resolve, reject), 1000)
+        }
+    );
+  }
+
+  poll(url, fields, maxPolls, resolve, reject) {
     fetch(`${url}/?fields=${fields.join('&')}`, {
       method: "GET",
       headers: {
@@ -185,18 +225,13 @@ class StartPage extends React.Component {
     })
     .then(response => response.json())
     .then(response => {
-      if(response.game_id !== (null || undefined)){
-        this.setState(
-            {
-              game_id: response.game_id,
-              inQueue: false,
-              animationButton: "normal",
-              animationText: "normal"
-            }
-        );
-        clearInterval(this.poller);
-
+      this.setState({amountOfPolls: this.state.amountOfPolls + 1});
+      if(response[fields[0]] !== (null && undefined)) {
+        resolve(response[fields[0]]);
       }
+        else if (this.state.amountOfPolls >= maxPolls) {
+          reject("No match found! Timeout")
+        }
     })
     .catch(err => {
       console.log(err);

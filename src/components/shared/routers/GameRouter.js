@@ -2,6 +2,7 @@ import React from "react";
 import styled from "styled-components";
 import { Redirect, Route } from "react-router-dom";
 import StartPage from "../../game/StartPage";
+import GamePage from "../../game/GamePage";
 
 const Container = styled.div`
   display: flex;
