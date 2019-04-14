@@ -172,7 +172,6 @@ class StartPage extends React.Component {
     .then(response => response.json())
     .then(player => {
       console.log(player);
-      this.setState({inQueue: true, amountOfPolls: 0});
       const url = `${getDomain()}/players/${player.id}`;
       const fields = ['game_id'];
       return this.startPolling(url, fields);
@@ -211,6 +210,7 @@ class StartPage extends React.Component {
 
   startPolling(url, fields){
     return new Promise((resolve, reject) => {
+        this.setState({inQueue: true, amountOfPolls: 0});
         this.poller = setInterval(() => this.poll(url, fields, 60, resolve, reject), 1000)
         }
     );
