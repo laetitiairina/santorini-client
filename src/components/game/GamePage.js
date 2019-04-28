@@ -1,9 +1,11 @@
 import React from "react";
 import styled from "styled-components";
-import { BaseContainer } from "../../helpers/layout";
-import { Button } from "../../views/design/Button";
-import { withRouter } from "react-router-dom";
+import {BaseContainer} from "../../helpers/layout";
+import {Button} from "../../views/design/Button";
+import {withRouter} from "react-router-dom";
 import {getDomain} from "../../helpers/getDomain";
+import EndPopUp from "./EndPopUp";
+import User from "../shared/models/User";
 
 
 const Container = styled(BaseContainer)`
@@ -12,8 +14,16 @@ const Container = styled(BaseContainer)`
   justify-content: left;
 `;
 
+const ButtonContainer = styled(BaseContainer)`
+  position: absolute;
+  right: 100px;
+  overflow: hidden;
+  color: #3E5774;
+`;
+
 
 const ExitButton = styled(Button)`
+
 `;
 
 const QuestionMarkButton = styled(Button)`
@@ -22,10 +32,16 @@ const QuestionMarkButton = styled(Button)`
 
 class GamePage extends React.Component {
   constructor(props) {
+
+    let w = new User();
+    w.username = "Budi";
+
     super(props);
     this.state = {
       status: null,
-      amountOfPolls: 0
+      amountOfPolls: 0,
+      isEnd: false,
+      isWinner: false,
     };
   }
 
@@ -43,7 +59,7 @@ class GamePage extends React.Component {
     );
   }
 
-  startPolling(url, fields){
+  startPolling(url, fields) {
     return new Promise((resolve, reject) => {
           this.setState({inQueue: true, amountOfPolls: 0});
           this.poller = setInterval(() => this.poll(url, fields, 1000, resolve, reject), 100)
@@ -61,10 +77,9 @@ class GamePage extends React.Component {
     .then(response => response.json())
     .then(response => {
       this.setState({amountOfPolls: this.state.amountOfPolls + 1});
-      if(response[fields[0]] !== this.state.status) {
+      if (response[fields[0]] !== this.state.status) {
         resolve(response[fields[0]]);
-      }
-      else if (this.state.amountOfPolls >= maxPolls) {
+      } else if (this.state.amountOfPolls >= maxPolls) {
         reject("Timeout")
       }
     })
@@ -80,9 +95,7 @@ class GamePage extends React.Component {
   render() {
     return (
         <Container>
-
-
-
+             <EndPopUp isEnd={this.state.isEnd} winner={this.state.isWinner} props={this.props}/>
         </Container>
     );
   }
