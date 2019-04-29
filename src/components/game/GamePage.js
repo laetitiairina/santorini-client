@@ -32,10 +32,6 @@ const QuestionMarkButton = styled(Button)`
 
 class GamePage extends React.Component {
   constructor(props) {
-
-    let w = new User();
-    w.username = "Budi";
-
     super(props);
     this.state = {
       status: null,
