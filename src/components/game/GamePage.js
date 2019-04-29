@@ -6,6 +6,7 @@ import {withRouter} from "react-router-dom";
 import {getDomain} from "../../helpers/getDomain";
 import EndPopUp from "./EndPopUp";
 import User from "../shared/models/User";
+import ChooseColorPopUp from "./ChooseColorPopUp";
 
 
 const Container = styled(BaseContainer)`
@@ -33,11 +34,14 @@ const QuestionMarkButton = styled(Button)`
 class GamePage extends React.Component {
   constructor(props) {
     super(props);
+
     this.state = {
       status: null,
       amountOfPolls: 0,
       isEnd: false,
       isWinner: false,
+      isChooseColor: true,
+      color: null,
     };
   }
 
@@ -88,10 +92,19 @@ class GamePage extends React.Component {
     clearInterval(this.poller);
   }
 
+  setColor = (param) => {
+    console.log(param);
+    this.setState({
+      isChooseColor: param.isChooseColor,
+      color: param.color
+    });
+  };
+
   render() {
     return (
         <Container>
              <EndPopUp isEnd={this.state.isEnd} winner={this.state.isWinner} props={this.props}/>
+             <ChooseColorPopUp isChooseColor={this.state.isChooseColor} setColor={this.setColor}/>
         </Container>
     );
   }
