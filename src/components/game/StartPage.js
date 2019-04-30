@@ -4,10 +4,9 @@ import {BaseContainer} from "../../helpers/layout";
 import {getDomain} from "../../helpers/getDomain";
 import Player from "../../views/Player";
 import {withRouter} from "react-router-dom";
-import {Button} from "../../views/design/Button";
-//import {init, animate} from '../../components/game/Prototype';
-import Login from "../login/Login";
-import Users from "../login/Users";
+import {Button} from "../../views/design/Button"
+import {init, animate} from '../../components/game/Prototype'
+import GamePlayer from "../shared/models/Player";
 
 const Container = styled(BaseContainer)`
   color: white;
@@ -70,7 +69,7 @@ const StartButton = styled(Button)`
   right: 117.5px;
   
   width: 250px;
-  height: 261px;
+  height: 250px;
   border-radius: 50%;
   border-width: 8px;
   border-top-color: ${props => props.loaderStrip || null};
@@ -92,6 +91,7 @@ class StartPage extends React.Component {
     this.poll = this.poll.bind(this);
     this.poller = null;
     this.state = {
+      player: null,
       loggedIn: false,
       token: null,
       isGodMode: false,
@@ -138,8 +138,8 @@ class StartPage extends React.Component {
       })
     })
     .then(response => response.json())
-    .then(async returnedPlayer => {
-      const player = new Player(returnedPlayer);
+    .then( returnedPlayer => {
+      this.setState({player: returnedPlayer});
     })
     .catch(err => {
       console.log(err);
@@ -159,9 +159,7 @@ class StartPage extends React.Component {
     })
     .then(response => response.json())
     .then(player => {
-      console.log(player);
-      
-      localStorage.setItem("playerToken", player.token);
+      this.setState({player: new GamePlayer(player)});
       
       const url = `${getDomain()}/players/${player.id}`;
       const fields = ['game_id'];
@@ -181,8 +179,9 @@ class StartPage extends React.Component {
       
       // TODO: Change alert to another form of showing that opponent was found
       alert('Opponent found!');
+      this.state.player.game_id = result; // TODO: can be deleted once cascading in DB works.
       localStorage.setItem('game_id', result);
-      this.props.history.push('/game');
+      this.props.history.push({pathname: '../game/gamescreen', state: {player: this.state.player}});
       },
       rejected => {
         clearInterval(this.poller);

@@ -29,15 +29,16 @@ const Contents =  styled.div`
  * https://reactjs.org/docs/components-and-props.html
  * @FunctionalComponent
  * */
-const EndPopUp =  ({isEnd, winner, props}) => {
+const EndPopUp =  ({appears, winner, props}) => {
   return (
-      <Popup modal open={isEnd} closeOnDocumentClick={false} contentStyle={{background: "transparent", color: "#E4F5B2", border: "5px solid #2167AC"}}>
+      <Popup modal open={appears} closeOnDocumentClick={false} contentStyle={{background: "transparent", color: "#E4F5B2", border: "5px solid #2167AC"}}>
             <Container>
               <Header> GAME OVER </Header>
               <Contents>
                 {result(winner)}
               </Contents>
                 <Button
+                    style={{borderRadius : "40px"}}
                     onClick={() => {
                       props.history.push('../game')
                     }}

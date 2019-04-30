@@ -5,10 +5,7 @@ import {Button} from "../../views/design/Button";
 import {withRouter} from "react-router-dom";
 import {getDomain} from "../../helpers/getDomain";
 import EndPopUp from "./EndPopUp";
-import User from "../shared/models/User";
 import ChooseColorPopUp from "./ChooseColorPopUp";
-import Game from "./Game";
-
 
 const Container = styled(BaseContainer)`
   color: white;
@@ -36,13 +33,14 @@ class GamePage extends React.Component {
   constructor(props) {
     super(props);
 
+    this.player = this.props.location.state.player;
+
     this.state = {
       status: null,
       amountOfPolls: 0,
-      isEnd: false,
+      gameEnds: false,
       isWinner: false,
-      isChooseColor: true,
-      color: null,
+      blockedColor: null,
     };
   }
 
@@ -51,13 +49,71 @@ class GamePage extends React.Component {
     this.props.history.push("/login");
   }
 
-  listenForGameStateChange() {
+  componentDidMount() {
     const url = `${getDomain()}/games/${localStorage.getItem('game_id')}`;
     const fields = ['status'];
     this.startPolling(url, fields).then(
-        result => this.setState({status: result}),
+        async result => {
+          await this.setState({status: result});
+        },
         rejected => alert(rejected)
     );
+  }
+
+  update() {
+    switch(this.state.status) {
+      case "CARDS1":
+        console.log("CARDS1");
+
+        break;
+      case "CARDS2":
+        console.log("CARDS2");
+
+        break;
+      case "STARTPLAYER":
+        console.log("STARTPLAYER");
+
+        break;
+      case "COLOR1":
+      case "COLOR2":
+        console.log("COLOR 1 & 2");
+
+        const url = `${getDomain()}/players/${this.player.id}`;
+
+        fetch(`${url}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json"
+          }
+        })
+        .then(response => response.json())
+        .then(response => {
+          this.player.currentPlayer = response.currentPlayer;
+          this.player.isCurrentPlayer = this.player.currentPlayer; // TODO: only necessary because of weird name change
+        })
+        .catch(err => {
+          console.log(err);
+        });
+        break;
+      case "POSITION1":
+        console.log("POSITION1");
+        break;
+      case "POSITION2":
+        console.log("POSITION2");
+        break;
+      case "MOVE":
+        console.log("MOVE");
+        break;
+      case "BUILD":
+        console.log("BUILD");
+        break;
+      case "END":
+        console.log("END");
+        this.setState({gameEnds : true});
+        // TODO: backend has to indicate who won
+          // this.setState({isWinner : BOOLEAN});
+        break;
+    }
   }
 
   startPolling(url, fields) {
@@ -79,7 +135,9 @@ class GamePage extends React.Component {
     .then(response => {
       this.setState({amountOfPolls: this.state.amountOfPolls + 1});
       if (response[fields[0]] !== this.state.status) {
+        this.setState({status : response[fields[0]]});
         resolve(response[fields[0]]);
+        this.update();
       } else if (this.state.amountOfPolls >= maxPolls) {
         reject("Timeout")
       }
@@ -94,19 +152,51 @@ class GamePage extends React.Component {
   }
 
   setColor = (param) => {
-    console.log(param);
-    this.setState({
-      isChooseColor: param.isChooseColor,
-      color: param.color
+    // set new color
+    this.player.color = param.color;
+
+    const url = `${getDomain()}/games/${localStorage.getItem('game_id')}`;
+
+    fetch(`${url}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Token": this.player.token
+      },
+      body: JSON.stringify({
+        id: localStorage.getItem("game_id"),
+        players: [ this.player ]
+      })
+    })
+    .then(response => {
+      if (response.status !== 204) {
+        this.player.color = null;
+      } else {
+        this.setState({blockedColor : param.color})
+      }
+    })
+    .catch(err => {
+      console.log(err);
     });
   };
+
+  chooseColor() {
+    return (this.player.isCurrentPlayer && (this.state.status === "COLOR1" || this.state.status === "COLOR2"))
+  }
+
+  gameEnds() {
+    return this.state.gameEnds;
+  }
+
+  getBlockedColor() {
+    return this.state.blockedColor;
+  }
 
   render() {
     return (
         <Container>
-          <EndPopUp isEnd={this.state.isEnd} winner={this.state.isWinner} props={this.props}/>
-          <ChooseColorPopUp isChooseColor={this.state.isChooseColor} setColor={this.setColor}/>
-          <Game />
+          <EndPopUp appears={this.gameEnds()} winner={this.state.isWinner} props={this.props}/>
+          <ChooseColorPopUp appears={this.chooseColor()} setColor={this.setColor} blockedColor={this.getBlockedColor()}/>
         </Container>
     );
   }
