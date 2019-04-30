@@ -37,6 +37,7 @@ const WorkerButton = styled(Button)`
     background-color: transparent;
   }
 
+  border-radius: 40px;
   border-color: transparent;
   border-width: 5px;
   padding: 35px;
@@ -44,6 +45,7 @@ const WorkerButton = styled(Button)`
 
 const NextButton = styled(Button)`
   margin-bottom: 20px;
+  border-radius: 40px;
 `;
 
 
@@ -52,62 +54,84 @@ class ChooseColorPopUp extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      isChooseColor: this.props.isChooseColor,
+      appears: this.props.appears,
+      blockedColor: this.props.blockedColor,
       blue: false,
       grey: false,
       white: false,
-      color: null, // can later be replaced with the COLOR ENUM
+      color: null,
     };
+  }
+
+  /**
+   * updates the appears value from parent
+   *
+   * @param props {appears: BOOLEAN}
+   * @param state
+   * @returns {null|{appears: *}}
+   */
+  static getDerivedStateFromProps(props, state) {
+    if (props.appears !== state.appears) {
+      return {
+        appears: props.appears,
+        blocked: props.blockedColor,
+      };
+    }
+    return null;
   }
 
   render() {
     return (
-        <Popup modal open={this.state.isChooseColor} closeOnDocumentClick={false}
+        <Popup modal open={this.state.appears} closeOnDocumentClick={false}
                contentStyle={{background: "transparent", color: "#E4F5B2", border: "5px solid #2167AC"}}>
           {close => (
           <Container>
             <Header> CHOOSE A COLOR </Header>
             <Contents>
-              <WorkerButton style={{borderBottomColor: (this.state.blue) ? "#E4F5B2" : "transparent"}}
+              <WorkerButton style={{borderBottomColor: (this.state.blue) ? "#E4F5B2" : "transparent",
+                visibility: (this.state.blockedColor === "BLUE") ? "hidden" : "visible"}}
                             onMouseOver={() => {
                               this.setState({blue: true});
                             }}
                             onMouseOut={() => {
-                              if (this.state.color !== "blue") this.setState({blue: false});
+                              if (this.state.color !== "BLUE") this.setState({blue: false});
                             }}
                             onClick={() => {
-                              this.setState({blue: true, white: false, grey: false, color: "blue"})
+                              this.setState({blue: true, white: false, grey: false, color: "BLUE"})
                             }}>
                 <Worker src={Blue} alt={"Blue Worker"}/>
               </WorkerButton>
-              <WorkerButton style={{borderBottomColor: (this.state.grey) ? "#E4F5B2" : "transparent"}}
+              <WorkerButton style={{borderBottomColor: (this.state.grey) ? "#E4F5B2" : "transparent",
+                visibility: (this.state.blockedColor === "GREY") ? "hidden" : "visible"}}
                             onMouseOver={() => {
                               this.setState({grey: true});
                             }}
                             onMouseOut={() => {
-                              if (this.state.color !== "grey") this.setState({grey: false});
+                              if (this.state.color !== "GREY") this.setState({grey: false});
                             }}
                             onClick={() => {
-                              this.setState({grey: true, blue: false, white: false, color: "grey"})
+                              this.setState({grey: true, blue: false, white: false, color: "GREY"})
                             }}>
                 <Worker src={Grey} alt={"Grey Worker"}/>
               </WorkerButton>
-              <WorkerButton style={{borderBottomColor: (this.state.white) ? "#E4F5B2" : "transparent"}}
+              <WorkerButton style={{borderBottomColor: (this.state.white) ? "#E4F5B2" : "transparent",
+                visibility: (this.state.blockedColor === "WHITE") ? "hidden" : "visible"}}
                             onMouseOver={() => {
                               this.setState({white: true});
                             }}
                             onMouseOut={() => {
-                              if (this.state.color !== "white") this.setState({white: false});
+                              if (this.state.color !== "WHITE") this.setState({white: false});
                             }}
                             onClick={() => {
-                              this.setState({white: true, blue: false, grey: false, color: "white"})
+                              this.setState({white: true, blue: false, grey: false, color: "WHITE"})
                             }}>
                 <Worker src={White} alt={"White Worker"}/>
               </WorkerButton>
             </Contents>
             <NextButton
+                disabled={!this.state.color}
                 onClick={() => {
-                  this.props.setColor( {isChooseColor : false, color: this.state.color} );
+                  this.props.setColor( {color: this.state.color} );
                   close();
                 }}
             >

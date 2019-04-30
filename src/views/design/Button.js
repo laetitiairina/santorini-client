@@ -9,7 +9,6 @@ export const Button = styled.button`
   color: #E4F5B2;
   border-color: #2167AC;
   border-style: solid;
-  border-radius: 40px;
   padding: 10px;
   
   cursor: ${props => (props.disabled ? "default" : "pointer")};
