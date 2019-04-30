@@ -7,8 +7,6 @@ import {getDomain} from "../../helpers/getDomain";
 import EndPopUp from "./EndPopUp";
 import ChooseColorPopUp from "./ChooseColorPopUp";
 
-
-
 const Container = styled(BaseContainer)`
   color: white;
   text-align: center;

@@ -46,6 +46,7 @@ const WorkerButton = styled(Button)`
 const NextButton = styled(Button)`
   margin-bottom: 20px;
   border-radius: 40px;
+
 `;
 
 

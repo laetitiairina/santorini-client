@@ -26,13 +26,13 @@ const Form = styled.div`
   padding-left: 37px;
   padding-right: 37px;
   border-radius: 5px;
-  background: linear-gradient(rgb(27, 124, 186), rgb(2, 46, 101));
+  //background: linear-gradient(rgb(27, 124, 186), rgb(2, 46, 101));
   transition: opacity 0.5s ease, transform 0.5s ease;
 `;
 
 const InputField = styled.input`
   &::placeholder {
-    color: rgba(255, 255, 255, 0.2);
+    color: rgba(0, 0, 255, 0.3);
   }
   height: 35px;
   padding-left: 15px;
@@ -40,12 +40,12 @@ const InputField = styled.input`
   border: none;
   border-radius: 20px;
   margin-bottom: 20px;
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
+  background: rgba(255, 255, 255, 0.5);
+  color: #3E5774;
 `;
 
 const Label = styled.label`
-  color: white;
+  color: #3E5774;
   margin-bottom: 10px;
   text-transform: uppercase;
 `;
@@ -54,6 +54,28 @@ const ButtonContainer = styled.div`
   display: flex;
   justify-content: center;
   margin-top: 20px;
+`;
+
+const NameContainer = styled(BaseContainer)`
+  display: flex;
+  justify-content: center;
+  margin: 20px;
+  color: #3E5774;
+`;
+
+const NameInfoLabel = styled.label`
+  color: #3E5774;
+  font-weight: 1;
+  padding-top: 14px;
+  margin-bottom: 10px;
+`;
+
+const NameLabel = styled.label`
+  font-size: 20px;
+  padding-top: 10px;
+  padding-left: 20px;
+  color: #3E5774;
+  margin-bottom: 10px;
 `;
 
 /**
@@ -76,7 +98,7 @@ class Login extends React.Component {
     super();
     this.state = {
       name: null,
-      username: null
+      username: "GUEST"
     };
   }
   /**
@@ -98,9 +120,9 @@ class Login extends React.Component {
       .then(returnedUser => {
         const user = new User(returnedUser);
         // store the token into the local storage
-        localStorage.setItem("token", user.token);
-        // user login successfully worked --> navigate to the route /game in the GameRouter
-        this.props.history.push(`/game`);
+        localStorage.setItem("userToken", user.token);
+        // user login successfully worked
+        this.props.login();
       })
       .catch(err => {
         if (err.message.match(/Failed to fetch/)) {
@@ -134,6 +156,10 @@ class Login extends React.Component {
   render() {
     return (
       <BaseContainer>
+        <NameContainer>
+          <NameInfoLabel>Playing as</NameInfoLabel>
+          <NameLabel>{this.state.username}</NameLabel>
+        </NameContainer>
         <FormContainer>
           <Form>
             <Label>Username</Label>

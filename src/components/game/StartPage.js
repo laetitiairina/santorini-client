@@ -3,7 +3,6 @@ import styled, {keyframes} from "styled-components";
 import {BaseContainer} from "../../helpers/layout";
 import {getDomain} from "../../helpers/getDomain";
 import Player from "../../views/Player";
-import {Spinner} from "../../views/design/Spinner";
 import {withRouter} from "react-router-dom";
 import {Button} from "../../views/design/Button"
 import {init, animate} from '../../components/game/Prototype'
@@ -13,26 +12,19 @@ const Container = styled(BaseContainer)`
   color: white;
   text-align: center;
   justify-content: left;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-gap: 10px;
 `;
 
-const UsersContainer = styled(BaseContainer)`
-  color: white;
-  position: absolute;
-  left: 100px;
+const ContainerLeft = styled.div`
+  grid-column: 1;
+  grid-row: 1;
 `;
 
-const Users = styled.ul`
-  list-style: none;
-  padding-left: 0;
-  max-height: 580px;
-  overflow: auto;
-`;
-
-const PlayerContainer = styled.li`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+const ContainerRight = styled.div`
+  grid-column: 2;
+  grid-row: 1;
 `;
 
 const ModesContainer = styled(BaseContainer)`
@@ -73,7 +65,7 @@ const NoSpin = keyframes`
 
 const StartButton = styled(Button)`
   position: absolute;
-  bottom: 200px;
+  top: 300px;
   right: 117.5px;
   
   width: 250px;
@@ -100,8 +92,8 @@ class StartPage extends React.Component {
     this.poller = null;
     this.state = {
       player: null,
+      loggedIn: false,
       token: null,
-      users: null,
       isGodMode: false,
       inQueue: false,
       amountOfPolls: 0,
@@ -113,31 +105,25 @@ class StartPage extends React.Component {
       loaderStrip: "#2167AC"
     };
   }
+  
+  login() {
+    this.setState({loggedIn: true});
+  }
 
   logout() {
-    localStorage.removeItem("token");
-    this.props.history.push("/login");
+    localStorage.removeItem("userToken");
+    localStorage.removeItem("playerToken");
+    this.setState({loggedIn: false});
+    this.props.history.push("/home");
   }
 
   componentDidMount() {
-    fetch(`${getDomain()}/users`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json"
-      }
-    })
-    .then(response => response.json())
-    .then(async users => {
-      this.setState({users});
-    })
-    .catch(err => {
-      console.log(err);
-      alert("Something went wrong fetching the users: " + err);
-    });
-
+    if (localStorage.getItem("userToken")) {
+      this.login();
+    }
     // three.js prototype
-    init();
-    animate();
+    //init();
+    //animate();
   }
 
   addPlayer () {
@@ -173,9 +159,8 @@ class StartPage extends React.Component {
     })
     .then(response => response.json())
     .then(player => {
-
       this.setState({player: new GamePlayer(player)});
-
+      
       const url = `${getDomain()}/players/${player.id}`;
       const fields = ['game_id'];
       return this.startPolling(url, fields);
@@ -191,6 +176,8 @@ class StartPage extends React.Component {
             animationText: "normal"
           }
       );
+      
+      // TODO: Change alert to another form of showing that opponent was found
       alert('Opponent found!');
       this.state.player.game_id = result; // TODO: can be deleted once cascading in DB works.
       localStorage.setItem('game_id', result);
@@ -250,72 +237,64 @@ class StartPage extends React.Component {
   render() {
     return (
         <Container>
-          <ModesContainer>
-            <h1>MODE</h1>
-            <ModeButton leftBottom={'40px'} leftTop={'40px'} float={"right"} borderRigth={"2.5px"}
-                        style={{ backgroundColor: this.state.godColor }} disabled={this.state.inQueue}
-                        onMouseOver={() => {
-                          this.setState({godColor: "#3E5774"});
-                        }}
-                        onMouseOut={() => {
-                          if (!this.state.isGodMode) this.setState({godColor: "transparent"});
-                        }}
-                        onClick={() => {
-                          this.setState({isGodMode : true, godColor : "#3E5774", simpleColor : "transparent"});
-                        }}
+          <ContainerLeft>
+            {!this.state.loggedIn ? (
+              <Login login={this.login.bind(this)} />
+            ) : (
+              <Users />
+            )}
+          </ContainerLeft>
+          <ContainerRight>
+            <ModesContainer>
+              <h1>MODE</h1>
+              <ModeButton leftBottom={'40px'} leftTop={'40px'} float={"right"} borderRigth={"2.5px"}
+                          style={{ backgroundColor: this.state.godColor }} disabled={this.state.inQueue}
+                          onMouseOver={() => {
+                            this.setState({godColor: "#3E5774"});
+                          }}
+                          onMouseOut={() => {
+                            if (!this.state.isGodMode) this.setState({godColor: "transparent"});
+                          }}
+                          onClick={() => {
+                            this.setState({isGodMode : true, godColor : "#3E5774", simpleColor : "transparent"});
+                          }}
+              >
+                {"GOD"}
+              </ModeButton>
+              <ModeButton rightBottom={'40px'} rightTop={'40px'} float={"left"} borderLeft={"2.5px"}
+                          style={{ backgroundColor: this.state.simpleColor}} disabled={this.state.inQueue}
+                          onMouseOver={() => {
+                            this.setState({simpleColor: "#3E5774"});
+                          }}
+                          onMouseOut={() => {
+                            if (this.state.isGodMode) this.setState({simpleColor: "transparent"});
+                          }}
+                          onClick={() => {
+                            this.setState({isGodMode : false, simpleColor : "#3E5774", godColor : "transparent"});
+                          }}
+              >
+                {"SIMPLE"}
+              </ModeButton>
+            </ModesContainer>
+            <StartButton style={{ backgroundColor: this.state.startButtonColor}} disabled={this.state.inQueue}
+                         animation={this.state.animationButton} loaderStrip={this.state.loaderStrip}
+                         onMouseOver={() => {
+                           this.setState({startButtonColor: "#3E5774"});
+                         }}
+                         onMouseOut={() => {
+                           if (!this.state.inQueue) this.setState({ startButtonColor: "transparent"});
+                         }}
+                         onClick={() => {
+                           this.setState({inQueue : true, startButtonColor : "#3E5774", animationButton : Spin, animationText: NoSpin, loaderStrip: "white"});
+                           this.addPlayerToQueue();
+                         }}
             >
-              {"GOD"}
-            </ModeButton>
-            <ModeButton rightBottom={'40px'} rightTop={'40px'} float={"left"} borderLeft={"2.5px"}
-                        style={{ backgroundColor: this.state.simpleColor}} disabled={this.state.inQueue}
-                        onMouseOver={() => {
-                          this.setState({simpleColor: "#3E5774"});
-                        }}
-                        onMouseOut={() => {
-                          if (this.state.isGodMode) this.setState({simpleColor: "transparent"});
-                        }}
-                        onClick={() => {
-                          this.setState({isGodMode : false, simpleColor : "#3E5774", godColor : "transparent"});
-                        }}
-            >
-              {"SIMPLE"}
-            </ModeButton>
-          </ModesContainer>
-          <StartButton style={{ backgroundColor: this.state.startButtonColor}} disabled={this.state.inQueue}
-                       animation={this.state.animationButton} loaderStrip={this.state.loaderStrip}
-                       onMouseOver={() => {
-                         this.setState({startButtonColor: "#3E5774"});
-                       }}
-                       onMouseOut={() => {
-                         if (!this.state.inQueue) this.setState({ startButtonColor: "transparent"});
-                       }}
-                       onClick={() => {
-                         this.setState({inQueue : true, startButtonColor : "#3E5774", animationButton : Spin, animationText: NoSpin, loaderStrip: "white"});
-                         this.addPlayerToQueue();
-                       }}
-          >
-            <LoaderText animation={this.state.animationText}>
-              {"START"}
-            </LoaderText>
-          </StartButton>
-          <div id="container"/>
-          {!this.state.users ? (
-              <Spinner/>
-          ) : (
-              <UsersContainer>
-                <Users>
-                  {this.state.users.map(user => {
-                    if (user.status === "ONLINE") {
-                      return (
-                          <PlayerContainer>
-                            <Player user={user}/>
-                          </PlayerContainer>
-                      );
-                    }
-                  })}
-                </Users>
-              </UsersContainer>
-          )}
+              <LoaderText animation={this.state.animationText}>
+                {"START"}
+              </LoaderText>
+            </StartButton>
+            <div id="container"/>
+          </ContainerRight>
         </Container>
     );
   }
