@@ -7,6 +7,7 @@ import {getDomain} from "../../helpers/getDomain";
 import EndPopUp from "./EndPopUp";
 import User from "../shared/models/User";
 import ChooseColorPopUp from "./ChooseColorPopUp";
+import Game from "./Game";
 
 
 const Container = styled(BaseContainer)`
@@ -103,8 +104,9 @@ class GamePage extends React.Component {
   render() {
     return (
         <Container>
-             <EndPopUp isEnd={this.state.isEnd} winner={this.state.isWinner} props={this.props}/>
-             <ChooseColorPopUp isChooseColor={this.state.isChooseColor} setColor={this.setColor}/>
+          <EndPopUp isEnd={this.state.isEnd} winner={this.state.isWinner} props={this.props}/>
+          <ChooseColorPopUp isChooseColor={this.state.isChooseColor} setColor={this.setColor}/>
+          <Game />
         </Container>
     );
   }
