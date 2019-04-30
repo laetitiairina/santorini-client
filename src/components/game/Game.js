@@ -13,7 +13,7 @@ class Game extends React.Component {
     this.blocks = [];
     this.workers = [];
     this.mouse = new THREE.Vector2();
-    this.draged = false;
+    this.blockDraged = false;
     this.fields = {
       "-10": {},
       "-5": {},
@@ -21,6 +21,12 @@ class Game extends React.Component {
       "5": {},
       "10": {},
     };
+    
+    /*this.state = {
+      board: {
+        fields: [{id:1,worker:{},block:0,hasDome:false,posX:1,posY:2},]
+      }
+    };*/
   }
 
   componentDidMount() {
@@ -57,18 +63,23 @@ class Game extends React.Component {
     // models
 
     //var texture = new THREE.TextureLoader().load( 'textures/crate.gif' );
-    let block = new THREE.Mesh( new THREE.BoxBufferGeometry( this.blockSize, this.blockHeight, this.blockSize ), this.blockMaterial);
-    block.position.set( 0, this.blockHeight / 2, 0 );
-    this.scene.add( block );
-    this.blocks.push( block );
-    this.fields[0][0] = 1;
+    this.initBlock = new THREE.Mesh( new THREE.BoxBufferGeometry( this.blockSize, this.blockHeight, this.blockSize ), this.blockMaterial);
+    this.initBlock.position.set( 0, this.blockHeight / 2, 20 );
+    this.scene.add( this.initBlock );
+    //this.blocks.push( block );
+    //this.fields[0][0] = 1;
 
     let color1 = Math.random() * 0xffffff;
     let color2 = Math.random() * 0xffffff;
-    let workerColors = [color1, color1, color2, color2];
-    for ( let i = 0; i < 4; i++ ) {
-      let worker = new THREE.Mesh( new THREE.CylinderBufferGeometry( 0,1,4,20 ), new THREE.MeshLambertMaterial( { color: workerColors[i] } ) );
-      worker.position.set( 5 - 5 * i, 2, 10 - 5 * i );
+    for ( let i = 0; i < 2; i++ ) {
+      let worker = new THREE.Mesh( new THREE.CylinderBufferGeometry( 0,1,4,20 ), new THREE.MeshLambertMaterial( { color: color1 } ) );
+      worker.position.set( 10 - 3 * i, 2, 20);
+      this.scene.add( worker );
+      this.workers.push( worker );
+    }
+    for ( let i = 0; i < 2; i++ ) {
+      let worker = new THREE.Mesh( new THREE.CylinderBufferGeometry( 0,1,4,20 ), new THREE.MeshLambertMaterial( { color: color2 } ) );
+      worker.position.set( -10 + 3 * i, 2, 20);
       this.scene.add( worker );
       this.workers.push( worker );
     }
@@ -105,26 +116,26 @@ class Game extends React.Component {
     
     // drag controls
 
-    this.dragControls = new DragControls( this.workers, this.camera, this.renderer.domElement );
-    this.dragControls.addEventListener( 'dragstart', this.onDragStart);
-    this.dragControls.addEventListener( 'dragend', this.onDragEnd);
+    this.dragControlsWorker = new DragControls( this.workers, this.camera, this.renderer.domElement );
+    this.dragControlsWorker.addEventListener( 'dragstart', this.onDragStartWorker);
+    this.dragControlsWorker.addEventListener( 'dragend', this.onDragEndWorker);
+    
+    this.dragControlsBlock = new DragControls( [this.initBlock] , this.camera, this.renderer.domElement );
+    this.dragControlsBlock.addEventListener( 'dragstart', this.onDragStartBlock);
+    this.dragControlsBlock.addEventListener( 'dragend', this.onDragEndBlock);
     
     // start animation loop
     
     this.animate();
   }
   
-  animate = () => {
-    window.requestAnimationFrame(this.animate);
-    this.renderer.render(this.scene, this.camera);
-  }
+  // Input
   
-  onDragStart = (event) => {
+  onDragStartWorker = (event) => {
     this.controls.enabled = false;
-    this.draged = true;
   }
   
-  onDragEnd = (event) => {
+  onDragEndWorker = (event) => {
     event.object.position.x = Math.floor( ( event.object.position.x + 2.5 ) / 5 ) * 5;
     event.object.position.z = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
     event.object.position.y = 2;
@@ -134,11 +145,53 @@ class Game extends React.Component {
 
     this.controls.enabled = true;
   }
+  
+  onDragStartBlock = (event) => {
+    this.blockDraged = true;
+    this.controls.enabled = false;
+    
+    this.placeholderBlock = new THREE.Mesh( new THREE.BoxBufferGeometry( this.blockSize, this.blockHeight, this.blockSize ), this.blockMaterial );
+    this.placeholderBlock.position.set( 0, this.blockHeight / 2, 20 );
+    this.scene.add(this.placeholderBlock);
+  }
+  
+  onDragEndBlock = (event) => {
+    this.controls.enabled = true;
+    this.scene.remove(this.placeholderBlock);
+    
+    let pointX = Math.floor( ( event.object.position.x + 2.5 ) / 5 ) * 5;
+    let pointZ = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
+    let pointY = this.blockHeight/2;
+    
+    if ( this.fields[pointX][pointZ] > 2) {
+      this.initBlock.position.set( 0, this.blockHeight / 2, 20 );
+      return;
+    } else if ( this.fields[pointX][pointZ] ) {
+      pointY += this.blockHeight * this.fields[pointX][pointZ];
+      this.fields[pointX][pointZ] += 1;
+    } else {
+      this.fields[pointX][pointZ] = 1;
+    }
+    
+    let block = new THREE.Mesh( new THREE.BoxBufferGeometry( this.blockSize, this.blockHeight, this.blockSize ), this.blockMaterial );
+    block.position.set(pointX, pointY, pointZ);
+    this.scene.add(block);
+    this.blocks.push(block);
+    
+    this.initBlock.position.set( 0, this.blockHeight / 2, 20 );
+  }
 
   onMouseUp = (event) => {
-
-    if ( this.draged || event.button !== 0 ) {
-      this.draged = false;
+  
+    // TODO: Rework
+    return;
+  
+    /*if ( this.workerDraged || event.button !== 0 ) {
+      this.workerDraged = false;
+      return;
+    }*/
+    
+    if (!this.blockDraged) {
       return;
     }
 
@@ -189,6 +242,13 @@ class Game extends React.Component {
 
     }
 
+  }
+  
+  // Output
+  
+  animate = () => {
+    window.requestAnimationFrame(this.animate);
+    this.renderer.render(this.scene, this.camera);
   }
 
   onWindowResize = () => {
