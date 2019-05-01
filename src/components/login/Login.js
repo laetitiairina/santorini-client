@@ -78,6 +78,10 @@ const NameLabel = styled.label`
   margin-bottom: 10px;
 `;
 
+const LoginButton = styled(Button)`
+  border-radius: 40px;
+`;
+
 const RegisterLink = styled(Link)`
   margin: 20px;
   &:hover {
@@ -107,7 +111,7 @@ class Login extends React.Component {
   constructor() {
     super();
     this.state = {
-      name: null,
+      password: null,
       username: "GUEST"
     };
   }
@@ -123,7 +127,7 @@ class Login extends React.Component {
       },
       body: JSON.stringify({
         username: this.state.username,
-        name: this.state.name
+        password: this.state.name
       })
     })
       .then(response => response.json())
@@ -179,7 +183,7 @@ class Login extends React.Component {
                 this.handleInputChange("username", e.target.value);
               }}
             />
-            <Label>Name</Label>
+            <Label>Password</Label>
             <InputField
               placeholder="Enter here.."
               onChange={e => {
@@ -187,7 +191,7 @@ class Login extends React.Component {
               }}
             />
             <ButtonContainer>
-              <Button
+              <LoginButton
                 disabled={!this.state.username || !this.state.name}
                 width="50%"
                 onClick={() => {
@@ -195,7 +199,7 @@ class Login extends React.Component {
                 }}
               >
                 Login
-              </Button>
+              </LoginButton>
             </ButtonContainer>
             <RegisterLink to="/register">Register Now!</RegisterLink>
           </Form>
