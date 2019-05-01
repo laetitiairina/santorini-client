@@ -117,7 +117,7 @@ class GamePage extends React.Component {
     );
     
     // For testing
-    this.update();
+    //this.update();
   }
   
   // Fetch player
@@ -320,27 +320,27 @@ class GamePage extends React.Component {
 
   render() {
     return (
-        <Container>
-          <div style={{color:"#000000"}}>STATUS: {this.state.status}</div>
-          {!this.state.status ? (
-            this.unautherizedAccess ? (
-              <ErrorContainer>
-                <ErrorLabel>Game not initializated!</ErrorLabel>
-                <BackButton onClick={() => {this.props.history.push("/home");}}>Back</BackButton>
-              </ErrorContainer>
-            ): (
-              <Spinner/>
-            )
-          ) : (
-            <GameContainer>
-              <PopupContainer>
-                <EndPopUp appears={this.gameEnds()} winner={this.state.isWinner} props={this.props}/>
-                <ChooseColorPopUp appears={this.chooseColor()} setColor={this.setColor} blockedColor={this.getBlockedColor()}/>
-              </PopupContainer>
-              <Game game={this.state.game} inputHandler={this.inputHandler} ref={this.outputHander}/>
-            </GameContainer>
-          )}
-        </Container>
+      <div>
+        <div style={{color:"#000000"}}>STATUS: {this.state.status}</div>
+        {!this.state.status ? (
+          this.unautherizedAccess ? (
+            <ErrorContainer>
+              <ErrorLabel>Game not initializated!</ErrorLabel>
+              <BackButton onClick={() => {this.props.history.push("/home");}}>Back</BackButton>
+            </ErrorContainer>
+          ): (
+            <Spinner/>
+          )
+        ) : (
+          <GameContainer>
+            <PopupContainer>
+              <EndPopUp appears={this.gameEnds()} winner={this.state.isWinner} props={this.props}/>
+              <ChooseColorPopUp appears={this.chooseColor()} setColor={this.setColor} blockedColor={this.getBlockedColor()}/>
+            </PopupContainer>
+            <Game game={this.state.game} inputHandler={this.inputHandler} ref={this.outputHander}/>
+          </GameContainer>
+        )}
+      </div>
     );
   }
 }
