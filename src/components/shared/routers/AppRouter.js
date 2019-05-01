@@ -41,6 +41,13 @@ class AppRouter extends React.Component {
               )}
             />
             <Route
+              path="/register"
+              exact
+              render={() => (
+                <div>Registration coming soon!</div>
+              )}
+            />
+            <Route
               path="/home"
               exact
               render={() => (

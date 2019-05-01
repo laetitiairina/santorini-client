@@ -17,23 +17,36 @@ const Container = styled(BaseContainer)`
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-gap: 10px;
+
+  @media only screen and (max-width: 700px){
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
 `;
 
 const ContainerLeft = styled.div`
   grid-column: 1;
   grid-row: 1;
+
+  @media only screen and (max-width: 700px){
+    grid-column: 1;
+    grid-row: 2;
+  }
 `;
 
 const ContainerRight = styled.div`
   grid-column: 2;
   grid-row: 1;
+
+  @media only screen and (max-width: 700px){
+    grid-column: 1;
+    grid-row: 1;
+  }
 `;
 
 const ModesContainer = styled(BaseContainer)`
-  position: absolute;
-  right: 100px;
   width: 300px;
-  height: 500px;
+  height: 200px;
   overflow: hidden;
   color: #3E5774;
 `;
@@ -66,10 +79,6 @@ const NoSpin = keyframes`
 `;
 
 const StartButton = styled(Button)`
-  position: absolute;
-  top: 300px;
-  right: 117.5px;
-  
   width: 250px;
   height: 250px;
   border-radius: 50%;
@@ -142,6 +151,7 @@ class StartPage extends React.Component {
     .then(response => response.json())
     .then( returnedPlayer => {
       this.setState({player: returnedPlayer});
+      localStorage.setItem('player_id', returnedPlayer.id);
     })
     .catch(err => {
       console.log(err);
@@ -150,6 +160,13 @@ class StartPage extends React.Component {
   }
 
   addPlayerToQueue() {
+    // For testing
+    /*
+    const player1 = new GamePlayer();
+    player1.isCurrentPlayer = true;
+    this.props.history.push({pathname: '/game', state: {player: player1}});
+    */
+    
     fetch(`${getDomain()}/players`, {
       method: "POST",
       headers: {
@@ -162,7 +179,7 @@ class StartPage extends React.Component {
     .then(response => response.json())
     .then(player => {
       this.setState({player: new GamePlayer(player)});
-      
+      localStorage.setItem('player_id', player.id);
       const url = `${getDomain()}/players/${player.id}`;
       const fields = ['game_id'];
       return this.startPolling(url, fields);
