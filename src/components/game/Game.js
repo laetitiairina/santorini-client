@@ -7,6 +7,9 @@ class Game extends React.Component {
 
   constructor(props) {
     super(props);
+    this.cameraNear = 0.25;
+    this.cameraFar = 300;
+    this.cards = [];
     this.blockHeight = 3;
     this.blockSize = 4.5;
     this.blockMaterial = new THREE.MeshLambertMaterial( { color: 0xaaaaaa } );
@@ -23,6 +26,8 @@ class Game extends React.Component {
       "10": {},
     };
     this.playStartAnimation = false;
+    this.waterSpeed = 0.03;
+    this.inputEnabled = false;
     
     // Access via this.props.game instead
     /*
@@ -34,28 +39,83 @@ class Game extends React.Component {
 
   componentDidMount() {
 
+    // scene
+
     this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color( 0x60c0ff );
+    this.scene.fog = new THREE.Fog(0x60c0ff, 250, this.cameraFar);
     
     // camera
     
-    this.camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.25, 200);
+    this.camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, this.cameraNear, this.cameraFar);
     this.camera.position.set( 0, 100, 100 );
     this.camera.lookAt( new THREE.Vector3( 0, 2, 0 ) );
+    this.scene.add(this.camera);
 
     // lights
 
-    let light = new THREE.HemisphereLight( 0xffffff, 0x444444 );
-    light.position.set( 0, 20, 0 );
-    this.scene.add( light );
+    this.hemiLight = new THREE.HemisphereLight( 0xcccccc, 0x000000, 0.8);
+    this.scene.add( this.hemiLight );
 
-    light = new THREE.DirectionalLight( 0xffffff );
-    light.position.set( 0, 10, 20 );
-    this.scene.add( light );
+    this.dirLight = new THREE.DirectionalLight( 0xffffff, 0.4);
+    this.dirLight.position.set( -50, 200, 200 );
+    this.dirLight.castShadow = true;
+    this.dirLight.shadow.mapSize.width = 2048;
+    this.dirLight.shadow.mapSize.height = 2048;
+    this.dirLight.shadow.camera.left = -50;
+    this.dirLight.shadow.camera.right = 50;
+    this.dirLight.shadow.camera.top = 50;
+    this.dirLight.shadow.camera.bottom = -50;
+    this.dirLight.shadow.camera.near = 1;
+    this.dirLight.shadow.camera.far = 300;
+    this.scene.add( this.dirLight );
+    
+    this.ambiLight = new THREE.AmbientLight( 0xffcccc, 0.4 );
+    this.scene.add( this.ambiLight );
 
+    // water
+    
+    this.waterGeometry = new THREE.PlaneGeometry( 1000, 1000, 127, 127);
+    this.waterMaterial = new THREE.MeshPhongMaterial({ color: 0x60c0ff, shading: THREE.FlatShading });
+    this.waterVertices = [];
+    this.waterGeometry.rotateX( - Math.PI / 2 );
+    this.waterGeometry.mergeVertices();
+    this.waterGeometry.vertices.forEach((v) => {
+      this.waterVertices.push({
+        x: v.x,
+        y: v.y,
+        z: v.z,
+        a: Math.random() * Math.PI * 2,
+        A: 0.5 + Math.random() * 1.5,
+        v: 0.01 + Math.random() * 0.02
+      })
+    });
+    this.water = new THREE.Mesh( this.waterGeometry, this.waterMaterial );
+    this.water.position.y = -10
+    this.water.receiveShadow = true;
+    this.scene.add( this.water );
+    
+    // island
+    
+    this.islandGeometry = new THREE.CylinderGeometry( 25, 35, 20, 10, 10 );
+    this.islandMaterial = new THREE.MeshPhongMaterial({ color: 0x22cc22, shading: THREE.FlatShading });
+    this.islandGeometry.mergeVertices();
+    this.islandGeometry.vertices.forEach((v) => {
+      v.x += -1 + Math.random()*2;
+      v.y += -1 + Math.random()*2;
+      v.z += -1 + Math.random()*2;
+    });
+    this.island = new THREE.Mesh( this.islandGeometry, this.islandMaterial);
+    this.island.position.y = -11.1;
+    this.island.receiveShadow = true;
+    this.scene.add( this.island );
+    
     // board
 
-    this.board = new THREE.Mesh( new THREE.PlaneBufferGeometry( 25, 25 ), new THREE.MeshLambertMaterial( { color: 0x118811, depthWrite: false } ) );
-    this.board.rotation.x = - Math.PI / 2;
+    this.board = new THREE.Mesh( new THREE.BoxBufferGeometry( 25, 10 , 25 ), new THREE.MeshPhongMaterial({ color: 0x679012, shading: THREE.FlatShading }) );
+    //this.board.rotation.x = - Math.PI / 2;
+    this.board.position.y = -5;
+    this.board.receiveShadow = true;
     this.scene.add( this.board );
 
     this.grid = new THREE.GridHelper( 25, 5, 0x000000, 0x000000 );
@@ -70,36 +130,109 @@ class Game extends React.Component {
     this.renderer.setSize( window.innerWidth, window.innerHeight );
     this.renderer.gammaOutput = true;
     this.renderer.gammaFactor = 2.2;
+    this.renderer.shadowMap.enabled = true; // Comment out to increase performance
     this.container.appendChild(this.renderer.domElement);
 
     window.addEventListener( 'resize', this.onWindowResize, false );
     
+    // raycaster
+    
+    this.raycaster = new THREE.Raycaster();
+    this.container.addEventListener( 'mouseup', this.onMouseUp, false);
+    
     // Start animation loop
     this.animate();
+  }
+  
+  // Wait
+  wait = (bool) => {
+    this.inputEnabled = !bool;
+    if (this.dragControlsBlock) {
+      this.dragControlsWorker.enabled = !bool;
+      this.dragControlsBlock.enabled = !bool;
+    }
+  }
+  
+  _displayCard = (posX,posY,posZ, nr) => {
+    // TODO: Card textures from nr
+    let canvas = document.createElement("canvas");
+    let ctx = canvas.getContext('2d');
+    canvas.width = canvas.height = 256;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect( 0, 0, canvas.width,canvas.height );
+    ctx.font = "50pt Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = 'blue';
+    ctx.fillText(nr,canvas.width/2,canvas.height/2);
+    let texture = new THREE.CanvasTexture(canvas);
+    let card = new THREE.Mesh( new THREE.BoxBufferGeometry( 5, 0.1, 10 ), new THREE.MeshPhongMaterial({ color: 0xccaa11, shading: THREE.FlatShading, map: texture }) );
+    card.rotation.x = - Math.PI / 2;
+    card.position.set(posX,posY,posZ);
+    card.name = nr;
+    this.camera.add( card );
+    this.cards.push( card );
+  }
+  
+  _displayConfirmButton = (posX,posY,posZ) => {
+    // Display confirm button
+    let confirmButton = new THREE.Mesh( new THREE.BoxBufferGeometry( 5, 2, 2 ), new THREE.MeshPhongMaterial({ color: 0x0000ff, shading: THREE.FlatShading }) );
+    confirmButton.rotation.x = - Math.PI / 2;
+    confirmButton.position.set(posX,posY,posZ);
+    confirmButton.name = "confirm";
+    this.camera.add( confirmButton );
+  }
+  
+  _cleanUpCards = () => {
+    let con = this.camera.getObjectByName("confirm");
+    this.camera.remove(con);
+    this.cards.forEach((card) => {
+      this.camera.remove(card);
+    })
+  }
+  
+  // Display 10 cards to choose from
+  Cards10 = () => {
+    this.wait(false);
     
-    // Call from GamePage
-    /*
-    this.initBlockBag();
-    this.initWorkers("#ff0000",true);
-    this.initWorkers("#00ff00",false);
-    this.initCards([1,5]);
-    this.initControls();
-    */
+    // Display 10 cards
+    for ( let i = 0; i < 10; i++ ) {
+      this._displayCard(-12+3*(i-(i%2)), 5-12*(i%2), -40, i+1)
+    }
+    
+    this._displayConfirmButton(0, -15, -40);
+  }
+  
+  // Display 2 cards to choose from
+  Cards2 = () => {
+    this.wait(false);
+    
+    // Display 2 cards
+    this.props.game.cards.forEach((card,i) => {
+      this._displayCard(-10+20*i, 0, -40, card);
+    });
+    
+    //For testing
+    //this._displayCard(-10, 0, -40, 2);
+    //this._displayCard(-10+20, 0, -40, 5);
+    
+    this._displayConfirmButton(0, -15, -40);
   }
   
   
   // Initialization functions (called from GamePage via outputHandler)
-  // 1. initBlockBag
-  // 2. initWorkers (areMine=true)
-  // 3. initWorkers (areMine=false)
-  // 4. initCards
-  // 5. initControls
+  // 1. initCards
+  // 2. initWorkers (1)
+  // 3. initWorkers (2)
+  // 4. initGame
   
   // Initialize game (block bag (a simple block for now) and contorls)
   initGame = () => {
     // Initialize block bag
     this.initBlock = new THREE.Mesh( new THREE.BoxBufferGeometry( this.blockSize, this.blockHeight, this.blockSize ), this.blockMaterial);
     this.initBlock.position.set( 0, this.blockHeight / 2, 20 );
+    this.initBlock.castShadow = true;
+    this.initBlock.receiveShadow = true;
     this.scene.add( this.initBlock );
     
     // Play camera animation
@@ -119,6 +252,8 @@ class Game extends React.Component {
     for ( let i = 0; i < 2; i++ ) {
       let worker = new THREE.Mesh( new THREE.CylinderBufferGeometry( 0,1,4,20 ), new THREE.MeshLambertMaterial( { color: "#ff0000" } ) ); // TODO: this.props.game.players[nr].color }));
       worker.position.set( 10 - 3 * i - 17 * (nr-1), 2, 20);
+      worker.castShadow = true;
+      worker.receiveShadow = true;
       this.scene.add( worker );
       // TODO: if (this.props.game.players[nr].id == localStorage.getItem("player_id")) {
       if (nr == 1) {
@@ -133,8 +268,10 @@ class Game extends React.Component {
   initCards = () => {
     for ( let i = 0; i < 2; i++ ) {
       // TODO: Use this.props.game to get cards
-      let card = new THREE.Mesh( new THREE.BoxBufferGeometry( 10, 0.1, 5 ), new THREE.MeshLambertMaterial( { color: 0xccaa11 } ) );
+      let card = new THREE.Mesh( new THREE.BoxBufferGeometry( 10, 0.1, 5 ), new THREE.MeshPhongMaterial({ color: 0xccaa11, shading: THREE.FlatShading }) );
       card.position.set( 20 - 40 * i, 0, 5 - 10 * i );
+      card.castShadow = true;
+      card.receiveShadow = true;
       this.scene.add( card );
     }
   }
@@ -148,11 +285,6 @@ class Game extends React.Component {
     this.controls.enablePan = false;
     this.controls.minDistance = 10;
     this.controls.maxDistance = 100;
-
-    // raycaster
-    
-    this.raycaster = new THREE.Raycaster();
-    this.container.addEventListener( 'mouseup', this.onMouseUp, false);
     
     // drag controls
 
@@ -212,6 +344,8 @@ class Game extends React.Component {
     
     let block = new THREE.Mesh( new THREE.BoxBufferGeometry( this.blockSize, this.blockHeight, this.blockSize ), this.blockMaterial );
     block.position.set(pointX, pointY, pointZ);
+    block.castShadow = true;
+    block.receiveShadow = true;
     this.scene.add(block);
     this.blocks.push(block);
     
@@ -220,15 +354,18 @@ class Game extends React.Component {
 
   onMouseUp = (event) => {
   
-    // TODO: Rework
-    return;
-  
     /*if ( this.workerDraged || event.button !== 0 ) {
       this.workerDraged = false;
       return;
     }*/
     
+    /*
     if (!this.blockDraged) {
+      return;
+    }
+    */
+    
+    if (!this.inputEnabled) {
       return;
     }
 
@@ -240,10 +377,47 @@ class Game extends React.Component {
 
     this.raycaster.setFromCamera( this.mouse, this.camera );
 
-    let intersections = this.raycaster.intersectObjects( this.scene.children );
+    let intersections = this.raycaster.intersectObjects( this.camera.children );
 
     if ( intersections.length > 0 && intersections[0] !== null ) {
+      let obj = intersections[0].object
+      
+      switch(this.props.game.status) {
+        case "CARDS1":
+        case "CARDS2":
+        
+          // Get selected cards
+          let selectedCardNrs = []
+          this.cards.forEach((card) => {
+            if (card.position.z > -40) {
+              selectedCardNrs.push(card.name);
+            }
+          })
+          
+          // Check if confirm button was clicked
+          if (obj.name == "confirm") {
+            if (this.cards.length == 10 && selectedCardNrs.length == 2) {
+              this.props.inputHandler(true,{cards:selectedCardNrs});
+              this._cleanUpCards();
+            } else if (this.cards.length == 2 && selectedCardNrs.length == 1) {
+              this.props.inputHandler(false,{card:selectedCardNrs[0]});
+              this._cleanUpCards();
+            }
+          }
+          
+          // Toggle card
+          if (this.cards.includes(obj)) {
+            // Select/Deselect card
+            if (obj.position.z <= -40 && ((this.cards.length == 10 && selectedCardNrs.length <= 1) || (this.cards.length == 2 && selectedCardNrs.length == 0))) {
+              obj.position.z = -35;
+            } else {
+              obj.position.z = -40;
+            }
+          }
+          break;
+      }
 
+      /*
       let block = null;
 
       if ( this.blocks.includes( intersections[0].object ) ) {
@@ -276,21 +450,37 @@ class Game extends React.Component {
 
       this.scene.add(block);
       this.blocks.push(block);
-
+      */
     }
-
   }
   
   // Output
   
   // TODO: Update game according to this.props.game
+  // Display game state
   update = () => {
   
   }
   
   animate = () => {
+    // animate
     window.requestAnimationFrame(this.animate);
     this.renderer.render(this.scene, this.camera);
+    
+    // Animate water
+    this.water.geometry.vertices.forEach((v,i) => {
+      v.x = this.waterVertices[i].x + Math.cos(this.waterVertices[i].a) * this.waterVertices[i].A
+      v.y = this.waterVertices[i].y + Math.sin(this.waterVertices[i].a) * this.waterVertices[i].A
+      this.waterVertices[i].a += this.waterVertices[i].v;
+    });
+    this.water.geometry.verticesNeedUpdate = true;
+    this.water.position.z -= this.waterSpeed;
+    if ( (this.water.position.z <= (-500 + this.cameraFar) && this.waterSpeed > 0) || (this.water.position.z >= (500 - this.cameraFar) && this.waterSpeed < 0) ) {
+      this.waterSpeed *= -1;
+      this.water.geometry.vertices.forEach((v,i) => {
+        this.waterVertices[i].v *= -1;
+      });
+    }
     
     // Play start animation of camera
     if (this.playStartAnimation) {
@@ -304,7 +494,6 @@ class Game extends React.Component {
       this.camera.position.z -= 1;
       this.camera.lookAt( new THREE.Vector3( 0, 2, 0 ) );
       if (this.camera.position.y <= 40) {
-        console.log(this.camera.position);
         //this.camera.position.set( -55, 40, 50 );
         this.playStartAnimation = false;
         
@@ -323,7 +512,7 @@ class Game extends React.Component {
   
   render() {
     return (
-      <div ref={container => { this.container = container }} />
+      <div style={{position:"absolute",top:"0px",zIndex:"-1"}} ref={container => { this.container = container }} />
     )
   }
 }

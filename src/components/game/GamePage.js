@@ -33,6 +33,16 @@ const GameContainer = styled.div`
 
 `;
 
+const MessageContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #3E5774;
+  margin: 50px;
+  text-transform: uppercase;
+`;
+
 const ErrorContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -96,7 +106,8 @@ class GamePage extends React.Component {
       gameEnds: false,
       isWinner: false,
       blockedColor: null,
-      game: null, // game object, ex. {"status":"MOVE", "board": ...}
+      waitMsg: null,
+      game: null // game object, ex. {"status":"MOVE", "board": ...}
     };
   }
 
@@ -121,7 +132,8 @@ class GamePage extends React.Component {
   }
   
   // Fetch player
-  getPlayer() {
+  // Try to avoid using this function, use fetchGame() instead and access player through game entity
+  fetchPlayer() {
     const url = `${getDomain()}/players/${this.player.id}`;
 
     fetch(`${url}`, {
@@ -141,7 +153,8 @@ class GamePage extends React.Component {
   }
   
   // Fetch game
-  getGame() {
+  // Use this function to update this.state.game every time the game status changes
+  fetchGame() {
     const url = `${getDomain()}/games/${this.state.game.id}`;
 
     fetch(`${url}`, {
@@ -158,30 +171,54 @@ class GamePage extends React.Component {
       console.log(err);
     });
   }
+  
+  // Check if current player
+  getPlayer = () => {
+    this.state.game.players.forEach((player) => {
+      if (player.id = localStorage.getItem("player_id")) {
+        return player;
+      }
+    });
+    return null;
+  }
 
   update() {
+    this.setState({waitMsg:null});
     // TODO:
     // 1. Get new game object from server
+    //fetchGame(); // TODO: Add promise or something to wait for execution
     
-    
-    // 2. Check if current player
-    
-    
-    // 3. If currentPlayer, switch action
+    // 2. Switch action of game status
+    // Always have one action for current player and one for not current player
     switch(this.state.status) {
       case "CARDS1":
         console.log("CARDS1");
-
+        if (this.getPlayer().isCurrentPlayer) {
+          // Display 10 cards to choose from
+          this.outputHander.current.Cards10();
+        } else {
+          // Display waiting msg
+          this.outputHander.current.wait(true);
+          this.setState({waitMsg:"Other player is choosing cards..."});
+        }
         break;
       case "CARDS2":
         console.log("CARDS2");
-
+        if (this.getPlayer().isCurrentPlayer) {
+          // Display 2 cards to choose from
+          this.outputHander.current.Cards2();
+        } else {
+          // Display waiting msg
+          this.outputHander.current.wait(true);
+          this.setState({waitMsg:"Other player is choosing a card..."});
+        }
         break;
       case "STARTPLAYER":
         console.log("STARTPLAYER");
-        
         // Display cards on board when they have been chosen
         this.outputHander.current.initCards();
+        
+        
         
         break;
       case "COLOR1":
@@ -314,33 +351,76 @@ class GamePage extends React.Component {
   }
   
   // Input handler from player (this function gets called from Game component (ex.: Player moves a worker on the board)
-  inputHandler = () => {
+  inputHandler = (isGame, content) => {
+    if (isGame) {
+      let gameUpdate = this.state.game;
+      Object.keys(content).forEach((key) => {
+        gameUpdate[key] = content[key];
+      })
+      this.updateGame(gameUpdate);
+    } else {
+      let playerUpdate = this.getPlayer();
+      Object.keys(content).forEach((key) => {
+        playerUpdate[key] = content[key];
+      })
+      this.updateGame({
+        id: localStorage.getItem("game_id"),
+        players: [ playerUpdate ]
+      })
+    }
+  }
   
+  // Updates game using a PUT request
+  // Use this function for ALL updates of the game
+  updateGame = (bodyEntity) => {
+    const url = `${getDomain()}/games/${localStorage.getItem('game_id')}`;
+
+    fetch(`${url}`, {
+      method: "PUT",
+      headers: new Headers({
+        "Content-Type": "application/json",
+        "Token": localStorage.getItem("playerToken") // Send token in headers to authenticate request
+      }),
+      body: JSON.stringify(bodyEntity)
+    })
+    .then(response => {
+      if (!response.ok) {
+        // If response not ok get response text and throw error
+        return response.text().then( err => { throw Error(err); } );
+      }
+    })
+    .catch(err => {
+      console.log(err);
+      alert("Something went wrong: " + err);
+    });
   }
 
   render() {
     return (
-        <Container>
-          <div style={{color:"#000000"}}>STATUS: {this.state.status}</div>
-          {!this.state.status ? (
-            this.unautherizedAccess ? (
-              <ErrorContainer>
-                <ErrorLabel>Game not initializated!</ErrorLabel>
-                <BackButton onClick={() => {this.props.history.push("/home");}}>Back</BackButton>
-              </ErrorContainer>
-            ): (
-              <Spinner/>
-            )
+      <div>
+        <div style={{color:"#000000"}}>STATUS: {this.state.status}</div>
+        {!this.state.status ? (
+          this.unautherizedAccess ? (
+            <ErrorContainer>
+              <ErrorLabel>Game not initializated!</ErrorLabel>
+              <BackButton onClick={() => {this.props.history.push("/home");}}>Back</BackButton>
+            </ErrorContainer>
           ) : (
-            <GameContainer>
-              <PopupContainer>
-                <EndPopUp appears={this.gameEnds()} winner={this.state.isWinner} props={this.props}/>
-                <ChooseColorPopUp appears={this.chooseColor()} setColor={this.setColor} blockedColor={this.getBlockedColor()}/>
-              </PopupContainer>
-              <Game game={this.state.game} inputHandler={this.inputHandler} ref={this.outputHander}/>
-            </GameContainer>
-          )}
-        </Container>
+            <Spinner/>
+          )
+        ) : (
+          <GameContainer>
+            <PopupContainer>
+              <EndPopUp appears={this.gameEnds()} winner={this.state.isWinner} props={this.props}/>
+              <ChooseColorPopUp appears={this.chooseColor()} setColor={this.setColor} blockedColor={this.getBlockedColor()}/>
+            </PopupContainer>
+            {this.state.waitMsg ? (
+              <MessageContainer>{this.state.waitMsg}</MessageContainer>
+              ) : (<div></div>)}
+            <Game game={this.state.game} inputHandler={this.inputHandler} ref={this.outputHander}/>
+          </GameContainer>
+        )}
+      </div>
     );
   }
 }
