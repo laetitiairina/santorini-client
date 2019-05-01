@@ -151,6 +151,7 @@ class StartPage extends React.Component {
     .then(response => response.json())
     .then( returnedPlayer => {
       this.setState({player: returnedPlayer});
+      localStorage.setItem('player_id', returnedPlayer.id);
     })
     .catch(err => {
       console.log(err);
@@ -178,7 +179,7 @@ class StartPage extends React.Component {
     .then(response => response.json())
     .then(player => {
       this.setState({player: new GamePlayer(player)});
-      
+      localStorage.setItem('player_id', player.id);
       const url = `${getDomain()}/players/${player.id}`;
       const fields = ['game_id'];
       return this.startPolling(url, fields);
