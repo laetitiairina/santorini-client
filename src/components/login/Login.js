@@ -3,7 +3,7 @@ import styled from "styled-components";
 import { BaseContainer } from "../../helpers/layout";
 import { getDomain } from "../../helpers/getDomain";
 import User from "../shared/models/User";
-import { withRouter } from "react-router-dom";
+import { withRouter, Link } from "react-router-dom";
 import { Button } from "../../views/design/Button";
 
 const FormContainer = styled.div`
@@ -76,6 +76,16 @@ const NameLabel = styled.label`
   padding-left: 20px;
   color: #3E5774;
   margin-bottom: 10px;
+`;
+
+const RegisterLink = styled(Link)`
+  margin: 20px;
+  &:hover {
+    color:green;
+  }
+  &:active {
+    color:blue;
+  }
 `;
 
 /**
@@ -187,6 +197,7 @@ class Login extends React.Component {
                 Login
               </Button>
             </ButtonContainer>
+            <RegisterLink to="/register">Register Now!</RegisterLink>
           </Form>
         </FormContainer>
       </BaseContainer>

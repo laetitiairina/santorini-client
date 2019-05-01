@@ -51,9 +51,12 @@ const Header = props => {
   return (
     <Container height={props.height}>
       <Title>Santorini</Title>
-      <ButtonContainer>
-        <Exit>EXIT</Exit>
-      </ButtonContainer>
+      {/* TODO: Implement function in App.js to update inGame boolean*/}
+      {!props.inGame ? (<div></div>) : (
+        <ButtonContainer>
+          <Exit>EXIT</Exit>
+        </ButtonContainer>
+      )}
     </Container>
   );
 };

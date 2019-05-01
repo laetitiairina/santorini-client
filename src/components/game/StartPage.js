@@ -17,23 +17,36 @@ const Container = styled(BaseContainer)`
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-gap: 10px;
+
+  @media only screen and (max-width: 700px){
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
 `;
 
 const ContainerLeft = styled.div`
   grid-column: 1;
   grid-row: 1;
+
+  @media only screen and (max-width: 700px){
+    grid-column: 1;
+    grid-row: 2;
+  }
 `;
 
 const ContainerRight = styled.div`
   grid-column: 2;
   grid-row: 1;
+
+  @media only screen and (max-width: 700px){
+    grid-column: 1;
+    grid-row: 1;
+  }
 `;
 
 const ModesContainer = styled(BaseContainer)`
-  position: absolute;
-  right: 100px;
   width: 300px;
-  height: 500px;
+  height: 200px;
   overflow: hidden;
   color: #3E5774;
 `;
@@ -66,10 +79,6 @@ const NoSpin = keyframes`
 `;
 
 const StartButton = styled(Button)`
-  position: absolute;
-  top: 300px;
-  right: 117.5px;
-  
   width: 250px;
   height: 250px;
   border-radius: 50%;
