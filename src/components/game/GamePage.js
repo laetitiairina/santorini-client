@@ -117,7 +117,7 @@ class GamePage extends React.Component {
     );
     
     // For testing
-    this.update();
+    //this.update();
   }
   
   // Fetch player
