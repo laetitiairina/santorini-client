@@ -6,6 +6,7 @@ import {withRouter} from "react-router-dom";
 import {getDomain} from "../../helpers/getDomain";
 import EndPopUp from "./EndPopUp";
 import ChooseColorPopUp from "./ChooseColorPopUp";
+import {Spinner} from "../../views/design/Spinner";
 
 const Container = styled(BaseContainer)`
   color: white;
@@ -20,6 +21,26 @@ const ButtonContainer = styled(BaseContainer)`
   color: #3E5774;
 `;
 
+const PopupContainer = styled.div`
+
+`;
+
+const ErrorContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+`;
+
+const ErrorLabel = styled.label`
+  color: #FF0000;
+  margin: 50px;
+  text-transform: uppercase;
+`;
+
+const BackButton = styled(Button)`
+
+`;
 
 const ExitButton = styled(Button)`
 
@@ -33,7 +54,13 @@ class GamePage extends React.Component {
   constructor(props) {
     super(props);
 
-    this.player = this.props.location.state.player;
+    if (this.props.location.state) {
+      this.player = this.props.location.state.player;
+      this.unautherizedAccess = false;
+    } else {
+      // Page /game was accessed without proper initialization of the game -> display error msg
+      this.unautherizedAccess = true;
+    }
 
     this.state = {
       status: null,
@@ -44,12 +71,13 @@ class GamePage extends React.Component {
     };
   }
 
-  logout() {
-    localStorage.removeItem("token");
-    this.props.history.push("/login");
-  }
-
   componentDidMount() {
+    // Do not poll game if unautherized access
+    if (this.unautherizedAccess) {
+      return;
+    }
+    
+    // Get game status
     const url = `${getDomain()}/games/${localStorage.getItem('game_id')}`;
     const fields = ['status'];
     this.startPolling(url, fields).then(
@@ -195,8 +223,21 @@ class GamePage extends React.Component {
   render() {
     return (
         <Container>
-          <EndPopUp appears={this.gameEnds()} winner={this.state.isWinner} props={this.props}/>
-          <ChooseColorPopUp appears={this.chooseColor()} setColor={this.setColor} blockedColor={this.getBlockedColor()}/>
+          {!this.state.status ? (
+            this.unautherizedAccess ? (
+              <ErrorContainer>
+                <ErrorLabel>Game not initializated!</ErrorLabel>
+                <BackButton onClick={() => {this.props.history.push("/home");}}>Back</BackButton>
+              </ErrorContainer>
+            ): (
+              <Spinner/>
+            )
+          ) : (
+            <PopupContainer>
+              <EndPopUp appears={this.gameEnds()} winner={this.state.isWinner} props={this.props}/>
+              <ChooseColorPopUp appears={this.chooseColor()} setColor={this.setColor} blockedColor={this.getBlockedColor()}/>
+            </PopupContainer>
+          )}
         </Container>
     );
   }

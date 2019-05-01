@@ -7,6 +7,8 @@ import {withRouter} from "react-router-dom";
 import {Button} from "../../views/design/Button"
 import {init, animate} from '../../components/game/Prototype'
 import GamePlayer from "../shared/models/Player";
+import Login from "../login/Login";
+import Users from "../login/Users";
 
 const Container = styled(BaseContainer)`
   color: white;
@@ -148,6 +150,13 @@ class StartPage extends React.Component {
   }
 
   addPlayerToQueue() {
+    // For testing
+    /*
+    const player1 = new GamePlayer();
+    player1.isCurrentPlayer = true;
+    this.props.history.push({pathname: '/game', state: {player: player1}});
+    */
+    
     fetch(`${getDomain()}/players`, {
       method: "POST",
       headers: {
@@ -181,7 +190,7 @@ class StartPage extends React.Component {
       alert('Opponent found!');
       this.state.player.game_id = result; // TODO: can be deleted once cascading in DB works.
       localStorage.setItem('game_id', result);
-      this.props.history.push({pathname: '../game/gamescreen', state: {player: this.state.player}});
+      this.props.history.push({pathname: '/game', state: {player: this.state.player}});
       },
       rejected => {
         clearInterval(this.poller);
