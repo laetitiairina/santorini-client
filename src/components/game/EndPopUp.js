@@ -40,7 +40,7 @@ const EndPopUp =  ({appears, winner, props}) => {
                 <Button
                     style={{borderRadius : "40px"}}
                     onClick={() => {
-                      props.history.push('../game')
+                      props.history.push('../home')
                     }}
                 >
                   LOBBY
