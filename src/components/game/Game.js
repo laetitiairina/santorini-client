@@ -9,6 +9,7 @@ class Game extends React.Component {
     super(props);
     this.cameraNear = 0.25;
     this.cameraFar = 300;
+    this.cards = [];
     this.blockHeight = 3;
     this.blockSize = 4.5;
     this.blockMaterial = new THREE.MeshLambertMaterial( { color: 0xaaaaaa } );
@@ -26,6 +27,7 @@ class Game extends React.Component {
     };
     this.playStartAnimation = false;
     this.waterSpeed = 0.03;
+    this.inputEnabled = false;
     
     // Access via this.props.game instead
     /*
@@ -48,6 +50,7 @@ class Game extends React.Component {
     this.camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, this.cameraNear, this.cameraFar);
     this.camera.position.set( 0, 100, 100 );
     this.camera.lookAt( new THREE.Vector3( 0, 2, 0 ) );
+    this.scene.add(this.camera);
 
     // lights
 
@@ -132,26 +135,96 @@ class Game extends React.Component {
 
     window.addEventListener( 'resize', this.onWindowResize, false );
     
+    // raycaster
+    
+    this.raycaster = new THREE.Raycaster();
+    this.container.addEventListener( 'mouseup', this.onMouseUp, false);
+    
     // Start animation loop
     this.animate();
+  }
+  
+  // Wait
+  wait = (bool) => {
+    this.inputEnabled = !bool;
+    if (this.dragControlsBlock) {
+      this.dragControlsWorker.enabled = !bool;
+      this.dragControlsBlock.enabled = !bool;
+    }
+  }
+  
+  _displayCard = (posX,posY,posZ, nr) => {
+    // TODO: Card textures from nr
+    let canvas = document.createElement("canvas");
+    let ctx = canvas.getContext('2d');
+    canvas.width = canvas.height = 256;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect( 0, 0, canvas.width,canvas.height );
+    ctx.font = "50pt Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = 'blue';
+    ctx.fillText(nr,canvas.width/2,canvas.height/2);
+    let texture = new THREE.CanvasTexture(canvas);
+    let card = new THREE.Mesh( new THREE.BoxBufferGeometry( 5, 0.1, 10 ), new THREE.MeshPhongMaterial({ color: 0xccaa11, shading: THREE.FlatShading, map: texture }) );
+    card.rotation.x = - Math.PI / 2;
+    card.position.set(posX,posY,posZ);
+    card.name = nr;
+    this.camera.add( card );
+    this.cards.push( card );
+  }
+  
+  _displayConfirmButton = (posX,posY,posZ) => {
+    // Display confirm button
+    let confirmButton = new THREE.Mesh( new THREE.BoxBufferGeometry( 5, 2, 2 ), new THREE.MeshPhongMaterial({ color: 0x0000ff, shading: THREE.FlatShading }) );
+    confirmButton.rotation.x = - Math.PI / 2;
+    confirmButton.position.set(posX,posY,posZ);
+    confirmButton.name = "confirm";
+    this.camera.add( confirmButton );
+  }
+  
+  _cleanUpCards = () => {
+    let con = this.camera.getObjectByName("confirm");
+    this.camera.remove(con);
+    this.cards.forEach((card) => {
+      this.camera.remove(card);
+    })
+  }
+  
+  // Display 10 cards to choose from
+  Cards10 = () => {
+    this.wait(false);
     
-    // Call from GamePage
-    /*
-    this.initBlockBag();
-    this.initWorkers("#ff0000",true);
-    this.initWorkers("#00ff00",false);
-    this.initCards([1,5]);
-    this.initControls();
-    */
+    // Display 10 cards
+    for ( let i = 0; i < 10; i++ ) {
+      this._displayCard(-12+3*(i-(i%2)), 5-12*(i%2), -40, i+1)
+    }
+    
+    this._displayConfirmButton(0, -15, -40);
+  }
+  
+  // Display 2 cards to choose from
+  Cards2 = () => {
+    this.wait(false);
+    
+    // Display 2 cards
+    this.props.game.cards.forEach((card,i) => {
+      this._displayCard(-10+20*i, 0, -40, card);
+    });
+    
+    //For testing
+    //this._displayCard(-10, 0, -40, 2);
+    //this._displayCard(-10+20, 0, -40, 5);
+    
+    this._displayConfirmButton(0, -15, -40);
   }
   
   
   // Initialization functions (called from GamePage via outputHandler)
-  // 1. initBlockBag
-  // 2. initWorkers (areMine=true)
-  // 3. initWorkers (areMine=false)
-  // 4. initCards
-  // 5. initControls
+  // 1. initCards
+  // 2. initWorkers (1)
+  // 3. initWorkers (2)
+  // 4. initGame
   
   // Initialize game (block bag (a simple block for now) and contorls)
   initGame = () => {
@@ -195,7 +268,7 @@ class Game extends React.Component {
   initCards = () => {
     for ( let i = 0; i < 2; i++ ) {
       // TODO: Use this.props.game to get cards
-      let card = new THREE.Mesh( new THREE.BoxBufferGeometry( 10, 0.1, 5 ), new THREE.MeshLambertMaterial( { color: 0xccaa11 } ) );
+      let card = new THREE.Mesh( new THREE.BoxBufferGeometry( 10, 0.1, 5 ), new THREE.MeshPhongMaterial({ color: 0xccaa11, shading: THREE.FlatShading }) );
       card.position.set( 20 - 40 * i, 0, 5 - 10 * i );
       card.castShadow = true;
       card.receiveShadow = true;
@@ -212,11 +285,6 @@ class Game extends React.Component {
     this.controls.enablePan = false;
     this.controls.minDistance = 10;
     this.controls.maxDistance = 100;
-
-    // raycaster
-    
-    this.raycaster = new THREE.Raycaster();
-    this.container.addEventListener( 'mouseup', this.onMouseUp, false);
     
     // drag controls
 
@@ -286,15 +354,18 @@ class Game extends React.Component {
 
   onMouseUp = (event) => {
   
-    // TODO: Rework
-    return;
-  
     /*if ( this.workerDraged || event.button !== 0 ) {
       this.workerDraged = false;
       return;
     }*/
     
+    /*
     if (!this.blockDraged) {
+      return;
+    }
+    */
+    
+    if (!this.inputEnabled) {
       return;
     }
 
@@ -306,10 +377,47 @@ class Game extends React.Component {
 
     this.raycaster.setFromCamera( this.mouse, this.camera );
 
-    let intersections = this.raycaster.intersectObjects( this.scene.children );
+    let intersections = this.raycaster.intersectObjects( this.camera.children );
 
     if ( intersections.length > 0 && intersections[0] !== null ) {
+      let obj = intersections[0].object
+      
+      switch(this.props.game.status) {
+        case "CARDS1":
+        case "CARDS2":
+        
+          // Get selected cards
+          let selectedCardNrs = []
+          this.cards.forEach((card) => {
+            if (card.position.z > -40) {
+              selectedCardNrs.push(card.name);
+            }
+          })
+          
+          // Check if confirm button was clicked
+          if (obj.name == "confirm") {
+            if (this.cards.length == 10 && selectedCardNrs.length == 2) {
+              this.props.inputHandler(true,{cards:selectedCardNrs});
+              this._cleanUpCards();
+            } else if (this.cards.length == 2 && selectedCardNrs.length == 1) {
+              this.props.inputHandler(false,{card:selectedCardNrs[0]});
+              this._cleanUpCards();
+            }
+          }
+          
+          // Toggle card
+          if (this.cards.includes(obj)) {
+            // Select/Deselect card
+            if (obj.position.z <= -40 && ((this.cards.length == 10 && selectedCardNrs.length <= 1) || (this.cards.length == 2 && selectedCardNrs.length == 0))) {
+              obj.position.z = -35;
+            } else {
+              obj.position.z = -40;
+            }
+          }
+          break;
+      }
 
+      /*
       let block = null;
 
       if ( this.blocks.includes( intersections[0].object ) ) {
@@ -342,14 +450,14 @@ class Game extends React.Component {
 
       this.scene.add(block);
       this.blocks.push(block);
-
+      */
     }
-
   }
   
   // Output
   
   // TODO: Update game according to this.props.game
+  // Display game state
   update = () => {
   
   }
@@ -367,7 +475,6 @@ class Game extends React.Component {
     });
     this.water.geometry.verticesNeedUpdate = true;
     this.water.position.z -= this.waterSpeed;
-    console.log(this.water.position.z);
     if ( (this.water.position.z <= (-500 + this.cameraFar) && this.waterSpeed > 0) || (this.water.position.z >= (500 - this.cameraFar) && this.waterSpeed < 0) ) {
       this.waterSpeed *= -1;
       this.water.geometry.vertices.forEach((v,i) => {
@@ -387,7 +494,6 @@ class Game extends React.Component {
       this.camera.position.z -= 1;
       this.camera.lookAt( new THREE.Vector3( 0, 2, 0 ) );
       if (this.camera.position.y <= 40) {
-        console.log(this.camera.position);
         //this.camera.position.set( -55, 40, 50 );
         this.playStartAnimation = false;
         
