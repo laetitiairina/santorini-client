@@ -2,6 +2,7 @@ import React from "react";
 import * as THREE from "three";
 import DragControls from 'three-dragcontrols';
 import OrbitControls from 'three-orbitcontrols';
+import GodCardsData from "../../views/design/GodCardsData.json";
 
 class Game extends React.Component {
 
@@ -155,17 +156,26 @@ class Game extends React.Component {
   }
   
   _displayCard = (posX,posY,posZ, nr) => {
-    // TODO: Card textures from nr
     let canvas = document.createElement("canvas");
     let ctx = canvas.getContext('2d');
-    canvas.width = canvas.height = 256;
+    canvas.width = 128;
+    canvas.height = 256;
+    canvas.style.width = 64;
+    canvas.style.height= 128;
+    ctx.scale(2,2);
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect( 0, 0, canvas.width,canvas.height );
-    ctx.font = "50pt Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = 'blue';
-    ctx.fillText(nr,canvas.width/2,canvas.height/2);
+    ctx.font = "6pt American Typewriter";
+    ctx.fillText(GodCardsData[nr].name,canvas.width/4,10);
+    ctx.font = "4pt American Typewriter";
+    GodCardsData[nr].text.forEach((line,i) => {
+      ctx.fillText(line,canvas.width/4,25+10*i);
+    })
+    // DEBUG
+    ctx.fillText(nr,canvas.width/4,canvas.height/2-10);
     let texture = new THREE.CanvasTexture(canvas);
     let card = new THREE.Mesh( new THREE.BoxBufferGeometry( 5, 0.1, 10 ), new THREE.MeshPhongMaterial({ color: 0xccaa11, shading: THREE.FlatShading, map: texture }) );
     card.rotation.x = - Math.PI / 2;
@@ -176,8 +186,23 @@ class Game extends React.Component {
   }
   
   _displayConfirmButton = (posX,posY,posZ) => {
+    let canvas = document.createElement("canvas");
+    let ctx = canvas.getContext('2d');
+    canvas.width = 256;
+    canvas.height = 128;
+    canvas.style.width = 128;
+    canvas.style.height= 64;
+    ctx.scale(2,2);
+    ctx.fillStyle = '#0000FF';
+    ctx.fillRect( 0, 0, canvas.width,canvas.height );
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = "15pt American Typewriter";
+    ctx.fillText("CONFIRM",canvas.width/4,canvas.height/4);
     // Display confirm button
-    let confirmButton = new THREE.Mesh( new THREE.BoxBufferGeometry( 5, 2, 2 ), new THREE.MeshPhongMaterial({ color: 0x0000ff, shading: THREE.FlatShading }) );
+    let texture = new THREE.CanvasTexture(canvas);
+    let confirmButton = new THREE.Mesh( new THREE.BoxBufferGeometry( 4, 2, 2 ), new THREE.MeshPhongMaterial({ shading: THREE.FlatShading, map: texture }) );
     confirmButton.rotation.x = - Math.PI / 2;
     confirmButton.position.set(posX,posY,posZ);
     confirmButton.name = "confirm";
