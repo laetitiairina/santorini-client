@@ -26,6 +26,7 @@ class Game extends React.Component {
       "10": {},
     };
     this.playStartAnimation = false;
+    this.playInitAnimation = true;
     this.waterSpeed = 0.03;
     this.inputEnabled = false;
     
@@ -48,7 +49,7 @@ class Game extends React.Component {
     // camera
     
     this.camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, this.cameraNear, this.cameraFar);
-    this.camera.position.set( 0, 100, 100 );
+    this.camera.position.set( 50, 100, 500 );
     this.camera.lookAt( new THREE.Vector3( 0, 2, 0 ) );
     this.scene.add(this.camera);
 
@@ -201,6 +202,12 @@ class Game extends React.Component {
     }
     
     this._displayConfirmButton(0, -15, -40);
+    
+    // Because of init animation
+    if (this.playInitAnimation) {
+      this.inputEnabled = false;
+      this.camera.children.forEach((child) => {child.visible = false;});
+    }
   }
   
   // Display 2 cards to choose from
@@ -382,7 +389,7 @@ class Game extends React.Component {
     if ( intersections.length > 0 && intersections[0] !== null ) {
       let obj = intersections[0].object
       
-      switch(this.props.game.status) {
+      switch("CARDS1"){//(this.props.game.status) {
         case "CARDS1":
         case "CARDS2":
         
@@ -482,16 +489,35 @@ class Game extends React.Component {
       });
     }
     
+    // Play initialization animation of camera
+    if (this.playInitAnimation) {
+      //this.camera.position.x -= 1;
+      //this.camera.position.y -= 1;
+      this.camera.position.z -= this.camera.position.z/90;
+      this.camera.lookAt( new THREE.Vector3( 0, 2, 0 ) );
+      if (this.camera.position.z <= 100) {
+        //this.camera.position.set( 50, 100, 100 );
+        this.playInitAnimation = false;
+        
+        // Logic
+        this.camera.children.forEach((child) => {child.visible = true;});
+        this.inputEnabled = true;
+        
+        this.props.initFinish();
+      }
+    }
+    
     // Play start animation of camera
     if (this.playStartAnimation) {
-      // TODO: if (this.props.game.players[1] == localStorage.getItem("player_id")) {
+      // TODO: if (this.props.game.players[0] == localStorage.getItem("player_id")) {
       if (false) {
-        this.camera.position.x += 1;
+        this.camera.position.x += 0.1;
+        this.camera.position.z -= 1.2;
       } else {
-        this.camera.position.x -= 1;
+        this.camera.position.x -= 2;
+        this.camera.position.z -= 1;
       }
       this.camera.position.y -= 1;
-      this.camera.position.z -= 1;
       this.camera.lookAt( new THREE.Vector3( 0, 2, 0 ) );
       if (this.camera.position.y <= 40) {
         //this.camera.position.set( -55, 40, 50 );
