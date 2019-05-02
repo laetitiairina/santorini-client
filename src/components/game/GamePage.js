@@ -82,7 +82,7 @@ class GamePage extends React.Component {
     this.outputHander = React.createRef();
     
     
-    // ???
+    // ??? TODO: Remove player connection in order to be able to reload game if accidentally closed browser
 
     if (this.props.location.state) {
     
@@ -209,6 +209,20 @@ class GamePage extends React.Component {
   update() {
     this.setState({displayMsg:null});
     
+    // If page was reloaded, make sure everything is initialized
+    if(this.state.game) {
+      if(this.state.game.isGodMode && this.state.game.cards.length > 0) {
+        // Display cards on board when they have been chosen
+        this.outputHander.current.initCards();
+      }
+      if(this.state.status == "POSITION2" || this.state.status == "MOVE" || this.state.status == "BUILD" || this.state.status == "END") {
+        this.outputHander.current.initWorkers(1);
+        if(this.state.status != "POSITION2") {
+          this.outputHander.current.initWorkers(2,false);
+        }
+      }
+    }
+    
     // !!!!!!!!!!!!ATTENTION: isCurrentPlayer vs currentPlayer !!!!!!!!!!!!!!!!!!!!!
     
     // Switch action of game status
@@ -219,6 +233,7 @@ class GamePage extends React.Component {
         // Do this if current player
       } else {
         // Do this if not current player
+        // this.outputHander.current.setControls();
       }
     */
     switch(this.state.status) {
@@ -230,7 +245,7 @@ class GamePage extends React.Component {
           this.setState({displayMsg:"Choose 2 cards!"});
         } else {
           // Display waiting msg
-          this.outputHander.current.wait(true);
+          this.outputHander.current.setControls(false,false); // lookAround=false,select=false
           this.setState({displayMsg:"Other player is choosing cards..."});
         }
         break;
@@ -242,27 +257,18 @@ class GamePage extends React.Component {
           this.setState({displayMsg:"Choose your card!"});
         } else {
           // Display waiting msg
-          this.outputHander.current.wait(true);
+          this.outputHander.current.setControls(false,false); // lookAround=false,select=false
           this.setState({displayMsg:"Other player is choosing a card..."});
         }
         break;
       case "STARTPLAYER":
         console.log("STARTPLAYER");
         
-        // Display cards on board when they have been chosen
-        this.outputHander.current.initCards();
-        
-        
-        
         break;
         // TODO: recode this
       case "COLOR1":
       case "COLOR2":
         console.log("COLOR 1 & 2");
-        
-        // Can't do this in current implementation with how the player is accessed:
-        // Display workers of player 1 next to board when color1 has been chosen but color2 not yet
-        //this.outputHander.current.initWorkers(1);
 
         const url = `${getDomain()}/players/${this.player.id}`;
 
@@ -285,14 +291,36 @@ class GamePage extends React.Component {
       case "POSITION1":
         console.log("POSITION1");
         
-        // Display workers of player 2 next to board when color has been chosen
-        this.outputHander.current.initWorkers(2);
-        // Init game
-        this.outputHander.current.initGame();
+        // Display workers of player 1 next to board when color has been chosen
+        this.outputHander.current.initWorkers(1);
+        
+        if (this.getPlayer().currentPlayer) {
+          // Init position (1 = pan left)
+          this.outputHander.current.Position(1);
+          this.setState({displayMsg:"Position your workers!"});
+        } else {
+          // Display waiting msg
+          this.outputHander.current.setControls(false,false); // lookAround=false,select=false
+          this.setState({displayMsg:"Other player is positioning workers..."});
+        }
         
         break;
       case "POSITION2":
         console.log("POSITION2");
+        
+        // Display workers of player 2 next to board when color has been chosen
+        this.outputHander.current.initWorkers(2);
+        
+        if (this.getPlayer().currentPlayer) {
+          // Init position (2 = pan right)
+          this.outputHander.current.Position(2);
+          this.setState({displayMsg:"Position your workers!"});
+        } else {
+          // Display waiting msg
+          this.outputHander.current.setControls();
+          this.setState({displayMsg:"Other player is positioning workers..."});
+        }
+        
         break;
       case "MOVE":
         console.log("MOVE");
@@ -304,9 +332,13 @@ class GamePage extends React.Component {
         console.log("END");
         this.setState({gameEnds : true});
         // TODO: backend has to indicate who won
+        // Why don't we just set the winner as current player when the status is END and the just check who is current player?
           // this.setState({isWinner : BOOLEAN});
         break;
     }
+    
+    // if POSITION2,MOVE,BUILD,END update game board accoriding to this.state.game
+    //this.outputHander.current.update();
   }
 
   startPolling(url, fields) {
