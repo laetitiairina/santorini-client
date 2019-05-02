@@ -10,7 +10,7 @@ import {Spinner} from "../../views/design/Spinner";
 import Game from "./Game";
 
 // For testing
-import GamePlayer from "../shared/models/Player"
+//import GamePlayer from "../shared/models/Player"
 
 const Container = styled(BaseContainer)`
   color: white;
@@ -97,12 +97,12 @@ class GamePage extends React.Component {
     }
     
     // For testing
-    this.player = new GamePlayer();
-    this.player.isCurrentPlayer = true;
-    this.unautherizedAccess = false;
+    //this.player = new GamePlayer();
+    //this.player.isCurrentPlayer = true;
+    //this.unautherizedAccess = false;
 
     this.state = {
-      status: "CARDS1",
+      status: null,
       amountOfPolls: 0,
       gameEnds: false,
       isWinner: false,
@@ -120,17 +120,17 @@ class GamePage extends React.Component {
     }
     
     // Get game status
-    /*const url = `${getDomain()}/games/${localStorage.getItem('game_id')}`;
+    const url = `${getDomain()}/games/${localStorage.getItem('game_id')}`;
     const fields = ['status'];
     this.startPolling(url, fields).then(
         async result => {
           await this.setState({status: result});
         },
         rejected => alert(rejected)
-    );*/
+    );
     
     // For testing
-    this.update();
+    //this.update();
   }
   
   // Fetch player
@@ -144,10 +144,17 @@ class GamePage extends React.Component {
         "Content-Type": "application/json"
       }
     })
-    .then(response => response.json())
     .then(response => {
-      this.player.currentPlayer = response.currentPlayer;
-      this.player.isCurrentPlayer = this.player.currentPlayer; // TODO: only necessary because of weird name change
+      if (!response.ok) {
+        // If response not ok get response text and throw error
+        return response.text().then( err => { throw Error(err); } );
+      } else {
+        // Get returned player
+        return response.json();
+      }
+    })
+    .then(response => {
+      // Do stuff with player here
     })
     .catch(err => {
       console.log(err);
@@ -155,7 +162,8 @@ class GamePage extends React.Component {
   }
   
   // Fetch game
-  // Use this function to update this.state.game every time the game status changes
+  // Use this function to update this.state.game every time the game status changes,
+  // afterwards this.update gets called automatically
   fetchGame() {
     const url = `${getDomain()}/games/${this.state.game.id}`;
 
@@ -165,16 +173,26 @@ class GamePage extends React.Component {
         "Content-Type": "application/json"
       }
     })
-    .then(response => response.json())
+    .then(response => {
+      if (!response.ok) {
+        // If response not ok get response text and throw error
+        return response.text().then( err => { throw Error(err); } );
+      } else {
+        // Get returned game
+        return response.json();
+      }
+    })
     .then(response => {
       this.setState({ game: response });
+      this.update();
     })
     .catch(err => {
       console.log(err);
+      alert("Something went wrong: " + err);
     });
   }
   
-  // Check if current player
+  // Get player
   getPlayer = () => {
     if (this.state.game) {
       this.state.game.players.forEach((player) => {
@@ -186,13 +204,11 @@ class GamePage extends React.Component {
     return null;
   }
 
+  // Performe action based on status
   update() {
     this.setState({displayMsg:null});
-    // TODO:
-    // 1. Get new game object from server
-    //fetchGame(); // TODO: Add promise or something to wait for execution
     
-    // 2. Switch action of game status
+    // Switch action of game status
     // Always have one action for current player and one for not current player
     // Template:
     /*
@@ -205,7 +221,7 @@ class GamePage extends React.Component {
     switch(this.state.status) {
       case "CARDS1":
         console.log("CARDS1");
-        if (true) {//(this.getPlayer().isCurrentPlayer) {
+        if (this.getPlayer().isCurrentPlayer) {
           // Display 10 cards to choose from
           this.outputHander.current.Cards10();
           this.setState({displayMsg:"Choose 2 cards!"});
@@ -217,7 +233,7 @@ class GamePage extends React.Component {
         break;
       case "CARDS2":
         console.log("CARDS2");
-        if (true) {//if (this.getPlayer().isCurrentPlayer) {
+        if (this.getPlayer().isCurrentPlayer) {
           // Display 2 cards to choose from
           this.outputHander.current.Cards2();
           this.setState({displayMsg:"Choose your card!"});
@@ -229,19 +245,21 @@ class GamePage extends React.Component {
         break;
       case "STARTPLAYER":
         console.log("STARTPLAYER");
+        
         // Display cards on board when they have been chosen
         this.outputHander.current.initCards();
         
         
         
         break;
+        // TODO: recode this
       case "COLOR1":
       case "COLOR2":
         console.log("COLOR 1 & 2");
         
         // Can't do this in current implementation with how the player is accessed:
         // Display workers of player 1 next to board when color1 has been chosen but color2 not yet
-        this.outputHander.current.initWorkers(1);
+        //this.outputHander.current.initWorkers(1);
 
         const url = `${getDomain()}/players/${this.player.id}`;
 
@@ -307,9 +325,16 @@ class GamePage extends React.Component {
     .then(response => {
       this.setState({amountOfPolls: this.state.amountOfPolls + 1});
       if (response[fields[0]] !== this.state.status) {
+      
+        // Why does the status get set 2 times?
         this.setState({status : response[fields[0]]});
         resolve(response[fields[0]]);
-        this.update();
+        
+        // Status changed, now:
+        // 1. Get new game object from server
+        // 2. Performe update action according to game status (switch)
+        this.fetchGame();
+        
       } else if (this.state.amountOfPolls >= maxPolls) {
         reject("Timeout")
       }
@@ -406,7 +431,7 @@ class GamePage extends React.Component {
     .then(response => {
       if (!response.ok) {
         // If response not ok get response text and throw error
-        return response.text().then( err => { throw Error(err); } );
+        response.text().then( err => { throw Error(err); } );
       }
     })
     .catch(err => {

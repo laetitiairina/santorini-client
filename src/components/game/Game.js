@@ -156,6 +156,8 @@ class Game extends React.Component {
   }
   
   _displayCard = (posX,posY,posZ, nr) => {
+  
+    // Texture
     let canvas = document.createElement("canvas");
     let ctx = canvas.getContext('2d');
     canvas.width = 128;
@@ -176,6 +178,8 @@ class Game extends React.Component {
     })
     // DEBUG
     ctx.fillText(nr,canvas.width/4,canvas.height/2-10);
+    
+    // Display card
     let texture = new THREE.CanvasTexture(canvas);
     let card = new THREE.Mesh( new THREE.BoxBufferGeometry( 5, 0.1, 10 ), new THREE.MeshPhongMaterial({ color: 0xccaa11, shading: THREE.FlatShading, map: texture }) );
     card.rotation.x = - Math.PI / 2;
@@ -186,6 +190,8 @@ class Game extends React.Component {
   }
   
   _displayConfirmButton = (posX,posY,posZ) => {
+  
+    // Texture
     let canvas = document.createElement("canvas");
     let ctx = canvas.getContext('2d');
     canvas.width = 256;
@@ -200,6 +206,7 @@ class Game extends React.Component {
     ctx.fillStyle = '#FFFFFF';
     ctx.font = "15pt American Typewriter";
     ctx.fillText("CONFIRM",canvas.width/4,canvas.height/4);
+    
     // Display confirm button
     let texture = new THREE.CanvasTexture(canvas);
     let confirmButton = new THREE.Mesh( new THREE.BoxBufferGeometry( 4, 2, 2 ), new THREE.MeshPhongMaterial({ shading: THREE.FlatShading, map: texture }) );
@@ -253,7 +260,7 @@ class Game extends React.Component {
   
   
   // Initialization functions (called from GamePage via outputHandler)
-  // 1. initCards
+  // 1. initCards // if god mode
   // 2. initWorkers (1)
   // 3. initWorkers (2)
   // 4. initGame
@@ -414,7 +421,7 @@ class Game extends React.Component {
     if ( intersections.length > 0 && intersections[0] !== null ) {
       let obj = intersections[0].object
       
-      switch("CARDS1"){//(this.props.game.status) {
+      switch(this.props.game.status) {
         case "CARDS1":
         case "CARDS2":
         
