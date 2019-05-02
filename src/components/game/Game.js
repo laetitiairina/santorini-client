@@ -182,9 +182,7 @@ class Game extends React.Component {
   
   // Initialize cards
   initCards = () => {
-    // TODO: Use this.props.game.cards to get cards nr
-    //this.props.game.cards.forEach((cardnr) => {
-    [2,5].forEach((cardnr,i) => {
+    this.props.game.cards.forEach((cardnr,i) => {
       let texture = new THREE.CanvasTexture(this._canvasCardTexture(cardnr));
       let card = new THREE.Mesh( new THREE.BoxBufferGeometry( 5, 0.1, 10 ), new THREE.MeshPhongMaterial({ color: 0xccaa11, shading: THREE.FlatShading, map: texture }) );
       card.position.set( 20 - 40 * i, 0, 5 - 10 * i );
@@ -376,13 +374,13 @@ class Game extends React.Component {
     switch(this.props.game.status) {
         case "POSITION1":
         
-        break;
+          break;
         case "POSITION2":
         
-        break;
+          break;
         case "MOVE":
         
-        break;
+          break;
     }
 
     this.controls.enabled = true;
@@ -430,7 +428,7 @@ class Game extends React.Component {
     switch(this.props.game.status) {
         case "BUILD":
         
-        break;
+          break;
     }
     
   }

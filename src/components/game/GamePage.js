@@ -452,7 +452,7 @@ class GamePage extends React.Component {
   
   // Updates game using a PUT request
   // Use this function for ALL updates of the game
-  updateGame = (bodyEntity) => {
+  updateGame = (bodyObject) => {
     const url = `${getDomain()}/games/${localStorage.getItem('game_id')}`;
 
     fetch(`${url}`, {
@@ -461,7 +461,7 @@ class GamePage extends React.Component {
         "Content-Type": "application/json",
         "Token": localStorage.getItem("playerToken") // Send token in headers to authenticate request
       }),
-      body: JSON.stringify(bodyEntity)
+      body: JSON.stringify(bodyObject)
     })
     .then(response => {
       if (!response.ok) {
