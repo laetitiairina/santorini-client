@@ -165,7 +165,7 @@ class GamePage extends React.Component {
   // Use this function to update this.state.game every time the game status changes,
   // afterwards this.update gets called automatically
   fetchGame() {
-    const url = `${getDomain()}/games/${this.state.game.id}`;
+    const url = `${getDomain()}/games/${localStorage.getItem('game_id')}`;
 
     fetch(`${url}`, {
       method: "GET",
@@ -194,19 +194,22 @@ class GamePage extends React.Component {
   
   // Get player
   getPlayer = () => {
+    let foundPlayer = null;
     if (this.state.game) {
       this.state.game.players.forEach((player) => {
-        if (player.id = localStorage.getItem("player_id")) {
-          return player;
+        if (player.id == localStorage.getItem("player_id")) {
+          foundPlayer = player;
         }
       });
     }
-    return null;
+    return foundPlayer;
   }
 
   // Performe action based on status
   update() {
     this.setState({displayMsg:null});
+    
+    // !!!!!!!!!!!!ATTENTION: isCurrentPlayer vs currentPlayer !!!!!!!!!!!!!!!!!!!!!
     
     // Switch action of game status
     // Always have one action for current player and one for not current player
@@ -221,7 +224,7 @@ class GamePage extends React.Component {
     switch(this.state.status) {
       case "CARDS1":
         console.log("CARDS1");
-        if (this.getPlayer().isCurrentPlayer) {
+        if (this.getPlayer().currentPlayer) {
           // Display 10 cards to choose from
           this.outputHander.current.Cards10();
           this.setState({displayMsg:"Choose 2 cards!"});
@@ -233,7 +236,7 @@ class GamePage extends React.Component {
         break;
       case "CARDS2":
         console.log("CARDS2");
-        if (this.getPlayer().isCurrentPlayer) {
+        if (this.getPlayer().currentPlayer) {
           // Display 2 cards to choose from
           this.outputHander.current.Cards2();
           this.setState({displayMsg:"Choose your card!"});
@@ -431,7 +434,7 @@ class GamePage extends React.Component {
     .then(response => {
       if (!response.ok) {
         // If response not ok get response text and throw error
-        response.text().then( err => { throw Error(err); } );
+        return response.text().then( err => { throw Error(err); } );
       }
     })
     .catch(err => {
