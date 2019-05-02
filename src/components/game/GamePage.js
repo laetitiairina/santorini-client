@@ -39,7 +39,7 @@ const MessageContainer = styled.div`
   align-items: center;
   justify-content: center;
   color: #3E5774;
-  margin: 50px;
+  margin-top: -20px;
   text-transform: uppercase;
 `;
 
@@ -76,6 +76,7 @@ class GamePage extends React.Component {
     
     // Bind inputHandler so it can get called from Game component
     this.inputHandler = this.inputHandler.bind(this);
+    this.initFinish = this.initFinish.bind(this);
     
     // Create reference to outputHandler so GamePage can call functions in Game component
     this.outputHander = React.createRef();
@@ -106,7 +107,8 @@ class GamePage extends React.Component {
       gameEnds: false,
       isWinner: false,
       blockedColor: null,
-      waitMsg: null,
+      displayMsg: null,
+      finishInitGame: false,
       game: null // game object, ex. {"status":"MOVE", "board": ...}
     };
   }
@@ -142,10 +144,17 @@ class GamePage extends React.Component {
         "Content-Type": "application/json"
       }
     })
-    .then(response => response.json())
     .then(response => {
-      this.player.currentPlayer = response.currentPlayer;
-      this.player.isCurrentPlayer = this.player.currentPlayer; // TODO: only necessary because of weird name change
+      if (!response.ok) {
+        // If response not ok get response text and throw error
+        return response.text().then( err => { throw Error(err); } );
+      } else {
+        // Get returned player
+        return response.json();
+      }
+    })
+    .then(response => {
+      // Do stuff with player here
     })
     .catch(err => {
       console.log(err);
@@ -153,9 +162,10 @@ class GamePage extends React.Component {
   }
   
   // Fetch game
-  // Use this function to update this.state.game every time the game status changes
+  // Use this function to update this.state.game every time the game status changes,
+  // afterwards this.update gets called automatically
   fetchGame() {
-    const url = `${getDomain()}/games/${this.state.game.id}`;
+    const url = `${getDomain()}/games/${localStorage.getItem('game_id')}`;
 
     fetch(`${url}`, {
       method: "GET",
@@ -163,71 +173,96 @@ class GamePage extends React.Component {
         "Content-Type": "application/json"
       }
     })
-    .then(response => response.json())
+    .then(response => {
+      if (!response.ok) {
+        // If response not ok get response text and throw error
+        return response.text().then( err => { throw Error(err); } );
+      } else {
+        // Get returned game
+        return response.json();
+      }
+    })
     .then(response => {
       this.setState({ game: response });
+      this.update();
     })
     .catch(err => {
       console.log(err);
+      alert("Something went wrong: " + err);
     });
   }
   
-  // Check if current player
+  // Get player
   getPlayer = () => {
-    this.state.game.players.forEach((player) => {
-      if (player.id = localStorage.getItem("player_id")) {
-        return player;
-      }
-    });
-    return null;
+    let foundPlayer = null;
+    if (this.state.game) {
+      this.state.game.players.forEach((player) => {
+        if (player.id == localStorage.getItem("player_id")) {
+          foundPlayer = player;
+        }
+      });
+    }
+    return foundPlayer;
   }
 
+  // Performe action based on status
   update() {
-    this.setState({waitMsg:null});
-    // TODO:
-    // 1. Get new game object from server
-    //fetchGame(); // TODO: Add promise or something to wait for execution
+    this.setState({displayMsg:null});
     
-    // 2. Switch action of game status
+    // !!!!!!!!!!!!ATTENTION: isCurrentPlayer vs currentPlayer !!!!!!!!!!!!!!!!!!!!!
+    
+    // Switch action of game status
     // Always have one action for current player and one for not current player
+    // Template:
+    /*
+      if (this.getPlayer().isCurrentPlayer) {
+        // Do this if current player
+      } else {
+        // Do this if not current player
+      }
+    */
     switch(this.state.status) {
       case "CARDS1":
         console.log("CARDS1");
-        if (this.getPlayer().isCurrentPlayer) {
+        if (this.getPlayer().currentPlayer) {
           // Display 10 cards to choose from
           this.outputHander.current.Cards10();
+          this.setState({displayMsg:"Choose 2 cards!"});
         } else {
           // Display waiting msg
           this.outputHander.current.wait(true);
-          this.setState({waitMsg:"Other player is choosing cards..."});
+          this.setState({displayMsg:"Other player is choosing cards..."});
         }
         break;
       case "CARDS2":
         console.log("CARDS2");
-        if (this.getPlayer().isCurrentPlayer) {
+        if (this.getPlayer().currentPlayer) {
           // Display 2 cards to choose from
           this.outputHander.current.Cards2();
+          this.setState({displayMsg:"Choose your card!"});
         } else {
           // Display waiting msg
           this.outputHander.current.wait(true);
-          this.setState({waitMsg:"Other player is choosing a card..."});
+          this.setState({displayMsg:"Other player is choosing a card..."});
         }
         break;
       case "STARTPLAYER":
         console.log("STARTPLAYER");
+        
         // Display cards on board when they have been chosen
         this.outputHander.current.initCards();
         
         
         
         break;
+        // TODO: recode this
       case "COLOR1":
       case "COLOR2":
         console.log("COLOR 1 & 2");
         
         // Can't do this in current implementation with how the player is accessed:
         // Display workers of player 1 next to board when color1 has been chosen but color2 not yet
-        this.outputHander.current.initWorkers(1);
+        //this.outputHander.current.initWorkers(1);
 
         const url = `${getDomain()}/players/${this.player.id}`;
 
@@ -293,9 +328,16 @@ class GamePage extends React.Component {
     .then(response => {
       this.setState({amountOfPolls: this.state.amountOfPolls + 1});
       if (response[fields[0]] !== this.state.status) {
+      
+        // Why does the status get set 2 times?
         this.setState({status : response[fields[0]]});
         resolve(response[fields[0]]);
-        this.update();
+        
+        // Status changed, now:
+        // 1. Get new game object from server
+        // 2. Performe update action according to game status (switch)
+        this.fetchGame();
+        
       } else if (this.state.amountOfPolls >= maxPolls) {
         reject("Timeout")
       }
@@ -350,6 +392,12 @@ class GamePage extends React.Component {
     return this.state.blockedColor;
   }
   
+  // Game functions (these function gets called from Game component)
+  
+  initFinish = () => {
+    this.setState({finishInitGame: true});
+  }
+  
   // Input handler from player (this function gets called from Game component (ex.: Player moves a worker on the board)
   inputHandler = (isGame, content) => {
     if (isGame) {
@@ -394,31 +442,29 @@ class GamePage extends React.Component {
       alert("Something went wrong: " + err);
     });
   }
+  
+  //
 
   render() {
     return (
       <div>
         <div style={{color:"#000000"}}>STATUS: {this.state.status}</div>
-        {!this.state.status ? (
-          this.unautherizedAccess ? (
+          {this.unautherizedAccess ? (
             <ErrorContainer>
               <ErrorLabel>Game not initializated!</ErrorLabel>
               <BackButton onClick={() => {this.props.history.push("/home");}}>Back</BackButton>
             </ErrorContainer>
           ) : (
-            <Spinner/>
-          )
-        ) : (
-          <GameContainer>
-            <PopupContainer>
-              <EndPopUp appears={this.gameEnds()} winner={this.state.isWinner} props={this.props}/>
-              <ChooseColorPopUp appears={this.chooseColor()} setColor={this.setColor} blockedColor={this.getBlockedColor()}/>
-            </PopupContainer>
-            {this.state.waitMsg ? (
-              <MessageContainer>{this.state.waitMsg}</MessageContainer>
-              ) : (<div></div>)}
-            <Game game={this.state.game} inputHandler={this.inputHandler} ref={this.outputHander}/>
-          </GameContainer>
+            <GameContainer>
+              <PopupContainer>
+                <EndPopUp appears={this.gameEnds()} winner={this.state.isWinner} props={this.props}/>
+                <ChooseColorPopUp appears={this.chooseColor()} setColor={this.setColor} blockedColor={this.getBlockedColor()}/>
+              </PopupContainer>
+              {this.state.displayMsg && this.state.finishInitGame ? (
+                <MessageContainer>{this.state.displayMsg}</MessageContainer>
+                ) : (<div></div>)}
+              <Game game={this.state.game} initFinish={this.initFinish} inputHandler={this.inputHandler} ref={this.outputHander}/>
+            </GameContainer>
         )}
       </div>
     );

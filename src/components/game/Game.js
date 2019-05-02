@@ -2,6 +2,7 @@ import React from "react";
 import * as THREE from "three";
 import DragControls from 'three-dragcontrols';
 import OrbitControls from 'three-orbitcontrols';
+import GodCardsData from "../../views/design/GodCardsData.json";
 
 class Game extends React.Component {
 
@@ -26,6 +27,7 @@ class Game extends React.Component {
       "10": {},
     };
     this.playStartAnimation = false;
+    this.playInitAnimation = true;
     this.waterSpeed = 0.03;
     this.inputEnabled = false;
     
@@ -48,7 +50,7 @@ class Game extends React.Component {
     // camera
     
     this.camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, this.cameraNear, this.cameraFar);
-    this.camera.position.set( 0, 100, 100 );
+    this.camera.position.set( 50, 100, 500 );
     this.camera.lookAt( new THREE.Vector3( 0, 2, 0 ) );
     this.scene.add(this.camera);
 
@@ -154,17 +156,30 @@ class Game extends React.Component {
   }
   
   _displayCard = (posX,posY,posZ, nr) => {
-    // TODO: Card textures from nr
+  
+    // Texture
     let canvas = document.createElement("canvas");
     let ctx = canvas.getContext('2d');
-    canvas.width = canvas.height = 256;
+    canvas.width = 128;
+    canvas.height = 256;
+    canvas.style.width = 64;
+    canvas.style.height= 128;
+    ctx.scale(2,2);
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect( 0, 0, canvas.width,canvas.height );
-    ctx.font = "50pt Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = 'blue';
-    ctx.fillText(nr,canvas.width/2,canvas.height/2);
+    ctx.font = "6pt American Typewriter";
+    ctx.fillText(GodCardsData[nr].name,canvas.width/4,10);
+    ctx.font = "4pt American Typewriter";
+    GodCardsData[nr].text.forEach((line,i) => {
+      ctx.fillText(line,canvas.width/4,25+10*i);
+    })
+    // DEBUG
+    ctx.fillText(nr,canvas.width/4,canvas.height/2-10);
+    
+    // Display card
     let texture = new THREE.CanvasTexture(canvas);
     let card = new THREE.Mesh( new THREE.BoxBufferGeometry( 5, 0.1, 10 ), new THREE.MeshPhongMaterial({ color: 0xccaa11, shading: THREE.FlatShading, map: texture }) );
     card.rotation.x = - Math.PI / 2;
@@ -175,8 +190,26 @@ class Game extends React.Component {
   }
   
   _displayConfirmButton = (posX,posY,posZ) => {
+  
+    // Texture
+    let canvas = document.createElement("canvas");
+    let ctx = canvas.getContext('2d');
+    canvas.width = 256;
+    canvas.height = 128;
+    canvas.style.width = 128;
+    canvas.style.height= 64;
+    ctx.scale(2,2);
+    ctx.fillStyle = '#0000FF';
+    ctx.fillRect( 0, 0, canvas.width,canvas.height );
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = "15pt American Typewriter";
+    ctx.fillText("CONFIRM",canvas.width/4,canvas.height/4);
+    
     // Display confirm button
-    let confirmButton = new THREE.Mesh( new THREE.BoxBufferGeometry( 5, 2, 2 ), new THREE.MeshPhongMaterial({ color: 0x0000ff, shading: THREE.FlatShading }) );
+    let texture = new THREE.CanvasTexture(canvas);
+    let confirmButton = new THREE.Mesh( new THREE.BoxBufferGeometry( 4, 2, 2 ), new THREE.MeshPhongMaterial({ shading: THREE.FlatShading, map: texture }) );
     confirmButton.rotation.x = - Math.PI / 2;
     confirmButton.position.set(posX,posY,posZ);
     confirmButton.name = "confirm";
@@ -201,6 +234,12 @@ class Game extends React.Component {
     }
     
     this._displayConfirmButton(0, -15, -40);
+    
+    // Because of init animation
+    if (this.playInitAnimation) {
+      this.inputEnabled = false;
+      this.camera.children.forEach((child) => {child.visible = false;});
+    }
   }
   
   // Display 2 cards to choose from
@@ -221,7 +260,7 @@ class Game extends React.Component {
   
   
   // Initialization functions (called from GamePage via outputHandler)
-  // 1. initCards
+  // 1. initCards // if god mode
   // 2. initWorkers (1)
   // 3. initWorkers (2)
   // 4. initGame
@@ -482,16 +521,35 @@ class Game extends React.Component {
       });
     }
     
+    // Play initialization animation of camera
+    if (this.playInitAnimation) {
+      //this.camera.position.x -= 1;
+      //this.camera.position.y -= 1;
+      this.camera.position.z -= this.camera.position.z/90;
+      this.camera.lookAt( new THREE.Vector3( 0, 2, 0 ) );
+      if (this.camera.position.z <= 100) {
+        //this.camera.position.set( 50, 100, 100 );
+        this.playInitAnimation = false;
+        
+        // Logic
+        this.camera.children.forEach((child) => {child.visible = true;});
+        this.inputEnabled = true;
+        
+        this.props.initFinish();
+      }
+    }
+    
     // Play start animation of camera
     if (this.playStartAnimation) {
-      // TODO: if (this.props.game.players[1] == localStorage.getItem("player_id")) {
+      // TODO: if (this.props.game.players[0] == localStorage.getItem("player_id")) {
       if (false) {
-        this.camera.position.x += 1;
+        this.camera.position.x += 0.1;
+        this.camera.position.z -= 1.2;
       } else {
-        this.camera.position.x -= 1;
+        this.camera.position.x -= 2;
+        this.camera.position.z -= 1;
       }
       this.camera.position.y -= 1;
-      this.camera.position.z -= 1;
       this.camera.lookAt( new THREE.Vector3( 0, 2, 0 ) );
       if (this.camera.position.y <= 40) {
         //this.camera.position.set( -55, 40, 50 );
