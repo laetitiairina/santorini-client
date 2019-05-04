@@ -211,6 +211,7 @@ class GamePage extends React.Component {
     
     // If page was reloaded, make sure everything is initialized
     if(this.state.game) {
+      // TODO: Which card on which side
       if(this.state.game.isGodMode && this.state.game.cards.length > 0) {
         // Display cards on board when they have been chosen
         this.outputHander.current.initCards();
@@ -239,7 +240,7 @@ class GamePage extends React.Component {
     switch(this.state.status) {
       case "CARDS1":
         console.log("CARDS1");
-        if (this.getPlayer().currentPlayer) {
+        if (this.getPlayer().isCurrentPlayer) {
           // Display 10 cards to choose from
           this.outputHander.current.Cards10();
           this.setState({displayMsg:"Choose 2 cards!"});
@@ -251,7 +252,7 @@ class GamePage extends React.Component {
         break;
       case "CARDS2":
         console.log("CARDS2");
-        if (this.getPlayer().currentPlayer) {
+        if (this.getPlayer().isCurrentPlayer) {
           // Display 2 cards to choose from
           this.outputHander.current.Cards2();
           this.setState({displayMsg:"Choose your card!"});
@@ -281,8 +282,7 @@ class GamePage extends React.Component {
         .then(response => response.json())
         .then(response => {
           // Is there a reason not to save the whole respone in player, except for the naming convention?
-          this.player.currentPlayer = response.currentPlayer;
-          this.player.isCurrentPlayer = this.player.currentPlayer; // TODO: only necessary because of weird name change
+          this.player.isCurrentPlayer = response.isCurrentPlayer; // TODO: only necessary because of weird name change
         })
         .catch(err => {
           console.log(err);
@@ -294,7 +294,7 @@ class GamePage extends React.Component {
         // Display workers of player 1 next to board when color has been chosen
         this.outputHander.current.initWorkers(1);
         
-        if (this.getPlayer().currentPlayer) {
+        if (this.getPlayer().isCurrentPlayer) {
           // Init position (1 = pan left)
           this.outputHander.current.Position(1);
           this.setState({displayMsg:"Position your workers!"});
@@ -311,7 +311,7 @@ class GamePage extends React.Component {
         // Display workers of player 2 next to board when color has been chosen
         this.outputHander.current.initWorkers(2);
         
-        if (this.getPlayer().currentPlayer) {
+        if (this.getPlayer().isCurrentPlayer) {
           // Init position (2 = pan right)
           this.outputHander.current.Position(2);
           this.setState({displayMsg:"Position your workers!"});
@@ -459,7 +459,7 @@ class GamePage extends React.Component {
       method: "PUT",
       headers: new Headers({
         "Content-Type": "application/json",
-        "Token": localStorage.getItem("playerToken") // Send token in headers to authenticate request
+        "Token": this.player.token // Send token in headers to authenticate request
       }),
       body: JSON.stringify(bodyObject)
     })

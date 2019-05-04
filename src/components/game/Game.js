@@ -182,6 +182,7 @@ class Game extends React.Component {
   
   // Initialize cards
   initCards = () => {
+    // TODO: Which card on which side
     this.props.game.cards.forEach((cardnr,i) => {
       let texture = new THREE.CanvasTexture(this._canvasCardTexture(cardnr));
       let card = new THREE.Mesh( new THREE.BoxBufferGeometry( 5, 0.1, 10 ), new THREE.MeshPhongMaterial({ color: 0xccaa11, shading: THREE.FlatShading, map: texture }) );
@@ -199,12 +200,13 @@ class Game extends React.Component {
   // (call once for each player after color was selected)
   // nr represents the order ( so if COLOR1 was selected -> nr=1)
   initWorkers = (nr,curr=true) => {
+    // TODO: Which workers on which side
     let colorPreset = {"BLUE":"#0000ff","GREY":"#dddddd","WHITE":"#ffffff"}
     let playerWorkers = null;
     this.props.game.players.forEach((player) => {
-      if(player.currentPlayer && curr) {
+      if(player.isCurrentPlayer && curr) {
         playerWorkers = player;
-      } else if(!player.currentPlayer && !curr) {
+      } else if(!player.isCurrentPlayer && !curr) {
         playerWorkers = player;
       }
     });
