@@ -134,7 +134,7 @@ class Game extends React.Component {
     
     // block bag (a simple block for now)
     
-    this.initBlock = new THREE.Mesh( new THREE.BoxBufferGeometry( this.blockSize, this.blockHeight, this.blockSize ), this.blockMaterial);
+    this.initBlock = new THREE.Mesh( new THREE.BoxBufferGeometry( this.blockSize, this.blockHeight, this.blockSize ), new THREE.MeshLambertMaterial( { color: 0xB5651D } ));
     this.initBlock.position.set( 0, this.blockHeight / 2, 20 );
     this.initBlock.castShadow = true;
     this.initBlock.receiveShadow = true;
@@ -176,8 +176,9 @@ class Game extends React.Component {
     this.dragControlsWorker.enabled = false;
     this.dragControlsWorker.deactivate();
     
-    this.dragControlsBlock = new DragControls( [this.initBlock] , this.camera, this.renderer.domElement );
+    this.dragControlsBlock = new DragControls( [this.initBlock], this.camera, this.renderer.domElement );
     this.dragControlsBlock.addEventListener( 'dragstart', this.onDragStartBlock);
+    this.dragControlsBlock.addEventListener( 'drag', this.onDragBlock);
     this.dragControlsBlock.addEventListener( 'dragend', this.onDragEndBlock);
     this.dragControlsBlock.enabled = false;
     this.dragControlsBlock.deactivate();
@@ -468,12 +469,7 @@ class Game extends React.Component {
     } else {
       this.ghostWorker.position.x = posX;
       this.ghostWorker.position.z = posZ;
-      this.ghostWorker.position.y = 2;
-      
-      // TODO:
-      if (this.fields[posX][posZ]) {
-        this.ghostWorker.position.y = 2 + this.blockHeight * this.fields[event.object.position.x][event.object.position.z];
-      }
+      this.ghostWorker.position.y = 2 + this.blockHeight * this.fields[posX][posZ];
       
     }
   }
@@ -492,12 +488,7 @@ class Game extends React.Component {
       // Worker was placed on board
       event.object.position.x = posX;
       event.object.position.z = posZ;
-      event.object.position.y = 2;
-      
-      // TODO:
-      if (this.fields[posX][posZ]) {
-        event.object.position.y = 2 + this.blockHeight * this.fields[event.object.position.x][event.object.position.z];
-      }
+      event.object.position.y = 2 + this.blockHeight * this.fields[posX][posZ];
       
       // Set userData of worker
       event.object.userData.onBoard = true;
@@ -559,50 +550,87 @@ class Game extends React.Component {
   }
   
   onDragStartBlock = (event) => {
-    this.blockDraged = true;
     this.controls.enabled = false;
+    this.inputEnabled = false;
     
-    this.placeholderBlock = new THREE.Mesh( new THREE.BoxBufferGeometry( this.blockSize, this.blockHeight, this.blockSize ), this.blockMaterial );
-    this.placeholderBlock.position.set( 0, this.blockHeight / 2, 20 );
+    this.draged = true;
+    
+    this.placeholderBlock = event.object.clone();
     this.scene.add(this.placeholderBlock);
+    
+    event.object.geometry = new THREE.BoxBufferGeometry( this.blockSize, this.blockHeight, this.blockSize );
+    event.object.material = this.blockMaterial;
+    
+    // Create ghost block
+    this.ghostBlock = event.object.clone();
+    this.ghostBlock.material = event.object.material.clone();
+    this.ghostBlock.material.transparent = true;
+    this.ghostBlock.material.opacity = 0.3;
+    this.ghostBlock.name = "ghost";
+    this.scene.add(this.ghostBlock);
+  }
+  
+  onDragBlock = (event) => {
+    let posX = Math.floor( ( event.object.position.x + 2.5 ) / 5 ) * 5;
+    let posZ = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
+    
+    // Update ghost block position
+    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
+      this.ghostBlock.position.y = -500;
+    } else {
+      this.ghostBlock.position.x = posX;
+      this.ghostBlock.position.z = posZ;
+      this.ghostBlock.position.y = this.blockHeight/2 + this.blockHeight * this.fields[posX][posZ];
+    }
   }
   
   onDragEndBlock = (event) => {
-    this.controls.enabled = true;
+    // Remove ghost worker
+    this.scene.remove(this.ghostWorker);
+    
+    let posX = Math.floor( ( event.object.position.x + 2.5 ) / 5 ) * 5;
+    let posZ = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
+    
+    event.object.position.set( 0, this.blockHeight / 2, 20 );
+    event.object.geometry = this.placeholderBlock.geometry.clone();
+    event.object.material = this.placeholderBlock.material.clone();
     this.scene.remove(this.placeholderBlock);
     
-    let pointX = Math.floor( ( event.object.position.x + 2.5 ) / 5 ) * 5;
-    let pointZ = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
-    let pointY = this.blockHeight/2;
-    
-    if ( this.fields[pointX][pointZ] > 2) {
-      this.initBlock.position.set( 0, this.blockHeight / 2, 20 );
-      return;
-    } else if ( this.fields[pointX][pointZ] ) {
-      pointY += this.blockHeight * this.fields[pointX][pointZ];
-      this.fields[pointX][pointZ] += 1;
+    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
+      //
     } else {
-      this.fields[pointX][pointZ] = 1;
+    
+      // Get number of blocks on field
+      let blockNr = this.fields[posX][posZ];
+      
+      // Create block
+      this.createBlock(posX,posZ,blockNr);
+      
+      // Update number of blocks
+      this.fields[posX][posZ] += 1;
+      
+      switch(this.props.game.status) {
+          case "BUILD":
+            let blockField = [];
+          
+            // Get new field of worker
+            this.props.game.board.fields.forEach((field) => {
+              if(field.posX == this.posEnum[posX] && field.posY == this.posEnum[posZ]) {
+                blockField.push(field);
+              }
+            });
+          
+            // Add block to field
+            blockField[0].blocks += 1;
+
+            // Send input to GamePage
+            this.props.inputHandler("board",blockField);
+            break;
+      }
     }
     
-    let block = new THREE.Mesh( new THREE.BoxBufferGeometry( this.blockSize, this.blockHeight, this.blockSize ), this.blockMaterial );
-    block.position.set(pointX, pointY, pointZ);
-    block.castShadow = true;
-    block.receiveShadow = true;
-    this.scene.add(block);
-    //this.blocks.push(block);
-    
-    this.initBlock.position.set( 0, this.blockHeight / 2, 20 );
-    
-    
-    // TODO: !!!!!!!!!!!!!!
-    
-    switch(this.props.game.status) {
-        case "BUILD":
-        
-          break;
-    }
-    
+    this.controls.enabled = true;
+    this.inputEnabled = true;
   }
   
   _raycasterGetIntersections = (event) => {
@@ -645,8 +673,9 @@ class Game extends React.Component {
 
   onMouseUp = (event) => {
   
-    // TODO: throws error sometimes
+    // TODO: Throws error sometimes
     // Make sure all ghosts are removed
+    /*
     if(this.draged) {
       this.scene.traverse((child) => {
         if(child.name == "ghost") {
@@ -655,6 +684,7 @@ class Game extends React.Component {
       });
       this.draged = false;
     }
+    */
   
     /*if ( this.workerDraged || event.button !== 0 ) {
       this.workerDraged = false;
@@ -811,7 +841,11 @@ class Game extends React.Component {
   // This function gets called in GamePage
   update = () => {
     for( let field of this.props.game.board.fields ) {
+      // Get old number of blocks
       let oldBlocks = this.fields[this.posRevEnum[field.posX]][this.posRevEnum[field.posY]];
+      // Update number of blocks
+      this.fields[this.posRevEnum[field.posX]][this.posRevEnum[field.posY]] = field.blocks;
+      
       if (oldBlocks < field.blocks) {
         // Set blocks
         this.updateBlocks(field,oldBlocks);
@@ -833,6 +867,9 @@ class Game extends React.Component {
     this.blocks = [];
     
     this.props.game.board.fields.forEach((field) => {
+      // Update number of blocks
+      this.fields[this.posRevEnum[field.posX]][this.posRevEnum[field.posY]] = field.blocks;
+    
       // Set blocks
       this.updateBlocks(field);
       
@@ -841,14 +878,18 @@ class Game extends React.Component {
     });
   }
   
+  createBlock = (posX,posZ,i) => {
+    let block = new THREE.Mesh( new THREE.BoxBufferGeometry( this.blockSize, this.blockHeight, this.blockSize ), this.blockMaterial);
+    block.position.set( posX, this.blockHeight / 2 + this.blockHeight * i, posZ );
+    block.castShadow = true;
+    block.receiveShadow = true;
+    this.scene.add(block);
+    this.blocks.push(block);
+  }
+  
   updateBlocks = (field,oldBlocks=0) => {
     for(let i = oldBlocks; i < field.blocks; i++) {
-      let block = new THREE.Mesh( new THREE.BoxBufferGeometry( this.blockSize, this.blockHeight, this.blockSize ), this.blockMaterial);
-      block.position.set( this.posRevEnum[field.posX], this.blockHeight / 2 + this.blockHeight * i, this.posRevEnum[field.posY] );
-      block.castShadow = true;
-      block.receiveShadow = true;
-      this.scene.add(block);
-      this.blocks.add(block);
+      this.createBlock(this.posRevEnum[field.posX],this.posRevEnum[field.posY],i)
     }
   }
   
