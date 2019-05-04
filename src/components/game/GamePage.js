@@ -8,6 +8,7 @@ import EndPopUp from "./EndPopUp";
 import ChooseColorPopUp from "./ChooseColorPopUp";
 import {Spinner} from "../../views/design/Spinner";
 import Game from "./Game";
+import statusEnum from "../../helpers/statusEnum";
 
 // For testing
 //import GamePlayer from "../shared/models/Player"
@@ -81,28 +82,16 @@ class GamePage extends React.Component {
     // Create reference to outputHandler so GamePage can call functions in Game component
     this.outputHander = React.createRef();
     
-    
-    // ??? TODO: Remove player connection in order to be able to reload game if accidentally closed browser
-
-    if (this.props.location.state) {
-    
-      // Why transfer player via props? We are suppose to send a get request to get the player info anyway? Why pass it?
-      // We can even access it via the game object that we request, so no need to make it more complicated
-      this.player = this.props.location.state.player;
+    if (localStorage.getItem('player_id') && localStorage.getItem('playerToken')) {
       this.unautherizedAccess = false;
-      
     } else {
       // Page /game was accessed without proper initialization of the game -> display error msg
       this.unautherizedAccess = true;
     }
-    
-    // For testing
-    //this.player = new GamePlayer();
-    //this.player.isCurrentPlayer = true;
-    //this.unautherizedAccess = false;
 
     this.state = {
       status: null,
+      prevStatus: null,
       amountOfPolls: 0,
       gameEnds: false,
       isWinner: false,
@@ -128,9 +117,51 @@ class GamePage extends React.Component {
         },
         rejected => alert(rejected)
     );
-    
-    // For testing
-    //this.update();
+  }
+  
+  startPolling(url, fields) {
+    return new Promise((resolve, reject) => {
+          this.setState({inQueue: true, amountOfPolls: 0});
+          this.poller = setInterval(() => this.poll(url, fields, 1000, resolve, reject), 100)
+        }
+    );
+  }
+
+  poll(url, fields, maxPolls, resolve, reject) {
+    fetch(`${url}?fields=${fields.join('&')}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Token": localStorage.getItem('playerToken')
+      },
+    })
+    .then(response => response.json())
+    .then(response => {
+      this.setState({amountOfPolls: this.state.amountOfPolls + 1});
+      if (response[fields[0]] !== this.state.status) {
+        
+        this.setState({prevStatus : this.state.status});
+        
+        // Why does the status get set 2 times?
+        this.setState({status : response[fields[0]]});
+        resolve(response[fields[0]]);
+        
+        // Status changed, now:
+        // 1. Get new game object from server
+        // 2. Performe update action according to game status (switch)
+        this.fetchGame();
+        
+      } else if (this.state.amountOfPolls >= maxPolls) {
+        reject("Timeout")
+      }
+    })
+    .catch(err => {
+      console.log(err);
+    });
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.poller);
   }
   
   // Fetch player
@@ -141,7 +172,8 @@ class GamePage extends React.Component {
     fetch(`${url}`, {
       method: "GET",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Token": localStorage.getItem('playerToken')
       }
     })
     .then(response => {
@@ -170,7 +202,8 @@ class GamePage extends React.Component {
     fetch(`${url}`, {
       method: "GET",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Token": localStorage.getItem('playerToken')
       }
     })
     .then(response => {
@@ -197,7 +230,20 @@ class GamePage extends React.Component {
     let foundPlayer = null;
     if (this.state.game) {
       this.state.game.players.forEach((player) => {
-        if (player.id == localStorage.getItem("player_id")) {
+        if (player.id == localStorage.getItem('player_id')) {
+          foundPlayer = player;
+        }
+      });
+    }
+    return foundPlayer;
+  }
+  
+  // Get opponent player
+  getOpponentPlayer = () => {
+    let foundPlayer = null;
+    if (this.state.game) {
+      this.state.game.players.forEach((player) => {
+        if (player.id != localStorage.getItem('player_id')) {
           foundPlayer = player;
         }
       });
@@ -209,21 +255,24 @@ class GamePage extends React.Component {
   update() {
     this.setState({displayMsg:null});
     
-    // If page was reloaded, make sure everything is initialized
-    if(this.state.game) {
-      if(this.state.game.isGodMode && this.state.game.cards.length > 0) {
+    // Make sure everything is initialized (this allows for reload of page)
+    if(((this.state.game.isGodMode && statusEnum[this.state.game.status] > 1) || (!this.state.game.isGodMode && statusEnum[this.state.game.status] > 4)) && this.state.prevStatus == null) {
+      
+      // Init cards
+      if(this.state.game.isGodMode && statusEnum[this.state.game.status] > 2) {
         // Display cards on board when they have been chosen
         this.outputHander.current.initCards();
       }
-      if(this.state.status == "POSITION2" || this.state.status == "MOVE" || this.state.status == "BUILD" || this.state.status == "END") {
+      
+      // TODO: Doesn't work on reload, workers gets initialized on wrong side
+      // Init workers
+      if(statusEnum[this.state.game.status] > 5) {
         this.outputHander.current.initWorkers(1);
-        if(this.state.status != "POSITION2") {
-          this.outputHander.current.initWorkers(2,false);
-        }
+      }
+      if(statusEnum[this.state.game.status] > 7) {
+        this.outputHander.current.initWorkers(2,false);
       }
     }
-    
-    // !!!!!!!!!!!!ATTENTION: isCurrentPlayer vs currentPlayer !!!!!!!!!!!!!!!!!!!!!
     
     // Switch action of game status
     // Always have one action for current player and one for not current player
@@ -233,60 +282,71 @@ class GamePage extends React.Component {
         // Do this if current player
       } else {
         // Do this if not current player
-        // this.outputHander.current.setControls();
+        // this.outputHander.current.setControls(<lookAround>,<select>);
       }
     */
-    switch(this.state.status) {
+    switch(this.state.game.status) {
       case "CARDS1":
         console.log("CARDS1");
-        if (this.getPlayer().currentPlayer) {
+        
+        if (this.getPlayer().isCurrentPlayer) {
           // Display 10 cards to choose from
-          this.outputHander.current.Cards10();
+          this.outputHander.current.Cards10(); // Controls get set inside here
           this.setState({displayMsg:"Choose 2 cards!"});
         } else {
           // Display waiting msg
           this.outputHander.current.setControls(false,false); // lookAround=false,select=false
           this.setState({displayMsg:"Other player is choosing cards..."});
         }
+        
         break;
       case "CARDS2":
         console.log("CARDS2");
-        if (this.getPlayer().currentPlayer) {
+        
+        if (this.getPlayer().isCurrentPlayer) {
           // Display 2 cards to choose from
-          this.outputHander.current.Cards2();
+          this.outputHander.current.Cards2(); // Controls get set inside here
           this.setState({displayMsg:"Choose your card!"});
         } else {
           // Display waiting msg
           this.outputHander.current.setControls(false,false); // lookAround=false,select=false
           this.setState({displayMsg:"Other player is choosing a card..."});
         }
+        
         break;
       case "STARTPLAYER":
         console.log("STARTPLAYER");
         
+        if(this.state.game.isGodMode) {
+          // Display cards on board after they have been chosen
+          this.outputHander.current.initCards();
+        }
+        
+        if (this.getPlayer().isCurrentPlayer) {
+          // Display both player usernames
+          this.outputHander.current.StartPlayer(); // Controls get set inside here
+          this.setState({displayMsg:"Choose a start player!"});
+        } else {
+          // Display waiting msg
+          this.outputHander.current.setControls(false,false); // lookAround=false,select=false
+          this.setState({displayMsg:"Other player is choosing start player..."});
+        }
+        
         break;
-        // TODO: recode this
       case "COLOR1":
       case "COLOR2":
         console.log("COLOR 1 & 2");
-
-        const url = `${getDomain()}/players/${this.player.id}`;
-
-        fetch(`${url}`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json"
-          }
-        })
-        .then(response => response.json())
-        .then(response => {
-          // Is there a reason not to save the whole respone in player, except for the naming convention?
-          this.player.currentPlayer = response.currentPlayer;
-          this.player.isCurrentPlayer = this.player.currentPlayer; // TODO: only necessary because of weird name change
-        })
-        .catch(err => {
-          console.log(err);
-        });
+        
+        if (this.getPlayer().isCurrentPlayer) {
+          // Display msg
+          this.outputHander.current.setControls(false,false); // lookAround=false,select=false
+          this.setState({displayMsg:"Choose a color!"});
+        } else {
+          // Display waiting msg
+          this.outputHander.current.setControls(false,false); // lookAround=false,select=false
+          this.setState({displayMsg:"Other player is choosing color..."});
+        }
+        
         break;
       case "POSITION1":
         console.log("POSITION1");
@@ -294,9 +354,9 @@ class GamePage extends React.Component {
         // Display workers of player 1 next to board when color has been chosen
         this.outputHander.current.initWorkers(1);
         
-        if (this.getPlayer().currentPlayer) {
+        if (this.getPlayer().isCurrentPlayer) {
           // Init position (1 = pan left)
-          this.outputHander.current.Position(1);
+          this.outputHander.current.Position(); // Controls get set inside here
           this.setState({displayMsg:"Position your workers!"});
         } else {
           // Display waiting msg
@@ -311,109 +371,83 @@ class GamePage extends React.Component {
         // Display workers of player 2 next to board when color has been chosen
         this.outputHander.current.initWorkers(2);
         
-        if (this.getPlayer().currentPlayer) {
+        if (this.getPlayer().isCurrentPlayer) {
           // Init position (2 = pan right)
-          this.outputHander.current.Position(2);
+          this.outputHander.current.Position(); // Controls get set inside here
           this.setState({displayMsg:"Position your workers!"});
         } else {
           // Display waiting msg
-          this.outputHander.current.setControls();
+          this.outputHander.current.setControls(true,true); // lookAround=true,select=true
           this.setState({displayMsg:"Other player is positioning workers..."});
         }
         
         break;
       case "MOVE":
         console.log("MOVE");
+        
+        if (this.getPlayer().isCurrentPlayer) {
+          // Set controls so workers can be moved
+          this.outputHander.current.setControls(true,true,true); // lookAround=true,select=true,move=true
+          this.setState({displayMsg:"Move a worker!"});
+        } else {
+          // Display waiting msg
+          this.outputHander.current.setControls(true,true); // lookAround=true,select=true
+          this.setState({displayMsg:"Other player moving..."});
+        }
+        
         break;
       case "BUILD":
         console.log("BUILD");
+        
+        if (this.getPlayer().isCurrentPlayer) {
+          // Set controls so player can build
+          this.outputHander.current.setControls(true,true,false,true); // lookAround=true,select=true,move=false,build=true
+          this.setState({displayMsg:"Build!"});
+        } else {
+          // Display waiting msg
+          this.outputHander.current.setControls(true,true); // lookAround=true,select=true
+          this.setState({displayMsg:"Other player building..."});
+        }
+        
         break;
       case "END":
         console.log("END");
+        
         this.setState({gameEnds : true});
-        // TODO: backend has to indicate who won
-        // Why don't we just set the winner as current player when the status is END and the just check who is current player?
-          // this.setState({isWinner : BOOLEAN});
+        
+        if (this.getPlayer().isCurrentPlayer) {
+          // Display winning msg
+          this.outputHander.current.setControls(true,true); // lookAround=true,select=true,move=false,build=true
+          this.setState({displayMsg:"You Won! Congratulations!"});
+          this.setState({isWinner : true});
+        } if (this.getOpponentPlayer().isCurrentPlayer) {
+          // Display losing msg
+          this.outputHander.current.setControls(true,true); // lookAround=true,select=true
+          this.setState({displayMsg:"You Lost!"});
+          this.setState({isWinner : false});
+        } else {
+          // Game was aborted
+          this.outputHander.current.setControls(false,false); // lookAround=false,select=false
+          this.setState({displayMsg:"Game was aborted!"});
+        }
+        
         break;
     }
     
-    // if POSITION2,MOVE,BUILD,END update game board accoriding to this.state.game
-    //this.outputHander.current.update();
-  }
-
-  startPolling(url, fields) {
-    return new Promise((resolve, reject) => {
-          this.setState({inQueue: true, amountOfPolls: 0});
-          this.poller = setInterval(() => this.poll(url, fields, 1000, resolve, reject), 100)
-        }
-    );
-  }
-
-  poll(url, fields, maxPolls, resolve, reject) {
-    fetch(`${url}/?fields=${fields.join('&')}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json"
-      },
-    })
-    .then(response => response.json())
-    .then(response => {
-      this.setState({amountOfPolls: this.state.amountOfPolls + 1});
-      if (response[fields[0]] !== this.state.status) {
-      
-        // Why does the status get set 2 times?
-        this.setState({status : response[fields[0]]});
-        resolve(response[fields[0]]);
-        
-        // Status changed, now:
-        // 1. Get new game object from server
-        // 2. Performe update action according to game status (switch)
-        this.fetchGame();
-        
-      } else if (this.state.amountOfPolls >= maxPolls) {
-        reject("Timeout")
-      }
-    })
-    .catch(err => {
-      console.log(err);
-    });
-  }
-
-  componentWillUnmount() {
-    clearInterval(this.poller);
+    // Always update game board accoriding to this.state.game or if COLOR2,(POSITION2),MOVE,BUILD,END
+    this.outputHander.current.update();
   }
 
   setColor = (param) => {
-    // set new color
-    this.player.color = param.color;
-
-    const url = `${getDomain()}/games/${localStorage.getItem('game_id')}`;
-
-    fetch(`${url}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "Token": this.player.token
-      },
-      body: JSON.stringify({
-        id: localStorage.getItem("game_id"),
-        players: [ this.player ]
-      })
-    })
-    .then(response => {
-      if (response.status !== 204) {
-        this.player.color = null;
-      } else {
-        this.setState({blockedColor : param.color})
-      }
-    })
-    .catch(err => {
-      console.log(err);
-    });
+    this.inputHandler("player",param);
   };
 
   chooseColor() {
-    return (this.player.isCurrentPlayer && (this.state.status === "COLOR1" || this.state.status === "COLOR2"))
+    let curr = false;
+    if (this.getPlayer()) {
+      curr = this.getPlayer().isCurrentPlayer;
+    }
+    return (curr && (this.state.game.status === "COLOR1" || this.state.game.status === "COLOR2") && this.state.finishInitGame)
   }
 
   gameEnds() {
@@ -430,23 +464,45 @@ class GamePage extends React.Component {
     this.setState({finishInitGame: true});
   }
   
-  // Input handler from player (this function gets called from Game component (ex.: Player moves a worker on the board)
-  inputHandler = (isGame, content) => {
-    if (isGame) {
-      let gameUpdate = this.state.game;
-      Object.keys(content).forEach((key) => {
-        gameUpdate[key] = content[key];
-      })
-      this.updateGame(gameUpdate);
-    } else {
-      let playerUpdate = this.getPlayer();
-      Object.keys(content).forEach((key) => {
-        playerUpdate[key] = content[key];
-      })
-      this.updateGame({
-        id: localStorage.getItem("game_id"),
-        players: [ playerUpdate ]
-      })
+  // Input handler from player (this function gets called from Game component (ex.: Player moves a worker on the board))
+  inputHandler = (level, content) => {
+  
+    // Build skeleton
+    let gameUpdate = {
+      id: localStorage.getItem("game_id")
+    };
+    
+    let playerUpdate = this.getPlayer();
+    
+    let boardUpdate = this.state.game.board;
+    
+    switch(level) {
+      case "game":
+        // Game
+        Object.keys(content).forEach((key) => {
+          gameUpdate[key] = content[key];
+        })
+        this.updateGame(gameUpdate);
+        break;
+      case "opponent":
+        // Opponent
+        playerUpdate = this.getOpponentPlayer();
+      case "player":
+        // Player
+        Object.keys(content).forEach((key) => {
+          playerUpdate[key] = content[key];
+        })
+        gameUpdate["players"] = [playerUpdate];
+        this.updateGame(gameUpdate);
+        break;
+      case "board":
+        // Board
+        boardUpdate["fields"] = content;
+        gameUpdate["board"] = boardUpdate;
+        this.updateGame(gameUpdate);
+        break;
+      default:
+        break;
     }
   }
   
@@ -454,17 +510,19 @@ class GamePage extends React.Component {
   // Use this function for ALL updates of the game
   updateGame = (bodyObject) => {
     const url = `${getDomain()}/games/${localStorage.getItem('game_id')}`;
-
+    
     fetch(`${url}`, {
       method: "PUT",
-      headers: new Headers({
+      headers: {
         "Content-Type": "application/json",
-        "Token": localStorage.getItem("playerToken") // Send token in headers to authenticate request
-      }),
+        "Token": localStorage.getItem('playerToken')
+      },
       body: JSON.stringify(bodyObject)
     })
     .then(response => {
+      // TODO: handle bad move/build
       if (!response.ok) {
+        // TODO: handle invalid request
         // If response not ok get response text and throw error
         return response.text().then( err => { throw Error(err); } );
       }

@@ -2,7 +2,8 @@ import React from "react";
 import * as THREE from "three";
 import DragControls from 'three-dragcontrols';
 import OrbitControls from 'three-orbitcontrols';
-import GodCardsData from "../../views/design/GodCardsData.json";
+import GodCardsData from "../../views/design/GodCardsData";
+import godCardsEnum from "../../helpers/godCardsEnum";
 
 class Game extends React.Component {
 
@@ -19,17 +20,23 @@ class Game extends React.Component {
     this.oppoWorkers = [];
     this.mouse = new THREE.Vector2();
     this.blockDraged = false;
-    this.fields = {
-      "-10": {},
-      "-5": {},
-      "0": {},
-      "5": {},
-      "10": {},
-    };
+    this.fields = {};
+    for (let i = -10; i <= 10; i += 5) {
+      this.fields[i] = {};
+      for (let j = -10; j <= 10; j += 5) {
+        this.fields[i][j] = 0;
+      }
+    }
+    this.posEnum = {"-10":0,"-5":1,"0":2,"5":3,"10":4};
+    this.posRevEnum = {"0":-10,"1":-5,"2":0,"3":5,"4":10};
     this.playStartAnimation = 0;
     this.playInitAnimation = true;
     this.waterSpeed = 0.03;
     this.inputEnabled = false;
+    
+    this.ghostWorker = null;
+    this.dragedWorkerInitPos = null;
+    this.draged = false;
     
     // Access via this.props.game instead
     /*
@@ -127,7 +134,7 @@ class Game extends React.Component {
     
     // block bag (a simple block for now)
     
-    this.initBlock = new THREE.Mesh( new THREE.BoxBufferGeometry( this.blockSize, this.blockHeight, this.blockSize ), this.blockMaterial);
+    this.initBlock = new THREE.Mesh( new THREE.BoxBufferGeometry( this.blockSize, this.blockHeight, this.blockSize ), new THREE.MeshLambertMaterial( { color: 0xB5651D } ));
     this.initBlock.position.set( 0, this.blockHeight / 2, 20 );
     this.initBlock.castShadow = true;
     this.initBlock.receiveShadow = true;
@@ -148,12 +155,13 @@ class Game extends React.Component {
     // raycaster
     
     this.raycaster = new THREE.Raycaster();
+    this.container.addEventListener( 'mousedown', this.onMouseDown, false);
     this.container.addEventListener( 'mouseup', this.onMouseUp, false);
     
     // orbit controls
     
     this.controls = new OrbitControls( this.camera, this.renderer.domElement );
-    this.controls.mouseButtons.LEFT = THREE.MOUSE.RIGHT;
+    //this.controls.mouseButtons.LEFT = THREE.MOUSE.RIGHT;
     this.controls.enablePan = false;
     this.controls.minDistance = 10;
     this.controls.maxDistance = 100;
@@ -163,12 +171,14 @@ class Game extends React.Component {
 
     this.dragControlsWorker = new DragControls( this.myWorkers, this.camera, this.renderer.domElement );
     this.dragControlsWorker.addEventListener( 'dragstart', this.onDragStartWorker);
+    this.dragControlsWorker.addEventListener( 'drag', this.onDragWorker);
     this.dragControlsWorker.addEventListener( 'dragend', this.onDragEndWorker);
     this.dragControlsWorker.enabled = false;
     this.dragControlsWorker.deactivate();
     
-    this.dragControlsBlock = new DragControls( [this.initBlock] , this.camera, this.renderer.domElement );
+    this.dragControlsBlock = new DragControls( [this.initBlock], this.camera, this.renderer.domElement );
     this.dragControlsBlock.addEventListener( 'dragstart', this.onDragStartBlock);
+    this.dragControlsBlock.addEventListener( 'drag', this.onDragBlock);
     this.dragControlsBlock.addEventListener( 'dragend', this.onDragEndBlock);
     this.dragControlsBlock.enabled = false;
     this.dragControlsBlock.deactivate();
@@ -182,14 +192,27 @@ class Game extends React.Component {
   
   // Initialize cards
   initCards = () => {
-    this.props.game.cards.forEach((cardnr,i) => {
-      let texture = new THREE.CanvasTexture(this._canvasCardTexture(cardnr));
-      let card = new THREE.Mesh( new THREE.BoxBufferGeometry( 5, 0.1, 10 ), new THREE.MeshPhongMaterial({ color: 0xccaa11, shading: THREE.FlatShading, map: texture }) );
+    if (this.cards.length > 0) {
+      return;
+    }
+    
+    this.props.game.players.forEach((player,i) => {
+    
+      // Display name tag
+      let textureNameTag = new THREE.CanvasTexture(this._canvasTextTexture(this._getUsername(player),10,100,40));
+      let nameTag = new THREE.Mesh( new THREE.BoxBufferGeometry( 5, 0.1, 2 ), new THREE.MeshPhongMaterial({ color: 0xffffff, shading: THREE.FlatShading, map: textureNameTag }) );
+      nameTag.position.set( 20 - 40 * i, 0, -5 + 10 * i );
+      nameTag.rotation.y = Math.PI / 2 - Math.PI*i;
+      this.scene.add( nameTag );
+    
+      // Display card of players
+      let textureCard = new THREE.CanvasTexture(this._canvasCardTexture(godCardsEnum[player.card]));
+      let card = new THREE.Mesh( new THREE.BoxBufferGeometry( 5, 0.1, 10 ), new THREE.MeshPhongMaterial({ color: 0xccaa11, shading: THREE.FlatShading, map: textureCard }) );
       card.position.set( 20 - 40 * i, 0, 5 - 10 * i );
       card.rotation.y = Math.PI / 2 - Math.PI*i;
       card.castShadow = true;
       card.receiveShadow = true;
-      card.name = cardnr;
+      card.name = godCardsEnum[player.card];
       this.scene.add( card );
       this.cards.push( card );
     });
@@ -199,23 +222,32 @@ class Game extends React.Component {
   // (call once for each player after color was selected)
   // nr represents the order ( so if COLOR1 was selected -> nr=1)
   initWorkers = (nr,curr=true) => {
+    if (this.myWorkers.length > 0 && this.oppoWorkers.length > 0) {
+      return;
+    }
+    
     let colorPreset = {"BLUE":"#0000ff","GREY":"#dddddd","WHITE":"#ffffff"}
     let playerWorkers = null;
     this.props.game.players.forEach((player) => {
-      if(player.currentPlayer && curr) {
+      if(player.isCurrentPlayer && curr) {
         playerWorkers = player;
-      } else if(!player.currentPlayer && !curr) {
+      } else if(!player.isCurrentPlayer && !curr) {
         playerWorkers = player;
       }
     });
     
     for ( let i = 0; i < 2; i++ ) {
       let worker = new THREE.Mesh( new THREE.CylinderBufferGeometry( 0,1,4,20 ), new THREE.MeshLambertMaterial( { color: colorPreset[playerWorkers.color] } ) );
-      worker.position.set( 10 - 3 * i - 17 * (nr-1), 2, 20);
+      if (playerWorkers.id == this.props.game.players[0].id) {
+        worker.position.set( 10 - 3 * i - 17 * 0, 2, 20);
+      } else {
+        worker.position.set( 10 - 3 * i - 17 * 1, 2, 20);
+      }
       worker.castShadow = true;
       worker.receiveShadow = true;
       this.scene.add( worker );
-      if (playerWorkers.id == localStorage.getItem("player_id")){
+      worker.userData = {"worker":playerWorkers.workers[i],"field":null,"onBoard":false,"posX":null,"posY":null};
+      if (playerWorkers.id == localStorage.getItem('player_id')){
         this.myWorkers.push( worker );
       } else {
         this.oppoWorkers.push( worker );
@@ -224,7 +256,7 @@ class Game extends React.Component {
   }
   
   // Always call this function in the update() function of GamePage when not current player
-  setControls = (lookAround = true, select = true, move = false, build = false) => {
+  setControls = (lookAround, select, move = false, build = false) => {
     this.controls.enabled = lookAround;
     this.inputEnabled = select;
     if (move) {
@@ -243,29 +275,62 @@ class Game extends React.Component {
     }
   }
   
-  _canvasCardTexture = (nr) => {
-    // Texture
+  _getUsername = (player) => {
+    let username = "GUEST";
+    
+    if(player.username != null) {
+      username = player.username;
+    }
+  
+    if(player.id == localStorage.getItem('player_id')) {
+      username = "YOU";
+    }
+    
+    return username;
+  }
+  
+  _setupCanvas = (width,height) => {
     let canvas = document.createElement("canvas");
     let ctx = canvas.getContext('2d');
-    canvas.width = 128;
-    canvas.height = 256;
-    canvas.style.width = 64;
-    canvas.style.height= 128;
-    ctx.scale(2,2);
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect( 0, 0, canvas.width,canvas.height );
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = 'blue';
-    ctx.font = "6pt American Typewriter";
-    ctx.fillText(GodCardsData[nr].name,canvas.width/4,10);
-    ctx.font = "4pt American Typewriter";
+    let scale = 2;//window.devicePixelRatio;
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+    ctx.scale(scale,scale);
+    return {"canvas":canvas,"ctx":ctx};
+  }
+  
+  _canvasTextTexture = (text,size,width,height,bgColor='#FFFFFF',color='#0000FF') => {
+    // Texture
+    let draw = this._setupCanvas(width,height);
+    draw["ctx"].fillStyle = bgColor;
+    draw["ctx"].fillRect( 0, 0, draw["canvas"].width,draw["canvas"].height );
+    draw["ctx"].textAlign = "center";
+    draw["ctx"].textBaseline = "middle";
+    draw["ctx"].fillStyle = color;
+    draw["ctx"].font = size + "pt American Typewriter";
+    draw["ctx"].fillText(text,draw["canvas"].width/4,draw["canvas"].height/4);
+    return draw["canvas"];
+  }
+  
+  _canvasCardTexture = (nr) => {
+    // Texture
+    let draw = this._setupCanvas(64,128);
+    draw["ctx"].fillStyle = '#FFFFFF';
+    draw["ctx"].fillRect( 0, 0, draw["canvas"].width,draw["canvas"].height );
+    draw["ctx"].textAlign = "center";
+    draw["ctx"].textBaseline = "middle";
+    draw["ctx"].fillStyle = 'blue';
+    draw["ctx"].font = "6pt American Typewriter";
+    draw["ctx"].fillText(GodCardsData[nr].name,draw["canvas"].width/4,10);
+    draw["ctx"].font = "4pt American Typewriter";
     GodCardsData[nr].text.forEach((line,i) => {
-      ctx.fillText(line,canvas.width/4,25+10*i);
+      draw["ctx"].fillText(line,draw["canvas"].width/4,25+10*i);
     })
     // DEBUG
-    ctx.fillText(nr,canvas.width/4,canvas.height/2-10);
-    return canvas;
+    draw["ctx"].fillText(nr,draw["canvas"].width/4,draw["canvas"].height/2-10);
+    return draw["canvas"];
   }
   
   _displayCard = (posX,posY,posZ, nr) => {
@@ -280,24 +345,8 @@ class Game extends React.Component {
   }
   
   _displayConfirmButton = (posX,posY,posZ) => {
-    // Texture
-    let canvas = document.createElement("canvas");
-    let ctx = canvas.getContext('2d');
-    canvas.width = 256;
-    canvas.height = 128;
-    canvas.style.width = 128;
-    canvas.style.height= 64;
-    ctx.scale(2,2);
-    ctx.fillStyle = '#0000FF';
-    ctx.fillRect( 0, 0, canvas.width,canvas.height );
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = "15pt American Typewriter";
-    ctx.fillText("CONFIRM",canvas.width/4,canvas.height/4);
-    
     // Display confirm button
-    let texture = new THREE.CanvasTexture(canvas);
+    let texture = new THREE.CanvasTexture(this._canvasTextTexture("Confirm",15,128,64));
     let confirmButton = new THREE.Mesh( new THREE.BoxBufferGeometry( 4, 2, 2 ), new THREE.MeshPhongMaterial({ shading: THREE.FlatShading, map: texture }) );
     confirmButton.rotation.x = - Math.PI / 2;
     confirmButton.position.set(posX,posY,posZ);
@@ -305,12 +354,18 @@ class Game extends React.Component {
     this.camera.add( confirmButton );
   }
   
-  _cleanUpCards = () => {
-    let con = this.camera.getObjectByName("confirm");
-    this.camera.remove(con);
-    this.cards.forEach((card) => {
-      this.camera.remove(card);
-    })
+  _displayUsernames = (posX,posY,posZ, username) => {
+    // Display card
+    let texture = new THREE.CanvasTexture(this._canvasTextTexture(username,15,200,80));
+    let usernameTag = new THREE.Mesh( new THREE.BoxBufferGeometry( 10, 0.1, 4 ), new THREE.MeshPhongMaterial({ color: 0xffffff, shading: THREE.FlatShading, map: texture }) );
+    usernameTag.position.set(posX,posY,posZ);
+    usernameTag.rotation.x = - Math.PI / 2;
+    if(username == "YOU") {
+      usernameTag.name = "YOU";
+    } else {
+      usernameTag.name = "OPPO";
+    }
+    this.camera.add( usernameTag );
   }
   
   // Display 10 cards to choose from
@@ -336,8 +391,8 @@ class Game extends React.Component {
     this.setControls(false,true); // lookAround=false,select=true
     
     // Display 2 cards
-    this.props.game.cards.forEach((card,i) => {
-      this._displayCard(-10+20*i, 0, -40, card);
+    this.props.game.cards.forEach((cardname,i) => {
+      this._displayCard(-5+10*i, 0, -40, godCardsEnum[cardname]);
     });
     
     //For testing
@@ -347,10 +402,40 @@ class Game extends React.Component {
     this._displayConfirmButton(0, -15, -40);
   }
   
+  cleanUpCards = () => {
+    let con = this.camera.getObjectByName("confirm");
+    this.camera.remove(con);
+    this.cards.forEach((card) => {
+      this.camera.remove(card);
+    })
+    this.cards = [];
+  }
+  
+  // Display both player usernames
+  StartPlayer = () => {
+    this.setControls(false,true); // lookAround=false,select=true
+    
+    // Display both usernames
+    this.props.game.players.forEach((player,i) => {
+      this._displayUsernames(-10+20*i, 0, -40, this._getUsername(player));
+    });
+  }
+  
+  cleanUpUsernames = () => {
+    let you = this.camera.getObjectByName("YOU");
+    let oppo = this.camera.getObjectByName("OPPO");
+    this.camera.remove(you);
+    this.camera.remove(oppo);
+  }
+  
   // Initialize postion selection (nr is either 1 or 2 depending on the player)
-  Position = (nr) => {
+  Position = () => {
     // Play camera animation
-    this.playStartAnimation = nr;
+    if (this.props.game.players[0].id  == localStorage.getItem('player_id')) {
+        this.playStartAnimation = 1;
+      } else {
+        this.playStartAnimation = 2;
+      }
     this.setControls(false,false); // lookAround=false,select=false
   }
   
@@ -359,81 +444,247 @@ class Game extends React.Component {
   
   onDragStartWorker = (event) => {
     this.controls.enabled = false;
+    this.inputEnabled = false;
+    
+    this.draged = true;
+    
+    this.dragedWorkerInitPos = event.object.position.clone();
+    
+    // Create ghost worker
+    this.ghostWorker = event.object.clone();
+    this.ghostWorker.material = event.object.material.clone();
+    this.ghostWorker.material.transparent = true;
+    this.ghostWorker.material.opacity = 0.3;
+    this.ghostWorker.name = "ghost";
+    this.scene.add(this.ghostWorker);
+  }
+  
+  onDragWorker = (event) => {
+    let posX = Math.floor( ( event.object.position.x + 2.5 ) / 5 ) * 5;
+    let posZ = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
+    
+    // Update ghost worker position
+    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
+      this.ghostWorker.position.y = -500;
+    } else {
+      this.ghostWorker.position.x = posX;
+      this.ghostWorker.position.z = posZ;
+      this.ghostWorker.position.y = 2 + this.blockHeight * this.fields[posX][posZ];
+      
+    }
   }
   
   onDragEndWorker = (event) => {
-    event.object.position.x = Math.floor( ( event.object.position.x + 2.5 ) / 5 ) * 5;
-    event.object.position.z = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
-    event.object.position.y = 2;
-    if ( this.fields[event.object.position.x][event.object.position.z] ) {
-      event.object.position.y += this.blockHeight * this.fields[event.object.position.x][event.object.position.z];
-    }
+    // Remove ghost worker
+    this.scene.remove(this.ghostWorker);
     
-    // TODO: !!!!!!!!!!!!!!
+    let posX = Math.floor( ( event.object.position.x + 2.5 ) / 5 ) * 5;
+    let posZ = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
     
-    switch(this.props.game.status) {
+    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
+      // Reset position of worker
+      event.object.position.copy(this.dragedWorkerInitPos);
+    } else {
+      // Worker was placed on board
+      event.object.position.x = posX;
+      event.object.position.z = posZ;
+      event.object.position.y = 2 + this.blockHeight * this.fields[posX][posZ];
+      
+      // Set userData of worker
+      event.object.userData.onBoard = true;
+      event.object.userData.posX = this.posEnum[posX];
+      event.object.userData.posY = this.posEnum[posZ];
+      
+      let workerFields = [];
+    
+      switch(this.props.game.status) {
         case "POSITION1":
-        
-          break;
         case "POSITION2":
+          // If both workers are on board, get fields of workers, set workers of fields and send input
+          this.myWorkers.forEach((worker) => {
+            if(worker.userData.onBoard) {
+              this.props.game.board.fields.forEach((field) => {
+                if(field.posX == worker.userData.posX && field.posY == worker.userData.posY) {
+                  field.worker = worker.userData.worker;
+                  worker.userData.field = field;
+                  workerFields.push(field);
+                }
+              });
+            }
+          });
         
+          if(workerFields.length == 2) {
+            // Send input to GamePage
+            this.props.inputHandler("board",workerFields);
+          }
+          
           break;
         case "MOVE":
-        
-          break;
-    }
+          // Get old field of worker
+          this.props.game.board.fields.forEach((field) => {
+            if (field.id == event.object.userData.field.id) {
+              workerFields.push(field);
+            }
+          });
+          
+          // Get new field of worker
+          this.props.game.board.fields.forEach((field) => {
+            if(field.posX == event.object.userData.posX && field.posY == event.object.userData.posY) {
+              workerFields.push(field);
+            }
+          });
+          
+          // Remove and set worker
+          workerFields[0].worker = null;
+          workerFields[1].worker = event.object.userData.worker;
 
+          // Send input to GamePage
+          this.props.inputHandler("board",workerFields);
+      
+          break;
+      }
+    }
+    
     this.controls.enabled = true;
+    this.inputEnabled = true;
   }
   
   onDragStartBlock = (event) => {
-    this.blockDraged = true;
     this.controls.enabled = false;
+    this.inputEnabled = false;
     
-    this.placeholderBlock = new THREE.Mesh( new THREE.BoxBufferGeometry( this.blockSize, this.blockHeight, this.blockSize ), this.blockMaterial );
-    this.placeholderBlock.position.set( 0, this.blockHeight / 2, 20 );
+    this.draged = true;
+    
+    this.placeholderBlock = event.object.clone();
     this.scene.add(this.placeholderBlock);
+    
+    event.object.geometry = new THREE.BoxBufferGeometry( this.blockSize, this.blockHeight, this.blockSize );
+    event.object.material = this.blockMaterial;
+    
+    // Create ghost block
+    this.ghostBlock = event.object.clone();
+    this.ghostBlock.material = event.object.material.clone();
+    this.ghostBlock.material.transparent = true;
+    this.ghostBlock.material.opacity = 0.3;
+    this.ghostBlock.name = "ghost";
+    this.scene.add(this.ghostBlock);
+  }
+  
+  onDragBlock = (event) => {
+    let posX = Math.floor( ( event.object.position.x + 2.5 ) / 5 ) * 5;
+    let posZ = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
+    
+    // Update ghost block position
+    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
+      this.ghostBlock.position.y = -500;
+    } else {
+      this.ghostBlock.position.x = posX;
+      this.ghostBlock.position.z = posZ;
+      this.ghostBlock.position.y = this.blockHeight/2 + this.blockHeight * this.fields[posX][posZ];
+    }
   }
   
   onDragEndBlock = (event) => {
-    this.controls.enabled = true;
+    // Remove ghost worker
+    this.scene.remove(this.ghostWorker);
+    
+    let posX = Math.floor( ( event.object.position.x + 2.5 ) / 5 ) * 5;
+    let posZ = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
+    
+    event.object.position.set( 0, this.blockHeight / 2, 20 );
+    event.object.geometry = this.placeholderBlock.geometry.clone();
+    event.object.material = this.placeholderBlock.material.clone();
     this.scene.remove(this.placeholderBlock);
     
-    let pointX = Math.floor( ( event.object.position.x + 2.5 ) / 5 ) * 5;
-    let pointZ = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
-    let pointY = this.blockHeight/2;
-    
-    if ( this.fields[pointX][pointZ] > 2) {
-      this.initBlock.position.set( 0, this.blockHeight / 2, 20 );
-      return;
-    } else if ( this.fields[pointX][pointZ] ) {
-      pointY += this.blockHeight * this.fields[pointX][pointZ];
-      this.fields[pointX][pointZ] += 1;
+    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
+      //
     } else {
-      this.fields[pointX][pointZ] = 1;
+    
+      // Get number of blocks on field
+      let blockNr = this.fields[posX][posZ];
+      
+      // Create block
+      this.createBlock(posX,posZ,blockNr);
+      
+      // Update number of blocks
+      this.fields[posX][posZ] += 1;
+      
+      switch(this.props.game.status) {
+          case "BUILD":
+            let blockField = [];
+          
+            // Get new field of worker
+            this.props.game.board.fields.forEach((field) => {
+              if(field.posX == this.posEnum[posX] && field.posY == this.posEnum[posZ]) {
+                blockField.push(field);
+              }
+            });
+          
+            // Add block to field
+            blockField[0].blocks += 1;
+
+            // Send input to GamePage
+            this.props.inputHandler("board",blockField);
+            break;
+      }
     }
     
-    let block = new THREE.Mesh( new THREE.BoxBufferGeometry( this.blockSize, this.blockHeight, this.blockSize ), this.blockMaterial );
-    block.position.set(pointX, pointY, pointZ);
-    block.castShadow = true;
-    block.receiveShadow = true;
-    this.scene.add(block);
-    this.blocks.push(block);
+    this.controls.enabled = true;
+    this.inputEnabled = true;
+  }
+  
+  _raycasterGetIntersections = (event) => {
+    let rect = this.container.getBoundingClientRect();
+    this.mouse.x = ( ( event.clientX - rect.left ) / rect.width ) * 2 - 1;
+    this.mouse.y = - ( ( event.clientY - rect.top ) / rect.height ) * 2 + 1;
+
+    this.raycaster.setFromCamera( this.mouse, this.camera );
+
+    //let intersections = this.raycaster.intersectObjects( this.camera.children );
+    let intersectionObjectsArray = [...this.camera.children,...this.scene.children];
+    let intersections = this.raycaster.intersectObjects( intersectionObjectsArray );
+    return intersections;
+  }
+  
+  onMouseDown = (event) => {
+    if (!this.inputEnabled) {
+      return;
+    }
     
-    this.initBlock.position.set( 0, this.blockHeight / 2, 20 );
+    event.preventDefault();
     
-    
-    // TODO: !!!!!!!!!!!!!!
-    
-    switch(this.props.game.status) {
-        case "BUILD":
-        
+    let intersections = this._raycasterGetIntersections(event);
+
+    if ( intersections.length > 0 && intersections[0] !== null ) {
+      let obj = intersections[0].object;
+      
+      switch(this.props.game.status) {
+        case "CARDS1":
+        case "CARDS2":
+        case "STARTPLAYER":
+          // Check if obj was clicked, then move it back
+          if (obj.name == "confirm" || obj.name == "YOU" || obj.name == "OPPO") {
+            obj.position.z = -42;
+          }
           break;
+      }
     }
-    
   }
 
   onMouseUp = (event) => {
+  
+    // TODO: Throws error sometimes
+    // Make sure all ghosts are removed
+    /*
+    if(this.draged) {
+      this.scene.traverse((child) => {
+        if(child.name == "ghost") {
+          this.scene.remove(child);
+        }
+      });
+      this.draged = false;
+    }
+    */
   
     /*if ( this.workerDraged || event.button !== 0 ) {
       this.workerDraged = false;
@@ -452,15 +703,8 @@ class Game extends React.Component {
 
     event.preventDefault();
 
-    let rect = this.container.getBoundingClientRect();
-    this.mouse.x = ( ( event.clientX - rect.left ) / rect.width ) * 2 - 1;
-    this.mouse.y = - ( ( event.clientY - rect.top ) / rect.height ) * 2 + 1;
-
-    this.raycaster.setFromCamera( this.mouse, this.camera );
-
-    //let intersections = this.raycaster.intersectObjects( this.camera.children );
-    let intersectionObjectsArray = [...this.camera.children,...this.scene.children];
-    let intersections = this.raycaster.intersectObjects( intersectionObjectsArray );
+    // Get intersections
+    let intersections = this._raycasterGetIntersections(event);
 
     if ( intersections.length > 0 && intersections[0] !== null ) {
       let obj = intersections[0].object
@@ -468,7 +712,10 @@ class Game extends React.Component {
       switch(this.props.game.status) {
         case "CARDS1":
         case "CARDS2":
-        
+          if(this.camera.getObjectByName("confirm")) {
+            this.camera.getObjectByName("confirm").position.z = -40;
+          }
+          
           // Get selected cards
           let selectedCardNrs = []
           this.cards.forEach((card) => {
@@ -479,12 +726,23 @@ class Game extends React.Component {
           
           // Check if confirm button was clicked
           if (obj.name == "confirm") {
+            obj.position.z = -40;
             if (this.cards.length == 10 && selectedCardNrs.length == 2) {
-              this.props.inputHandler(true,{cards:selectedCardNrs});
-              this._cleanUpCards();
+              // Convert card nr to name
+              let selectedCardNames = [];
+              selectedCardNrs.forEach((cardnr) => {
+                selectedCardNames.push(GodCardsData[cardnr].name);
+              });
+              
+              // Send input to GamePage
+              this.props.inputHandler("game",{cards:selectedCardNames});
+              this.cleanUpCards();
+              
             } else if (this.cards.length == 2 && selectedCardNrs.length == 1) {
-              this.props.inputHandler(false,{card:selectedCardNrs[0]});
-              this._cleanUpCards();
+            
+              // Send input to GamePage
+              this.props.inputHandler("player",{card:GodCardsData[selectedCardNrs[0]].name});
+              this.cleanUpCards();
             }
           }
           
@@ -496,6 +754,27 @@ class Game extends React.Component {
             } else {
               obj.position.z = -40;
             }
+          }
+          break;
+        case "STARTPLAYER":
+          if(this.camera.getObjectByName("YOU")) {
+            this.camera.getObjectByName("YOU").position.z = -40;
+          }
+          if(this.camera.getObjectByName("OPPO")) {
+            this.camera.getObjectByName("OPPO").position.z = -40;
+          }
+          // Check if self was clicked
+          if (obj.name == "YOU") {
+          
+            // Send input to GamePage
+            this.props.inputHandler("player",{isCurrentPlayer:true});
+            this.cleanUpUsernames();
+            
+          } else if (obj.name == "OPPO") {
+          
+            // Send input to GamePage
+            this.props.inputHandler("opponent",{isCurrentPlayer:true});
+            this.cleanUpUsernames();
           }
           break;
         case "POSITION1":
@@ -558,10 +837,88 @@ class Game extends React.Component {
   
   // Output
   
-  // TODO: Update game according to this.props.game
   // Display game state
+  // This function gets called in GamePage
   update = () => {
+    for( let field of this.props.game.board.fields ) {
+      // Get old number of blocks
+      let oldBlocks = this.fields[this.posRevEnum[field.posX]][this.posRevEnum[field.posY]];
+      // Update number of blocks
+      this.fields[this.posRevEnum[field.posX]][this.posRevEnum[field.posY]] = field.blocks;
+      
+      if (oldBlocks < field.blocks) {
+        // Set blocks
+        this.updateBlocks(field,oldBlocks);
+      } else if (oldBlocks > field.blocks) {
+        // Reload board
+        this.reloadBoard();
+        break;
+      }
+      
+      // Set workers
+      this.updateWorkers(field);
+    }
+  }
   
+  reloadBoard = () => {
+    this.blocks.forEach((block) => {
+      this.scene.remove(block);
+    })
+    this.blocks = [];
+    
+    this.props.game.board.fields.forEach((field) => {
+      // Update number of blocks
+      this.fields[this.posRevEnum[field.posX]][this.posRevEnum[field.posY]] = field.blocks;
+    
+      // Set blocks
+      this.updateBlocks(field);
+      
+      // Set workers
+      this.updateWorkers(field);
+    });
+  }
+  
+  createBlock = (posX,posZ,i) => {
+    let block = new THREE.Mesh( new THREE.BoxBufferGeometry( this.blockSize, this.blockHeight, this.blockSize ), this.blockMaterial);
+    block.position.set( posX, this.blockHeight / 2 + this.blockHeight * i, posZ );
+    block.castShadow = true;
+    block.receiveShadow = true;
+    this.scene.add(block);
+    this.blocks.push(block);
+  }
+  
+  updateBlocks = (field,oldBlocks=0) => {
+    for(let i = oldBlocks; i < field.blocks; i++) {
+      this.createBlock(this.posRevEnum[field.posX],this.posRevEnum[field.posY],i)
+    }
+  }
+  
+  updateWorkers = (field) => {
+    // Set workers
+    if (field.worker != null) {
+      this.myWorkers.forEach((worker) => {
+        if (field.worker.id == worker.userData.worker.id) {
+          // Update worker
+          this._updateWorker(worker,field);
+        }
+      });
+      this.oppoWorkers.forEach((worker) => {
+        if (field.worker.id == worker.userData.worker.id) {
+          // Update worker
+          this._updateWorker(worker,field);
+        }
+      });
+    }
+  }
+  
+  _updateWorker = (worker,field) => {
+    worker.position.x = this.posRevEnum[field.posX];
+    worker.position.z = this.posRevEnum[field.posY];
+    worker.position.y = 2 + field.blocks * this.blockHeight;
+    worker.userData.onBoard = true;
+    worker.userData.posX = field.posX;
+    worker.userData.posY = field.posY;
+    worker.userData.field = field;
   }
   
   animate = () => {

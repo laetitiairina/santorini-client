@@ -6,7 +6,6 @@ import Player from "../../views/Player";
 import {withRouter} from "react-router-dom";
 import {Button} from "../../views/design/Button"
 import {init, animate} from '../../components/game/Prototype'
-import GamePlayer from "../shared/models/Player";
 import Login from "../login/Login";
 import Users from "../login/Users";
 
@@ -102,9 +101,7 @@ class StartPage extends React.Component {
     this.poll = this.poll.bind(this);
     this.poller = null;
     this.state = {
-      player: null,
       loggedIn: false,
-      token: null,
       isGodMode: false,
       inQueue: false,
       amountOfPolls: 0,
@@ -122,14 +119,14 @@ class StartPage extends React.Component {
   }
 
   logout() {
-    localStorage.removeItem("userToken");
-    localStorage.removeItem("playerToken");
+    localStorage.removeItem('userToken');
+    localStorage.removeItem('playerToken');
     this.setState({loggedIn: false});
     this.props.history.push("/home");
   }
 
   componentDidMount() {
-    if (localStorage.getItem("userToken")) {
+    if (localStorage.getItem('userToken')) {
       this.login();
     }
     // three.js prototype
@@ -137,59 +134,56 @@ class StartPage extends React.Component {
     //animate();
   }
 
-  addPlayer () {
-    fetch(`${getDomain()}/players`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        token: this.state.token,
-        isGodMode: this.state.isGodMode
-      })
-    })
-    .then(response => response.json())
-    .then( returnedPlayer => {
-      this.setState({player: returnedPlayer});
-      localStorage.setItem('player_id', returnedPlayer.id);
-    })
-    .catch(err => {
-      console.log(err);
-      alert("Something went wrong creating the player: " + err);
-    });
-  }
-
   addPlayerToQueue() {
-    // For testing
-    /*
-    const player1 = new GamePlayer();
-    player1.isCurrentPlayer = true;
-    this.props.history.push({pathname: '/game', state: {player: player1}});
-    */
+  
+    let bodyContent = {
+      isGodMode: this.state.isGodMode
+    };
+    
+    // Send userId and token if user is logged in
+    if (localStorage.getItem('user_id') && localStorage.getItem('userToken')) {
+      bodyContent = {
+        userId: localStorage.getItem('user_id'),
+        token: localStorage.getItem('userToken'),
+        isGodMode: this.state.isGodMode
+      };
+    }
     
     fetch(`${getDomain()}/players`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        isGodMode: this.state.isGodMode
-      })
+      body: JSON.stringify(bodyContent)
     })
-    .then(response => response.json())
+    .then(response => {
+      if (!response.ok) {
+        // If response not ok get response text and throw error
+        return response.text().then( err => { throw Error(err); } );
+      } else {
+        // Get returned player
+        return response.json();
+      }
+    })
     .then(player => {
-      this.setState({player: new GamePlayer(player)});
+      // Player was created, store id and token
       localStorage.setItem('player_id', player.id);
+      localStorage.setItem('playerToken', player.token);
+      
+      // Start polling to check if game_id is set
       const url = `${getDomain()}/players/${player.id}`;
       const fields = ['game_id'];
       return this.startPolling(url, fields);
     })
     // Handle resolved or rejected Promise form startPolling
     .then(result => {
+    
+      // Game was found
+      
       clearInterval(this.poller);
+      
       this.setState(
           {
-            game_id: result,
             inQueue: false,
             animationButton: "normal",
             animationText: "normal"
@@ -198,9 +192,8 @@ class StartPage extends React.Component {
       
       // TODO: Change alert to another form of showing that opponent was found
       alert('Opponent found!');
-      this.state.player.game_id = result; // TODO: can be deleted once cascading in DB works.
       localStorage.setItem('game_id', result);
-      this.props.history.push({pathname: '/game', state: {player: this.state.player}});
+      this.props.history.push("/game");
       },
       rejected => {
         clearInterval(this.poller);
@@ -211,11 +204,12 @@ class StartPage extends React.Component {
               animationText: "normal"
             }
         );
-        alert(rejected);
+        alert("Something went wrong: " + rejected);
       }
     )
     .catch(err => {
       console.log(err);
+      alert("Something went wrong: " + err);
     });
   }
 
@@ -228,7 +222,7 @@ class StartPage extends React.Component {
   }
 
   poll(url, fields, maxPolls, resolve, reject) {
-    fetch(`${url}/?fields=${fields.join('&')}`, {
+    fetch(`${url}?fields=${fields.join('&')}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json"
