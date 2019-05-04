@@ -245,7 +245,7 @@ class Game extends React.Component {
       worker.castShadow = true;
       worker.receiveShadow = true;
       this.scene.add( worker );
-      worker.userData = {"worker":playerWorkers.workers[i],"onBoard":false,"posX":null,"posY":null};
+      worker.userData = {"worker":playerWorkers.workers[i],"field":null,"onBoard":false,"posX":null,"posY":null};
       if (playerWorkers.id == localStorage.getItem('player_id')){
         this.myWorkers.push( worker );
       } else {
@@ -499,37 +499,56 @@ class Game extends React.Component {
         event.object.position.y = 2 + this.blockHeight * this.fields[event.object.position.x][event.object.position.z];
       }
       
+      // Set userData of worker
       event.object.userData.onBoard = true;
       event.object.userData.posX = this.posEnum[posX];
       event.object.userData.posY = this.posEnum[posZ];
+      
+      let workerFields = [];
     
       switch(this.props.game.status) {
         case "POSITION1":
         case "POSITION2":
-        
-            // If both workers are on board, get fields of workers, set workers of fields and send input
-            let workerFields = [];
-          
-            this.myWorkers.forEach((worker) => {
-              if(worker.userData.onBoard) {
-                this.props.game.board.fields.forEach((field) => {
-                  if(field.posX == worker.userData.posX && field.posY == worker.userData.posY) {
-                    field.worker = worker.userData.worker;
-                    workerFields.push(field);
-                  }
-                });
-              }
-            });
-          
-            if(workerFields.length == 2) {
-              // Send input to GamePage
-              this.props.inputHandler("board",workerFields);
+          // If both workers are on board, get fields of workers, set workers of fields and send input
+          this.myWorkers.forEach((worker) => {
+            if(worker.userData.onBoard) {
+              this.props.game.board.fields.forEach((field) => {
+                if(field.posX == worker.userData.posX && field.posY == worker.userData.posY) {
+                  field.worker = worker.userData.worker;
+                  worker.userData.field = field;
+                  workerFields.push(field);
+                }
+              });
             }
+          });
+        
+          if(workerFields.length == 2) {
+            // Send input to GamePage
+            this.props.inputHandler("board",workerFields);
+          }
           
           break;
         case "MOVE":
-      
-          // TODO: !!!!!
+          // Get old field of worker
+          this.props.game.board.fields.forEach((field) => {
+            if (field.id == event.object.userData.field.id) {
+              workerFields.push(field);
+            }
+          });
+          
+          // Get new field of worker
+          this.props.game.board.fields.forEach((field) => {
+            if(field.posX == event.object.userData.posX && field.posY == event.object.userData.posY) {
+              workerFields.push(field);
+            }
+          });
+          
+          // Remove and set worker
+          workerFields[0].worker = null;
+          workerFields[1].worker = event.object.userData.worker;
+
+          // Send input to GamePage
+          this.props.inputHandler("board",workerFields);
       
           break;
       }
@@ -838,19 +857,27 @@ class Game extends React.Component {
     if (field.worker != null) {
       this.myWorkers.forEach((worker) => {
         if (field.worker.id == worker.userData.worker.id) {
-          worker.position.x = this.posRevEnum[field.posX];
-          worker.position.z = this.posRevEnum[field.posY];
-          worker.position.y = 2 + field.blocks * this.blockHeight;
+          // Update worker
+          this._updateWorker(worker,field);
         }
       });
       this.oppoWorkers.forEach((worker) => {
         if (field.worker.id == worker.userData.worker.id) {
-          worker.position.x = this.posRevEnum[field.posX];
-          worker.position.z = this.posRevEnum[field.posY];
-          worker.position.y = 2 + field.blocks * this.blockHeight;
+          // Update worker
+          this._updateWorker(worker,field);
         }
       });
     }
+  }
+  
+  _updateWorker = (worker,field) => {
+    worker.position.x = this.posRevEnum[field.posX];
+    worker.position.z = this.posRevEnum[field.posY];
+    worker.position.y = 2 + field.blocks * this.blockHeight;
+    worker.userData.onBoard = true;
+    worker.userData.posX = field.posX;
+    worker.userData.posY = field.posY;
+    worker.userData.field = field;
   }
   
   animate = () => {
