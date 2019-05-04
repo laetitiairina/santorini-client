@@ -237,6 +237,19 @@ class GamePage extends React.Component {
     }
     return foundPlayer;
   }
+  
+  // Get opponent player
+  getOpponentPlayer = () => {
+    let foundPlayer = null;
+    if (this.state.game) {
+      this.state.game.players.forEach((player) => {
+        if (player.id != localStorage.getItem('player_id')) {
+          foundPlayer = player;
+        }
+      });
+    }
+    return foundPlayer;
+  }
 
   // Performe action based on status
   update() {
@@ -304,7 +317,15 @@ class GamePage extends React.Component {
           this.outputHander.current.initCards();
         }
         
-        // TODO: !!!!!
+        if (this.getPlayer().isCurrentPlayer) {
+          // Display both player usernames
+          this.outputHander.current.StartPlayer(); // Controls get set inside here
+          this.setState({displayMsg:"Choose a start player!"});
+        } else {
+          // Display waiting msg
+          this.outputHander.current.setControls(false,false); // lookAround=false,select=false
+          this.setState({displayMsg:"Other player is choosing start player..."});
+        }
         
         break;
       case "COLOR1":
@@ -409,6 +430,8 @@ class GamePage extends React.Component {
       id: localStorage.getItem("game_id")
     };
     
+    let playerUpdate = this.getPlayer();
+    
     switch(level) {
       case "game":
         // Game
@@ -417,9 +440,11 @@ class GamePage extends React.Component {
         })
         this.updateGame(gameUpdate);
         break;
+      case "opponent":
+        // Opponent
+        playerUpdate = this.getOpponentPlayer();
       case "player":
         // Player
-        let playerUpdate = this.getPlayer();
         Object.keys(content).forEach((key) => {
           playerUpdate[key] = content[key];
         })

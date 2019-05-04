@@ -149,6 +149,7 @@ class Game extends React.Component {
     // raycaster
     
     this.raycaster = new THREE.Raycaster();
+    this.container.addEventListener( 'mousedown', this.onMouseDown, false);
     this.container.addEventListener( 'mouseup', this.onMouseUp, false);
     
     // orbit controls
@@ -190,17 +191,7 @@ class Game extends React.Component {
     this.props.game.players.forEach((player,i) => {
     
       // Display name tag
-      let username = "GUEST";
-      
-      if(player.username != null) {
-        username = player.username;
-      }
-      
-      if(player.id == localStorage.getItem('player_id')) {
-        username = "YOU";
-      }
-      
-      let textureNameTag = new THREE.CanvasTexture(this._canvasTextTexture(username,10,100,40));
+      let textureNameTag = new THREE.CanvasTexture(this._canvasTextTexture(this._getUsername(player),10,100,40));
       let nameTag = new THREE.Mesh( new THREE.BoxBufferGeometry( 5, 0.1, 2 ), new THREE.MeshPhongMaterial({ color: 0xffffff, shading: THREE.FlatShading, map: textureNameTag }) );
       nameTag.position.set( 20 - 40 * i, 0, -5 + 10 * i );
       nameTag.rotation.y = Math.PI / 2 - Math.PI*i;
@@ -275,6 +266,20 @@ class Game extends React.Component {
     }
   }
   
+  _getUsername = (player) => {
+    let username = "GUEST";
+    
+    if(player.username != null) {
+      username = player.username;
+    }
+  
+    if(player.id == localStorage.getItem('player_id')) {
+      username = "YOU";
+    }
+    
+    return username;
+  }
+  
   _setupCanvas = (width,height) => {
     let canvas = document.createElement("canvas");
     let ctx = canvas.getContext('2d');
@@ -340,6 +345,20 @@ class Game extends React.Component {
     this.camera.add( confirmButton );
   }
   
+  _displayUsernames = (posX,posY,posZ, username) => {
+    // Display card
+    let texture = new THREE.CanvasTexture(this._canvasTextTexture(username,15,200,80));
+    let usernameTag = new THREE.Mesh( new THREE.BoxBufferGeometry( 10, 0.1, 4 ), new THREE.MeshPhongMaterial({ color: 0xffffff, shading: THREE.FlatShading, map: texture }) );
+    usernameTag.position.set(posX,posY,posZ);
+    usernameTag.rotation.x = - Math.PI / 2;
+    if(username == "YOU") {
+      usernameTag.name = "YOU";
+    } else {
+      usernameTag.name = "OPPO";
+    }
+    this.camera.add( usernameTag );
+  }
+  
   // Display 10 cards to choose from
   Cards10 = () => {
     this.setControls(false,true); // lookAround=false,select=true
@@ -364,7 +383,7 @@ class Game extends React.Component {
     
     // Display 2 cards
     this.props.game.cards.forEach((cardname,i) => {
-      this._displayCard(-10+20*i, 0, -40, godCardsEnum[cardname]);
+      this._displayCard(-5+10*i, 0, -40, godCardsEnum[cardname]);
     });
     
     //For testing
@@ -381,6 +400,23 @@ class Game extends React.Component {
       this.camera.remove(card);
     })
     this.cards = [];
+  }
+  
+  // Display both player usernames
+  StartPlayer = () => {
+    this.setControls(false,true); // lookAround=false,select=true
+    
+    // Display both usernames
+    this.props.game.players.forEach((player,i) => {
+      this._displayUsernames(-10+20*i, 0, -40, this._getUsername(player));
+    });
+  }
+  
+  cleanUpUsernames = () => {
+    let you = this.camera.getObjectByName("YOU");
+    let oppo = this.camera.getObjectByName("OPPO");
+    this.camera.remove(you);
+    this.camera.remove(oppo);
   }
   
   // Initialize postion selection (nr is either 1 or 2 depending on the player)
@@ -472,6 +508,44 @@ class Game extends React.Component {
     }
     
   }
+  
+  _raycasterGetIntersections = (event) => {
+    let rect = this.container.getBoundingClientRect();
+    this.mouse.x = ( ( event.clientX - rect.left ) / rect.width ) * 2 - 1;
+    this.mouse.y = - ( ( event.clientY - rect.top ) / rect.height ) * 2 + 1;
+
+    this.raycaster.setFromCamera( this.mouse, this.camera );
+
+    //let intersections = this.raycaster.intersectObjects( this.camera.children );
+    let intersectionObjectsArray = [...this.camera.children,...this.scene.children];
+    let intersections = this.raycaster.intersectObjects( intersectionObjectsArray );
+    return intersections;
+  }
+  
+  onMouseDown = (event) => {
+    if (!this.inputEnabled) {
+      return;
+    }
+    
+    event.preventDefault();
+    
+    let intersections = this._raycasterGetIntersections(event);
+
+    if ( intersections.length > 0 && intersections[0] !== null ) {
+      let obj = intersections[0].object;
+      
+      switch(this.props.game.status) {
+        case "CARDS1":
+        case "CARDS2":
+        case "STARTPLAYER":
+          // Check if obj was clicked, then move it back
+          if (obj.name == "confirm" || obj.name == "YOU" || obj.name == "OPPO") {
+            obj.position.z = -42;
+          }
+          break;
+      }
+    }
+  }
 
   onMouseUp = (event) => {
   
@@ -492,23 +566,39 @@ class Game extends React.Component {
 
     event.preventDefault();
 
-    let rect = this.container.getBoundingClientRect();
-    this.mouse.x = ( ( event.clientX - rect.left ) / rect.width ) * 2 - 1;
-    this.mouse.y = - ( ( event.clientY - rect.top ) / rect.height ) * 2 + 1;
-
-    this.raycaster.setFromCamera( this.mouse, this.camera );
-
-    //let intersections = this.raycaster.intersectObjects( this.camera.children );
-    let intersectionObjectsArray = [...this.camera.children,...this.scene.children];
-    let intersections = this.raycaster.intersectObjects( intersectionObjectsArray );
+    let intersections = this._raycasterGetIntersections(event);
 
     if ( intersections.length > 0 && intersections[0] !== null ) {
       let obj = intersections[0].object
       
       switch(this.props.game.status) {
+        case "STARTPLAYER":
+          if(this.camera.getObjectByName("YOU")) {
+            this.camera.getObjectByName("YOU").position.z = -40;
+          }
+          if(this.camera.getObjectByName("OPPO")) {
+            this.camera.getObjectByName("OPPO").position.z = -40;
+          }
+          // Check if self was clicked
+          if (obj.name == "YOU") {
+          
+            // Send input to GamePage
+            this.props.inputHandler("player",{isCurrentPlayer:true});
+            this.cleanUpUsernames();
+            
+          } else if (obj.name == "OPPO") {
+          
+            // Send input to GamePage
+            this.props.inputHandler("opponent",{isCurrentPlayer:true});
+            this.cleanUpUsernames();
+          }
+          break;
         case "CARDS1":
         case "CARDS2":
-        
+          if(this.camera.getObjectByName("confirm")) {
+            this.camera.getObjectByName("confirm").position.z = -40;
+          }
+          
           // Get selected cards
           let selectedCardNrs = []
           this.cards.forEach((card) => {
@@ -519,6 +609,7 @@ class Game extends React.Component {
           
           // Check if confirm button was clicked
           if (obj.name == "confirm") {
+            obj.position.z = -40;
             if (this.cards.length == 10 && selectedCardNrs.length == 2) {
               // Convert card nr to name
               let selectedCardNames = [];
