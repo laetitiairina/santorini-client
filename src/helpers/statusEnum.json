@@ -1,0 +1,12 @@
+{
+  "CARDS1":1,
+  "CARDS2":2,
+  "STARTPLAYER":3,
+  "COLOR1":4,
+  "POSITION1":5,
+  "COLOR2":6,
+  "POSITION2":7,
+  "MOVE":8,
+  "BUILD":9,
+  "END":10
+}

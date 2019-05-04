@@ -1,0 +1,12 @@
+{
+  "APOLLO":1,
+  "ARTEMIS":2,
+  "ATHENA":3,
+  "ATLAS":4,
+  "DEMETER":5,
+  "HEPHAESTUS":6,
+  "HERMES":7,
+  "MINOTAUR":8,
+  "PAN":9,
+  "PROMETHEUS":10
+}

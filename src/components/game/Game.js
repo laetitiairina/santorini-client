@@ -2,7 +2,8 @@ import React from "react";
 import * as THREE from "three";
 import DragControls from 'three-dragcontrols';
 import OrbitControls from 'three-orbitcontrols';
-import GodCardsData from "../../views/design/GodCardsData.json";
+import GodCardsData from "../../views/design/GodCardsData";
+import godCardsEnum from "../../helpers/godCardsEnum";
 
 class Game extends React.Component {
 
@@ -182,15 +183,19 @@ class Game extends React.Component {
   
   // Initialize cards
   initCards = () => {
+    if (this.cards.length > 0) {
+      return;
+    }
+    
     // TODO: Which card on which side
-    this.props.game.cards.forEach((cardnr,i) => {
-      let texture = new THREE.CanvasTexture(this._canvasCardTexture(cardnr));
+    this.props.game.cards.forEach((cardname,i) => {
+      let texture = new THREE.CanvasTexture(this._canvasCardTexture(godCardsEnum[cardname]));
       let card = new THREE.Mesh( new THREE.BoxBufferGeometry( 5, 0.1, 10 ), new THREE.MeshPhongMaterial({ color: 0xccaa11, shading: THREE.FlatShading, map: texture }) );
       card.position.set( 20 - 40 * i, 0, 5 - 10 * i );
       card.rotation.y = Math.PI / 2 - Math.PI*i;
       card.castShadow = true;
       card.receiveShadow = true;
-      card.name = cardnr;
+      card.name = godCardsEnum[cardname];
       this.scene.add( card );
       this.cards.push( card );
     });
@@ -200,6 +205,10 @@ class Game extends React.Component {
   // (call once for each player after color was selected)
   // nr represents the order ( so if COLOR1 was selected -> nr=1)
   initWorkers = (nr,curr=true) => {
+    if (this.myWorkers.length > 0 && this.oppoWorkers.length > 0) {
+      return;
+    }
+    
     // TODO: Which workers on which side
     let colorPreset = {"BLUE":"#0000ff","GREY":"#dddddd","WHITE":"#ffffff"}
     let playerWorkers = null;
@@ -226,7 +235,7 @@ class Game extends React.Component {
   }
   
   // Always call this function in the update() function of GamePage when not current player
-  setControls = (lookAround = true, select = true, move = false, build = false) => {
+  setControls = (lookAround, select, move = false, build = false) => {
     this.controls.enabled = lookAround;
     this.inputEnabled = select;
     if (move) {
@@ -313,6 +322,7 @@ class Game extends React.Component {
     this.cards.forEach((card) => {
       this.camera.remove(card);
     })
+    this.cards = [];
   }
   
   // Display 10 cards to choose from
@@ -338,8 +348,8 @@ class Game extends React.Component {
     this.setControls(false,true); // lookAround=false,select=true
     
     // Display 2 cards
-    this.props.game.cards.forEach((card,i) => {
-      this._displayCard(-10+20*i, 0, -40, card);
+    this.props.game.cards.forEach((cardname,i) => {
+      this._displayCard(-10+20*i, 0, -40, godCardsEnum[cardname]);
     });
     
     //For testing
@@ -482,10 +492,20 @@ class Game extends React.Component {
           // Check if confirm button was clicked
           if (obj.name == "confirm") {
             if (this.cards.length == 10 && selectedCardNrs.length == 2) {
-              this.props.inputHandler(true,{cards:selectedCardNrs});
+              // Convert card nr to name
+              let selectedCardNames = [];
+              selectedCardNrs.forEach((cardnr) => {
+                selectedCardNames.push(GodCardsData[cardnr].name);
+              });
+              
+              // Send input to GamePage
+              this.props.inputHandler("game",{cards:selectedCardNames});
               this._cleanUpCards();
+              
             } else if (this.cards.length == 2 && selectedCardNrs.length == 1) {
-              this.props.inputHandler(false,{card:selectedCardNrs[0]});
+            
+              // Send input to GamePage
+              this.props.inputHandler("player",{card:GodCardsData[selectedCardNrs[0]].name});
               this._cleanUpCards();
             }
           }
