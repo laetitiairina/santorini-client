@@ -288,6 +288,7 @@ class GamePage extends React.Component {
     switch(this.state.game.status) {
       case "CARDS1":
         console.log("CARDS1");
+        
         if (this.getPlayer().isCurrentPlayer) {
           // Display 10 cards to choose from
           this.outputHander.current.Cards10(); // Controls get set inside here
@@ -297,9 +298,11 @@ class GamePage extends React.Component {
           this.outputHander.current.setControls(false,false); // lookAround=false,select=false
           this.setState({displayMsg:"Other player is choosing cards..."});
         }
+        
         break;
       case "CARDS2":
         console.log("CARDS2");
+        
         if (this.getPlayer().isCurrentPlayer) {
           // Display 2 cards to choose from
           this.outputHander.current.Cards2(); // Controls get set inside here
@@ -309,6 +312,7 @@ class GamePage extends React.Component {
           this.outputHander.current.setControls(false,false); // lookAround=false,select=false
           this.setState({displayMsg:"Other player is choosing a card..."});
         }
+        
         break;
       case "STARTPLAYER":
         console.log("STARTPLAYER");
@@ -380,16 +384,53 @@ class GamePage extends React.Component {
         break;
       case "MOVE":
         console.log("MOVE");
+        
+        if (this.getPlayer().isCurrentPlayer) {
+          // Set controls so workers can be moved
+          this.outputHander.current.setControls(true,true,true); // lookAround=true,select=true,move=true
+          this.setState({displayMsg:"Move a worker!"});
+        } else {
+          // Display waiting msg
+          this.outputHander.current.setControls(true,true); // lookAround=true,select=true
+          this.setState({displayMsg:"Other player moving..."});
+        }
+        
         break;
       case "BUILD":
         console.log("BUILD");
+        
+        if (this.getPlayer().isCurrentPlayer) {
+          // Set controls so player can build
+          this.outputHander.current.setControls(true,true,false,true); // lookAround=true,select=true,move=false,build=true
+          this.setState({displayMsg:"Build!"});
+        } else {
+          // Display waiting msg
+          this.outputHander.current.setControls(true,true); // lookAround=true,select=true
+          this.setState({displayMsg:"Other player building..."});
+        }
+        
         break;
       case "END":
         console.log("END");
+        
         this.setState({gameEnds : true});
-        // TODO: backend has to indicate who won
-        // Why don't we just set the winner as current player when the status is END and the just check who is current player?
-          // this.setState({isWinner : BOOLEAN});
+        
+        if (this.getPlayer().isCurrentPlayer) {
+          // Display winning msg
+          this.outputHander.current.setControls(true,true); // lookAround=true,select=true,move=false,build=true
+          this.setState({displayMsg:"You Won! Congratulations!"});
+          this.setState({isWinner : true});
+        } if (this.getOpponentPlayer().isCurrentPlayer) {
+          // Display losing msg
+          this.outputHander.current.setControls(true,true); // lookAround=true,select=true
+          this.setState({displayMsg:"You Lost!"});
+          this.setState({isWinner : false});
+        } else {
+          // Game was aborted
+          this.outputHander.current.setControls(false,false); // lookAround=false,select=false
+          this.setState({displayMsg:"Game was aborted!"});
+        }
+        
         break;
     }
     

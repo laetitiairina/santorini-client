@@ -660,27 +660,6 @@ class Game extends React.Component {
       let obj = intersections[0].object
       
       switch(this.props.game.status) {
-        case "STARTPLAYER":
-          if(this.camera.getObjectByName("YOU")) {
-            this.camera.getObjectByName("YOU").position.z = -40;
-          }
-          if(this.camera.getObjectByName("OPPO")) {
-            this.camera.getObjectByName("OPPO").position.z = -40;
-          }
-          // Check if self was clicked
-          if (obj.name == "YOU") {
-          
-            // Send input to GamePage
-            this.props.inputHandler("player",{isCurrentPlayer:true});
-            this.cleanUpUsernames();
-            
-          } else if (obj.name == "OPPO") {
-          
-            // Send input to GamePage
-            this.props.inputHandler("opponent",{isCurrentPlayer:true});
-            this.cleanUpUsernames();
-          }
-          break;
         case "CARDS1":
         case "CARDS2":
           if(this.camera.getObjectByName("confirm")) {
@@ -725,6 +704,27 @@ class Game extends React.Component {
             } else {
               obj.position.z = -40;
             }
+          }
+          break;
+        case "STARTPLAYER":
+          if(this.camera.getObjectByName("YOU")) {
+            this.camera.getObjectByName("YOU").position.z = -40;
+          }
+          if(this.camera.getObjectByName("OPPO")) {
+            this.camera.getObjectByName("OPPO").position.z = -40;
+          }
+          // Check if self was clicked
+          if (obj.name == "YOU") {
+          
+            // Send input to GamePage
+            this.props.inputHandler("player",{isCurrentPlayer:true});
+            this.cleanUpUsernames();
+            
+          } else if (obj.name == "OPPO") {
+          
+            // Send input to GamePage
+            this.props.inputHandler("opponent",{isCurrentPlayer:true});
+            this.cleanUpUsernames();
           }
           break;
         case "POSITION1":
