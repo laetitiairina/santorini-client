@@ -20,13 +20,15 @@ class Game extends React.Component {
     this.oppoWorkers = [];
     this.mouse = new THREE.Vector2();
     this.blockDraged = false;
-    this.fields = {
-      "-10": {},
-      "-5": {},
-      "0": {},
-      "5": {},
-      "10": {},
-    };
+    this.fields = {};
+    for (let i = -10; i <= 10; i += 5) {
+      this.fields[i] = {};
+      for (let j = -10; j <= 10; j += 5) {
+        this.fields[i][j] = 0;
+      }
+    }
+    this.posEnum = {"-10":0,"-5":1,"0":2,"5":3,"10":4};
+    this.posRevEnum = {"0":-10,"1":-5,"2":0,"3":5,"4":10};
     this.playStartAnimation = 0;
     this.playInitAnimation = true;
     this.waterSpeed = 0.03;
@@ -243,8 +245,8 @@ class Game extends React.Component {
       worker.castShadow = true;
       worker.receiveShadow = true;
       this.scene.add( worker );
+      worker.userData = {"worker":playerWorkers.workers[i],"onBoard":false,"posX":null,"posY":null};
       if (playerWorkers.id == localStorage.getItem('player_id')){
-        worker.userData = {"worker":playerWorkers.workers[i],"onBoard":false,"posX":null,"posY":null};
         this.myWorkers.push( worker );
       } else {
         this.oppoWorkers.push( worker );
@@ -497,10 +499,9 @@ class Game extends React.Component {
         event.object.position.y = 2 + this.blockHeight * this.fields[event.object.position.x][event.object.position.z];
       }
       
-      let posEnum = {"-10":0,"-5":1,"0":2,"5":3,"10":4};
       event.object.userData.onBoard = true;
-      event.object.userData.posX = posEnum[posX];
-      event.object.userData.posY = posEnum[posZ];
+      event.object.userData.posX = this.posEnum[posX];
+      event.object.userData.posY = this.posEnum[posZ];
     
       switch(this.props.game.status) {
         case "POSITION1":
@@ -570,7 +571,7 @@ class Game extends React.Component {
     block.castShadow = true;
     block.receiveShadow = true;
     this.scene.add(block);
-    this.blocks.push(block);
+    //this.blocks.push(block);
     
     this.initBlock.position.set( 0, this.blockHeight / 2, 20 );
     
@@ -787,10 +788,69 @@ class Game extends React.Component {
   
   // Output
   
-  // TODO: Update game according to this.props.game
   // Display game state
+  // This function gets called in GamePage
   update = () => {
+    for( let field of this.props.game.board.fields ) {
+      let oldBlocks = this.fields[this.posRevEnum[field.posX]][this.posRevEnum[field.posY]];
+      if (oldBlocks < field.blocks) {
+        // Set blocks
+        this.updateBlocks(field,oldBlocks);
+      } else if (oldBlocks > field.blocks) {
+        // Reload board
+        this.reloadBoard();
+        break;
+      }
+      
+      // Set workers
+      this.updateWorkers(field);
+    }
+  }
   
+  reloadBoard = () => {
+    this.blocks.forEach((block) => {
+      this.scene.remove(block);
+    })
+    this.blocks = [];
+    
+    this.props.game.board.fields.forEach((field) => {
+      // Set blocks
+      this.updateBlocks(field);
+      
+      // Set workers
+      this.updateWorkers(field);
+    });
+  }
+  
+  updateBlocks = (field,oldBlocks=0) => {
+    for(let i = oldBlocks; i < field.blocks; i++) {
+      let block = new THREE.Mesh( new THREE.BoxBufferGeometry( this.blockSize, this.blockHeight, this.blockSize ), this.blockMaterial);
+      block.position.set( this.posRevEnum[field.posX], this.blockHeight / 2 + this.blockHeight * i, this.posRevEnum[field.posY] );
+      block.castShadow = true;
+      block.receiveShadow = true;
+      this.scene.add(block);
+      this.blocks.add(block);
+    }
+  }
+  
+  updateWorkers = (field) => {
+    // Set workers
+    if (field.worker != null) {
+      this.myWorkers.forEach((worker) => {
+        if (field.worker.id == worker.userData.worker.id) {
+          worker.position.x = this.posRevEnum[field.posX];
+          worker.position.z = this.posRevEnum[field.posY];
+          worker.position.y = 2 + field.blocks * this.blockHeight;
+        }
+      });
+      this.oppoWorkers.forEach((worker) => {
+        if (field.worker.id == worker.userData.worker.id) {
+          worker.position.x = this.posRevEnum[field.posX];
+          worker.position.z = this.posRevEnum[field.posY];
+          worker.position.y = 2 + field.blocks * this.blockHeight;
+        }
+      });
+    }
   }
   
   animate = () => {

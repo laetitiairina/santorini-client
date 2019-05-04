@@ -434,8 +434,8 @@ class GamePage extends React.Component {
         break;
     }
     
-    // if COLOR2,(POSITION2),MOVE,BUILD,END update game board accoriding to this.state.game
-    //this.outputHander.current.update();
+    // Always update game board accoriding to this.state.game or if COLOR2,(POSITION2),MOVE,BUILD,END
+    this.outputHander.current.update();
   }
 
   setColor = (param) => {
