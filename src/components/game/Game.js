@@ -32,6 +32,10 @@ class Game extends React.Component {
     this.waterSpeed = 0.03;
     this.inputEnabled = false;
     
+    this.ghostWorker = null;
+    this.dragedWorkerInitPos = null;
+    this.draged = false;
+    
     // Access via this.props.game instead
     /*
     this.state = {
@@ -155,7 +159,7 @@ class Game extends React.Component {
     // orbit controls
     
     this.controls = new OrbitControls( this.camera, this.renderer.domElement );
-    this.controls.mouseButtons.LEFT = THREE.MOUSE.RIGHT;
+    //this.controls.mouseButtons.LEFT = THREE.MOUSE.RIGHT;
     this.controls.enablePan = false;
     this.controls.minDistance = 10;
     this.controls.maxDistance = 100;
@@ -165,6 +169,7 @@ class Game extends React.Component {
 
     this.dragControlsWorker = new DragControls( this.myWorkers, this.camera, this.renderer.domElement );
     this.dragControlsWorker.addEventListener( 'dragstart', this.onDragStartWorker);
+    this.dragControlsWorker.addEventListener( 'drag', this.onDragWorker);
     this.dragControlsWorker.addEventListener( 'dragend', this.onDragEndWorker);
     this.dragControlsWorker.enabled = false;
     this.dragControlsWorker.deactivate();
@@ -239,6 +244,7 @@ class Game extends React.Component {
       worker.receiveShadow = true;
       this.scene.add( worker );
       if (playerWorkers.id == localStorage.getItem('player_id')){
+        worker.userData = {"worker":playerWorkers.workers[i],"onBoard":false,"posX":null,"posY":null};
         this.myWorkers.push( worker );
       } else {
         this.oppoWorkers.push( worker );
@@ -435,31 +441,101 @@ class Game extends React.Component {
   
   onDragStartWorker = (event) => {
     this.controls.enabled = false;
+    this.inputEnabled = false;
+    
+    this.draged = true;
+    
+    this.dragedWorkerInitPos = event.object.position.clone();
+    
+    // Create ghost worker
+    this.ghostWorker = event.object.clone();
+    this.ghostWorker.material = event.object.material.clone();
+    this.ghostWorker.material.transparent = true;
+    this.ghostWorker.material.opacity = 0.3;
+    this.ghostWorker.name = "ghost";
+    this.scene.add(this.ghostWorker);
+  }
+  
+  onDragWorker = (event) => {
+    let posX = Math.floor( ( event.object.position.x + 2.5 ) / 5 ) * 5;
+    let posZ = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
+    
+    // Update ghost worker position
+    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
+      this.ghostWorker.position.y = -500;
+    } else {
+      this.ghostWorker.position.x = posX;
+      this.ghostWorker.position.z = posZ;
+      this.ghostWorker.position.y = 2;
+      
+      // TODO:
+      if (this.fields[posX][posZ]) {
+        this.ghostWorker.position.y = 2 + this.blockHeight * this.fields[event.object.position.x][event.object.position.z];
+      }
+      
+    }
   }
   
   onDragEndWorker = (event) => {
-    event.object.position.x = Math.floor( ( event.object.position.x + 2.5 ) / 5 ) * 5;
-    event.object.position.z = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
-    event.object.position.y = 2;
-    if ( this.fields[event.object.position.x][event.object.position.z] ) {
-      event.object.position.y += this.blockHeight * this.fields[event.object.position.x][event.object.position.z];
-    }
+    // Remove ghost worker
+    this.scene.remove(this.ghostWorker);
     
-    // TODO: !!!!!!!!!!!!!!
+    let posX = Math.floor( ( event.object.position.x + 2.5 ) / 5 ) * 5;
+    let posZ = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
     
-    switch(this.props.game.status) {
+    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
+      // Reset position of worker
+      event.object.position.copy(this.dragedWorkerInitPos);
+    } else {
+      // Worker was placed on board
+      event.object.position.x = posX;
+      event.object.position.z = posZ;
+      event.object.position.y = 2;
+      
+      // TODO:
+      if (this.fields[posX][posZ]) {
+        event.object.position.y = 2 + this.blockHeight * this.fields[event.object.position.x][event.object.position.z];
+      }
+      
+      let posEnum = {"-10":0,"-5":1,"0":2,"5":3,"10":4};
+      event.object.userData.onBoard = true;
+      event.object.userData.posX = posEnum[posX];
+      event.object.userData.posY = posEnum[posZ];
+    
+      switch(this.props.game.status) {
         case "POSITION1":
-        
-          break;
         case "POSITION2":
         
+            // If both workers are on board, get fields of workers, set workers of fields and send input
+            let workerFields = [];
+          
+            this.myWorkers.forEach((worker) => {
+              if(worker.userData.onBoard) {
+                this.props.game.board.fields.forEach((field) => {
+                  if(field.posX == worker.userData.posX && field.posY == worker.userData.posY) {
+                    field.worker = worker.userData.worker;
+                    workerFields.push(field);
+                  }
+                });
+              }
+            });
+          
+            if(workerFields.length == 2) {
+              // Send input to GamePage
+              this.props.inputHandler("board",workerFields);
+            }
+          
           break;
         case "MOVE":
-        
+      
+          // TODO: !!!!!
+      
           break;
+      }
     }
-
+    
     this.controls.enabled = true;
+    this.inputEnabled = true;
   }
   
   onDragStartBlock = (event) => {
@@ -549,6 +625,17 @@ class Game extends React.Component {
 
   onMouseUp = (event) => {
   
+    // TODO: throws error sometimes
+    // Make sure all ghosts are removed
+    if(this.draged) {
+      this.scene.traverse((child) => {
+        if(child.name == "ghost") {
+          this.scene.remove(child);
+        }
+      });
+      this.draged = false;
+    }
+  
     /*if ( this.workerDraged || event.button !== 0 ) {
       this.workerDraged = false;
       return;
@@ -566,6 +653,7 @@ class Game extends React.Component {
 
     event.preventDefault();
 
+    // Get intersections
     let intersections = this._raycasterGetIntersections(event);
 
     if ( intersections.length > 0 && intersections[0] !== null ) {

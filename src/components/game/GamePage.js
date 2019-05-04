@@ -264,6 +264,7 @@ class GamePage extends React.Component {
         this.outputHander.current.initCards();
       }
       
+      // TODO: Doesn't work on reload, workers gets initialized on wrong side
       // Init workers
       if(statusEnum[this.state.game.status] > 5) {
         this.outputHander.current.initWorkers(1);
@@ -392,7 +393,7 @@ class GamePage extends React.Component {
         break;
     }
     
-    // if POSITION2,MOVE,BUILD,END update game board accoriding to this.state.game
+    // if COLOR2,(POSITION2),MOVE,BUILD,END update game board accoriding to this.state.game
     //this.outputHander.current.update();
   }
 
@@ -432,6 +433,8 @@ class GamePage extends React.Component {
     
     let playerUpdate = this.getPlayer();
     
+    let boardUpdate = this.state.game.board;
+    
     switch(level) {
       case "game":
         // Game
@@ -453,7 +456,8 @@ class GamePage extends React.Component {
         break;
       case "board":
         // Board
-        gameUpdate["board"]["fields"] = content;
+        boardUpdate["fields"] = content;
+        gameUpdate["board"] = boardUpdate;
         this.updateGame(gameUpdate);
         break;
       default:
@@ -475,7 +479,9 @@ class GamePage extends React.Component {
       body: JSON.stringify(bodyObject)
     })
     .then(response => {
+      // TODO: handle bad move/build
       if (!response.ok) {
+        // TODO: handle invalid request
         // If response not ok get response text and throw error
         return response.text().then( err => { throw Error(err); } );
       }
