@@ -187,15 +187,33 @@ class Game extends React.Component {
       return;
     }
     
-    // TODO: Which card on which side
-    this.props.game.cards.forEach((cardname,i) => {
-      let texture = new THREE.CanvasTexture(this._canvasCardTexture(godCardsEnum[cardname]));
-      let card = new THREE.Mesh( new THREE.BoxBufferGeometry( 5, 0.1, 10 ), new THREE.MeshPhongMaterial({ color: 0xccaa11, shading: THREE.FlatShading, map: texture }) );
+    this.props.game.players.forEach((player,i) => {
+    
+      // Display name tag
+      let username = "GUEST";
+      
+      if(player.username != null) {
+        username = player.username;
+      }
+      
+      if(player.id == localStorage.getItem('player_id')) {
+        username = "YOU";
+      }
+      
+      let textureNameTag = new THREE.CanvasTexture(this._canvasTextTexture(username,10,100,40));
+      let nameTag = new THREE.Mesh( new THREE.BoxBufferGeometry( 5, 0.1, 2 ), new THREE.MeshPhongMaterial({ color: 0xffffff, shading: THREE.FlatShading, map: textureNameTag }) );
+      nameTag.position.set( 20 - 40 * i, 0, -5 + 10 * i );
+      nameTag.rotation.y = Math.PI / 2 - Math.PI*i;
+      this.scene.add( nameTag );
+    
+      // Display card of players
+      let textureCard = new THREE.CanvasTexture(this._canvasCardTexture(godCardsEnum[player.card]));
+      let card = new THREE.Mesh( new THREE.BoxBufferGeometry( 5, 0.1, 10 ), new THREE.MeshPhongMaterial({ color: 0xccaa11, shading: THREE.FlatShading, map: textureCard }) );
       card.position.set( 20 - 40 * i, 0, 5 - 10 * i );
       card.rotation.y = Math.PI / 2 - Math.PI*i;
       card.castShadow = true;
       card.receiveShadow = true;
-      card.name = godCardsEnum[cardname];
+      card.name = godCardsEnum[player.card];
       this.scene.add( card );
       this.cards.push( card );
     });
@@ -209,7 +227,6 @@ class Game extends React.Component {
       return;
     }
     
-    // TODO: Which workers on which side
     let colorPreset = {"BLUE":"#0000ff","GREY":"#dddddd","WHITE":"#ffffff"}
     let playerWorkers = null;
     this.props.game.players.forEach((player) => {
@@ -222,11 +239,15 @@ class Game extends React.Component {
     
     for ( let i = 0; i < 2; i++ ) {
       let worker = new THREE.Mesh( new THREE.CylinderBufferGeometry( 0,1,4,20 ), new THREE.MeshLambertMaterial( { color: colorPreset[playerWorkers.color] } ) );
-      worker.position.set( 10 - 3 * i - 17 * (nr-1), 2, 20);
+      if (playerWorkers.id == this.props.game.players[0].id) {
+        worker.position.set( 10 - 3 * i - 17 * 0, 2, 20);
+      } else {
+        worker.position.set( 10 - 3 * i - 17 * 1, 2, 20);
+      }
       worker.castShadow = true;
       worker.receiveShadow = true;
       this.scene.add( worker );
-      if (playerWorkers.id == localStorage.getItem("player_id")){
+      if (playerWorkers.id == localStorage.getItem('player_id')){
         this.myWorkers.push( worker );
       } else {
         this.oppoWorkers.push( worker );
@@ -254,29 +275,48 @@ class Game extends React.Component {
     }
   }
   
-  _canvasCardTexture = (nr) => {
-    // Texture
+  _setupCanvas = (width,height) => {
     let canvas = document.createElement("canvas");
     let ctx = canvas.getContext('2d');
-    canvas.width = 128;
-    canvas.height = 256;
-    canvas.style.width = 64;
-    canvas.style.height= 128;
-    ctx.scale(2,2);
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect( 0, 0, canvas.width,canvas.height );
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = 'blue';
-    ctx.font = "6pt American Typewriter";
-    ctx.fillText(GodCardsData[nr].name,canvas.width/4,10);
-    ctx.font = "4pt American Typewriter";
+    let scale = 2;//window.devicePixelRatio;
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+    ctx.scale(scale,scale);
+    return {"canvas":canvas,"ctx":ctx};
+  }
+  
+  _canvasTextTexture = (text,size,width,height,bgColor='#FFFFFF',color='#0000FF') => {
+    // Texture
+    let draw = this._setupCanvas(width,height);
+    draw["ctx"].fillStyle = bgColor;
+    draw["ctx"].fillRect( 0, 0, draw["canvas"].width,draw["canvas"].height );
+    draw["ctx"].textAlign = "center";
+    draw["ctx"].textBaseline = "middle";
+    draw["ctx"].fillStyle = color;
+    draw["ctx"].font = size + "pt American Typewriter";
+    draw["ctx"].fillText(text,draw["canvas"].width/4,draw["canvas"].height/4);
+    return draw["canvas"];
+  }
+  
+  _canvasCardTexture = (nr) => {
+    // Texture
+    let draw = this._setupCanvas(64,128);
+    draw["ctx"].fillStyle = '#FFFFFF';
+    draw["ctx"].fillRect( 0, 0, draw["canvas"].width,draw["canvas"].height );
+    draw["ctx"].textAlign = "center";
+    draw["ctx"].textBaseline = "middle";
+    draw["ctx"].fillStyle = 'blue';
+    draw["ctx"].font = "6pt American Typewriter";
+    draw["ctx"].fillText(GodCardsData[nr].name,draw["canvas"].width/4,10);
+    draw["ctx"].font = "4pt American Typewriter";
     GodCardsData[nr].text.forEach((line,i) => {
-      ctx.fillText(line,canvas.width/4,25+10*i);
+      draw["ctx"].fillText(line,draw["canvas"].width/4,25+10*i);
     })
     // DEBUG
-    ctx.fillText(nr,canvas.width/4,canvas.height/2-10);
-    return canvas;
+    draw["ctx"].fillText(nr,draw["canvas"].width/4,draw["canvas"].height/2-10);
+    return draw["canvas"];
   }
   
   _displayCard = (posX,posY,posZ, nr) => {
@@ -291,38 +331,13 @@ class Game extends React.Component {
   }
   
   _displayConfirmButton = (posX,posY,posZ) => {
-    // Texture
-    let canvas = document.createElement("canvas");
-    let ctx = canvas.getContext('2d');
-    canvas.width = 256;
-    canvas.height = 128;
-    canvas.style.width = 128;
-    canvas.style.height= 64;
-    ctx.scale(2,2);
-    ctx.fillStyle = '#0000FF';
-    ctx.fillRect( 0, 0, canvas.width,canvas.height );
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = "15pt American Typewriter";
-    ctx.fillText("CONFIRM",canvas.width/4,canvas.height/4);
-    
     // Display confirm button
-    let texture = new THREE.CanvasTexture(canvas);
+    let texture = new THREE.CanvasTexture(this._canvasTextTexture("Confirm",15,128,64));
     let confirmButton = new THREE.Mesh( new THREE.BoxBufferGeometry( 4, 2, 2 ), new THREE.MeshPhongMaterial({ shading: THREE.FlatShading, map: texture }) );
     confirmButton.rotation.x = - Math.PI / 2;
     confirmButton.position.set(posX,posY,posZ);
     confirmButton.name = "confirm";
     this.camera.add( confirmButton );
-  }
-  
-  _cleanUpCards = () => {
-    let con = this.camera.getObjectByName("confirm");
-    this.camera.remove(con);
-    this.cards.forEach((card) => {
-      this.camera.remove(card);
-    })
-    this.cards = [];
   }
   
   // Display 10 cards to choose from
@@ -359,10 +374,23 @@ class Game extends React.Component {
     this._displayConfirmButton(0, -15, -40);
   }
   
+  cleanUpCards = () => {
+    let con = this.camera.getObjectByName("confirm");
+    this.camera.remove(con);
+    this.cards.forEach((card) => {
+      this.camera.remove(card);
+    })
+    this.cards = [];
+  }
+  
   // Initialize postion selection (nr is either 1 or 2 depending on the player)
-  Position = (nr) => {
+  Position = () => {
     // Play camera animation
-    this.playStartAnimation = nr;
+    if (this.props.game.players[0].id  == localStorage.getItem('player_id')) {
+        this.playStartAnimation = 1;
+      } else {
+        this.playStartAnimation = 2;
+      }
     this.setControls(false,false); // lookAround=false,select=false
   }
   
@@ -500,13 +528,13 @@ class Game extends React.Component {
               
               // Send input to GamePage
               this.props.inputHandler("game",{cards:selectedCardNames});
-              this._cleanUpCards();
+              this.cleanUpCards();
               
             } else if (this.cards.length == 2 && selectedCardNrs.length == 1) {
             
               // Send input to GamePage
               this.props.inputHandler("player",{card:GodCardsData[selectedCardNrs[0]].name});
-              this._cleanUpCards();
+              this.cleanUpCards();
             }
           }
           

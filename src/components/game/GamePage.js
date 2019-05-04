@@ -246,14 +246,12 @@ class GamePage extends React.Component {
     if(((this.state.game.isGodMode && statusEnum[this.state.game.status] > 1) || (!this.state.game.isGodMode && statusEnum[this.state.game.status] > 4)) && this.state.prevStatus == null) {
       
       // Init cards
-      // TODO: Which card on which side
       if(this.state.game.isGodMode && statusEnum[this.state.game.status] > 2) {
         // Display cards on board when they have been chosen
         this.outputHander.current.initCards();
       }
       
       // Init workers
-      // TODO: Which workers on which side
       if(statusEnum[this.state.game.status] > 5) {
         this.outputHander.current.initWorkers(1);
       }
@@ -332,7 +330,7 @@ class GamePage extends React.Component {
         
         if (this.getPlayer().isCurrentPlayer) {
           // Init position (1 = pan left)
-          this.outputHander.current.Position(1); // Controls get set inside here
+          this.outputHander.current.Position(); // Controls get set inside here
           this.setState({displayMsg:"Position your workers!"});
         } else {
           // Display waiting msg
@@ -349,7 +347,7 @@ class GamePage extends React.Component {
         
         if (this.getPlayer().isCurrentPlayer) {
           // Init position (2 = pan right)
-          this.outputHander.current.Position(2); // Controls get set inside here
+          this.outputHander.current.Position(); // Controls get set inside here
           this.setState({displayMsg:"Position your workers!"});
         } else {
           // Display waiting msg
