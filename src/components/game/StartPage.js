@@ -4,7 +4,10 @@ import {BaseContainer} from "../../helpers/layout";
 import {getDomain} from "../../helpers/getDomain";
 import Player from "../../views/Player";
 import {withRouter} from "react-router-dom";
+import {Button} from "../../views/design/Button"
 import {Button2} from "../../views/design/Button2"
+import {Slot} from "../../views/design/Slot"
+import {Spinner} from "../../views/design/Spinner"
 import {init, animate} from '../../components/game/Prototype'
 import Login from "../login/Login";
 import Users from "../login/Users";
@@ -89,8 +92,62 @@ const StartButton = styled(Button2)`
   animation: ${props => props.animation || null} 1.5s infinite;
 `;
 
-const LoaderText = styled.div`
+const AbortButton = styled(Button)`
+  font-size: 15px;
+  text-align: center;
+  justify-content: center;
+  display: flex;
+  position: absolute;
+  top: 15px;
+  left: 0px;
+  right: 0px;
+  margin: auto;
+  width: 50px;
+  height: 20px;
+`;
+
+const LoaderContent = styled.div`
   animation: ${props => props.animation || null} 1.5s infinite;
+  position:relative;
+`;
+
+const LoaderText = styled.div`
+  text-align: center;
+  justify-content: center;
+  display: flex;
+  position: absolute;
+  top: -30px;
+  left: 0px;
+  right: 0px;
+  margin: auto;
+  width: 100px;
+  height: 100px;
+`;
+
+const LoaderSlots = styled.div`
+  text-align: center;
+  justify-content: center;
+  display: flex;
+  position: absolute;
+  top: 70px;
+  left: 0px;
+  right: 0px;
+  margin: auto;
+  width: 100px;
+  height: 100px;
+`;
+
+const LoaderSpinner = styled.div`
+  text-align: center;
+  justify-content: center;
+  display: flex;
+  position: absolute;
+  top: -100px;
+  left: 0px;
+  right: 0px;
+  margin: auto;
+  width: 100px;
+  height: 100px;
 `;
 
 class StartPage extends React.Component {
@@ -104,9 +161,12 @@ class StartPage extends React.Component {
       loggedIn: false,
       isGodMode: false,
       inQueue: false,
+      foundGame: false,
       amountOfPolls: 0,
       godColor: "transparent",
       simpleColor: "#3E5774",
+      startButtonText: "START",
+      startButtonTextSize: "50px",
       startButtonColor: "transparent",
       animationButton: "normal",
       animationText: "normal",
@@ -182,18 +242,12 @@ class StartPage extends React.Component {
       
       clearInterval(this.poller);
       
-      this.setState(
-          {
-            inQueue: false,
-            animationButton: "normal",
-            animationText: "normal"
-          }
-      );
-      
-      // TODO: Change alert to another form of showing that opponent was found
-      alert('Opponent found!');
       localStorage.setItem('game_id', result);
-      this.props.history.push("/game");
+      
+      this.setState({foundGame: true, startButtonText : "GAME FOUND", animationButton: "normal",
+          animationText: "normal"});
+      setTimeout(() => this.props.history.push("/game"), 2000);
+      
       },
       rejected => {
         clearInterval(this.poller);
@@ -201,7 +255,9 @@ class StartPage extends React.Component {
             {
               inQueue: false,
               animationButton: "normal",
-              animationText: "normal"
+              animationText: "normal",
+              startButtonText: "START",
+              startButtonTextSize: "50px"
             }
         );
         alert("Something went wrong: " + rejected);
@@ -215,9 +271,9 @@ class StartPage extends React.Component {
 
   startPolling(url, fields){
     return new Promise((resolve, reject) => {
-        this.setState({inQueue: true, amountOfPolls: 0});
-        this.poller = setInterval(() => this.poll(url, fields, 60, resolve, reject), 1000)
-        }
+      this.setState({inQueue: true, amountOfPolls: 0});
+      this.poller = setInterval(() => this.poll(url, fields, 60, resolve, reject), 1000)
+      }
     );
   }
 
@@ -234,9 +290,9 @@ class StartPage extends React.Component {
       if(response[fields[0]] !== (null && undefined)) {
         resolve(response[fields[0]]);
       }
-        else if (this.state.amountOfPolls >= maxPolls) {
-          reject("No match found! Timeout")
-        }
+      else if (this.state.amountOfPolls >= maxPolls) {
+        reject("No match found! Timeout")
+      }
     })
     .catch(err => {
       console.log(err);
@@ -298,13 +354,29 @@ class StartPage extends React.Component {
                            if (!this.state.inQueue) this.setState({ startButtonColor: "transparent"});
                          }}
                          onClick={() => {
-                           this.setState({inQueue : true, startButtonColor : "#3E5774", animationButton : Spin, animationText: NoSpin, loaderStrip: "white"});
+                           this.setState({inQueue : true, startButtonColor : "#3E5774", startButtonText : "SEARCHING", startButtonTextSize:"30px", animationButton : Spin, animationText: NoSpin, loaderStrip: "white"});
                            this.addPlayerToQueue();
                          }}
             >
-              <LoaderText animation={this.state.animationText}>
-                {"START"}
-              </LoaderText>
+              <LoaderContent animation={this.state.animationText}>
+                  <LoaderSpinner>
+                    {this.state.foundGame ? (<Spinner />) : (<div></div>)}
+                  </LoaderSpinner>
+                  <LoaderText style={{fontSize:this.state.startButtonTextSize}}>
+                    {this.state.startButtonText}
+                  </LoaderText>
+                  {(!this.state.foundGame && this.state.inQueue) ? (
+                    <AbortButton
+                      onClick={() => {
+                        // TODO: Abort
+                      }}
+                    >Abort</AbortButton>
+                  ) : (<div></div>)}
+                  <LoaderSlots>
+                    <Slot size="15px" enabled={this.state.inQueue}></Slot>
+                    <Slot size="15px" enabled={this.state.foundGame}></Slot>
+                  </LoaderSlots>
+              </LoaderContent>
             </StartButton>
             <div id="container"/>
           </ContainerRight>
