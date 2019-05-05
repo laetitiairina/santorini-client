@@ -4,7 +4,7 @@ import {BaseContainer} from "../../helpers/layout";
 import {getDomain} from "../../helpers/getDomain";
 import Player from "../../views/Player";
 import {withRouter} from "react-router-dom";
-import {Button} from "../../views/design/Button"
+import {Button2} from "../../views/design/Button2"
 import {init, animate} from '../../components/game/Prototype'
 import Login from "../login/Login";
 import Users from "../login/Users";
@@ -50,7 +50,7 @@ const ModesContainer = styled(BaseContainer)`
   color: #3E5774;
 `;
 
-const ModeButton = styled(Button)`
+const ModeButton = styled(Button2)`
   box-sizing: border-box;
   width: 150px;
   padding: 20px;
@@ -77,7 +77,7 @@ const NoSpin = keyframes`
     100% { transform: rotate(0deg); }
 `;
 
-const StartButton = styled(Button)`
+const StartButton = styled(Button2)`
   width: 250px;
   height: 250px;
   border-radius: 50%;

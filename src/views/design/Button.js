@@ -2,17 +2,23 @@ import styled from "styled-components";
 
 export const Button = styled.button`
   &:hover {
-    background: #3E5774;
+    transform: translateY(-2px);
   }
-  
-  text-align: center;
-  color: #E4F5B2;
-  border-color: #2167AC;
-  border-style: solid;
+  &:active {
+    transform: translateY(4px);
+  }
   padding: 10px;
-  
+  padding-left: 20px;
+  padding-right: 20px;
+  font-weight: 700;
+  text-transform: uppercase;
+  text-align: center;
+  color: rgba(255, 255, 255, 1);
+  width: ${props => props.width || null};
+  border: none;
+  border-radius: 20px;
   cursor: ${props => (props.disabled ? "default" : "pointer")};
-  opacity: ${props => (props.disabled ? 0.6 : 1)};
-  
-  background: transparent;
+  opacity: ${props => (props.disabled ? 0.4 : 1)};
+  background: #2CA1C2; /* #1059ff */
+  transition: all 0.3s ease;
 `;

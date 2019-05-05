@@ -1,4 +1,5 @@
 import React from "react";
+import Header from "../../../views/Header";
 import { BrowserRouter, Redirect, Route, Switch } from "react-router-dom";
 import { GameGuard } from "../routeProtectors/GameGuard";
 import GameRouter from "./GameRouter";
@@ -51,7 +52,10 @@ class AppRouter extends React.Component {
               path="/home"
               exact
               render={() => (
-                <StartPage />
+                <div>
+                  <Header height={"100"} />
+                  <StartPage />
+                </div>
               )} />
             <Route path="/" exact render={() => <Redirect to={"/home"} />} />
           </div>

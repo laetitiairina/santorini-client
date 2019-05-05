@@ -3,6 +3,7 @@ import styled from "styled-components";
 import Popup from 'reactjs-popup';
 import {BaseContainer} from "../../helpers/layout";
 import {Button} from "../../views/design/Button";
+import {Button2} from "../../views/design/Button2";
 import Blue from "../../views/design/Worker_blue.png"
 import Grey from "../../views/design/Worker_Grey.png"
 import White from "../../views/design/Worker_white.png"
@@ -31,9 +32,9 @@ const Worker = styled.img`
   user-select: none;
 `
 
-const WorkerButton = styled(Button)`
+const WorkerButton = styled(Button2)`
   &:hover {
-    border-bottom-color: white;
+    border-bottom-color: #1059ff;
     background-color: transparent;
   }
 
@@ -44,8 +45,6 @@ const WorkerButton = styled(Button)`
 `
 
 const NextButton = styled(Button)`
-  margin-bottom: 20px;
-  border-radius: 40px;
 
 `;
 
@@ -84,12 +83,12 @@ class ChooseColorPopUp extends React.Component {
   render() {
     return (
         <Popup modal open={this.state.appears} closeOnDocumentClick={false}
-               contentStyle={{background: "transparent", color: "#E4F5B2", border: "5px solid #2167AC"}}>
+               contentStyle={{background: "transparent", color: "#1059ff", border: "0px"}} overlayStyle={{background: "transparent"}}>
           {close => (
           <Container>
-            <Header> CHOOSE A COLOR </Header>
+            {/*<Header> CHOOSE A COLOR </Header>*/}
             <Contents>
-              <WorkerButton style={{borderBottomColor: (this.state.blue) ? "#E4F5B2" : "transparent",
+              <WorkerButton style={{borderBottomColor: (this.state.blue) ? "#1059ff" : "transparent",
                 visibility: (this.state.blockedColor === "BLUE") ? "hidden" : "visible"}}
                             onMouseOver={() => {
                               this.setState({blue: true});
@@ -102,7 +101,7 @@ class ChooseColorPopUp extends React.Component {
                             }}>
                 <Worker src={Blue} alt={"Blue Worker"}/>
               </WorkerButton>
-              <WorkerButton style={{borderBottomColor: (this.state.grey) ? "#E4F5B2" : "transparent",
+              <WorkerButton style={{borderBottomColor: (this.state.grey) ? "#1059ff" : "transparent",
                 visibility: (this.state.blockedColor === "GREY") ? "hidden" : "visible"}}
                             onMouseOver={() => {
                               this.setState({grey: true});
@@ -115,7 +114,7 @@ class ChooseColorPopUp extends React.Component {
                             }}>
                 <Worker src={Grey} alt={"Grey Worker"}/>
               </WorkerButton>
-              <WorkerButton style={{borderBottomColor: (this.state.white) ? "#E4F5B2" : "transparent",
+              <WorkerButton style={{borderBottomColor: (this.state.white) ? "#1059ff" : "transparent",
                 visibility: (this.state.blockedColor === "WHITE") ? "hidden" : "visible"}}
                             onMouseOver={() => {
                               this.setState({white: true});

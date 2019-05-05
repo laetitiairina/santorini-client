@@ -9,6 +9,7 @@ import ChooseColorPopUp from "./ChooseColorPopUp";
 import {Spinner} from "../../views/design/Spinner";
 import Game from "./Game";
 import statusEnum from "../../helpers/statusEnum";
+import HUD from "./HUD";
 
 const Container = styled(BaseContainer)`
   color: white;
@@ -29,16 +30,6 @@ const PopupContainer = styled.div`
 
 const GameContainer = styled.div`
 
-`;
-
-const MessageContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: #3E5774;
-  margin-top: -20px;
-  text-transform: uppercase;
 `;
 
 const ErrorContainer = styled.div`
@@ -381,7 +372,7 @@ class GamePage extends React.Component {
         } else {
           // Display waiting msg
           this.outputHander.current.setControls(true,true); // lookAround=true,select=true
-          this.setState({displayMsg:"Other player moving..."});
+          this.setState({displayMsg:"Other player is moving..."});
         }
         
         break;
@@ -395,7 +386,7 @@ class GamePage extends React.Component {
         } else {
           // Display waiting msg
           this.outputHander.current.setControls(true,true); // lookAround=true,select=true
-          this.setState({displayMsg:"Other player building..."});
+          this.setState({displayMsg:"Other player is building..."});
         }
         
         break;
@@ -529,23 +520,22 @@ class GamePage extends React.Component {
   render() {
     return (
       <div>
-        <div style={{color:"#000000"}}>STATUS: {this.state.status}</div>
-          {this.unautherizedAccess ? (
-            <ErrorContainer>
-              <ErrorLabel>Game not initializated!</ErrorLabel>
-              <BackButton onClick={() => {this.props.history.push("/home");}}>Back</BackButton>
-            </ErrorContainer>
-          ) : (
-            <GameContainer>
-              <PopupContainer>
-                <EndPopUp appears={this.gameEnds()} winner={this.state.isWinner} props={this.props}/>
-                <ChooseColorPopUp appears={this.chooseColor()} setColor={this.setColor} blockedColor={this.getBlockedColor()}/>
-              </PopupContainer>
-              {this.state.displayMsg && this.state.finishInitGame ? (
-                <MessageContainer>{this.state.displayMsg}</MessageContainer>
-                ) : (<div></div>)}
-              <Game game={this.state.game} initFinish={this.initFinish} inputHandler={this.inputHandler} ref={this.outputHander}/>
-            </GameContainer>
+        {this.unautherizedAccess ? (
+          <ErrorContainer>
+            <ErrorLabel>Game not initializated!</ErrorLabel>
+            <BackButton onClick={() => {this.props.history.push("/home");}}>Back</BackButton>
+          </ErrorContainer>
+        ) : (
+          <GameContainer>
+            <PopupContainer>
+              <EndPopUp appears={this.gameEnds()} winner={this.state.isWinner} props={this.props}/>
+              <ChooseColorPopUp appears={this.chooseColor()} setColor={this.setColor} blockedColor={this.getBlockedColor()}/>
+            </PopupContainer>
+            {this.state.finishInitGame ? (
+              <HUD displayMsg={this.state.displayMsg}/>
+            ) : (<div></div>)}
+            <Game game={this.state.game} initFinish={this.initFinish} inputHandler={this.inputHandler} ref={this.outputHander}/>
+          </GameContainer>
         )}
       </div>
     );

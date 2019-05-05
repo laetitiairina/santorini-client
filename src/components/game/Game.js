@@ -1070,7 +1070,7 @@ class Game extends React.Component {
   
   render() {
     return (
-      <div style={{position:"absolute",top:"0px",zIndex:"-1"}} ref={container => { this.container = container }} />
+      <div style={{position:"absolute",top:"0px",left:"0px",width: "100%", height: "100%",zIndex:"-1"}} ref={container => { this.container = container }} />
     )
   }
 }
