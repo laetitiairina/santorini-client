@@ -11,6 +11,13 @@ class Game extends React.Component {
     super(props);
     this.cameraNear = 0.25;
     this.cameraFar = 300;
+    this.cameraLookAtPos = new THREE.Vector3( 0, 2, 0 );
+    this.cameraInitPos = new THREE.Vector3( 50, 100, 500 );
+    this.cameraSelectPos = new THREE.Vector3( 50, 100, 100 );
+    this.cameraRightPos = new THREE.Vector3(  25, 50, 0 );
+    this.cameraLeftPos = new THREE.Vector3(  -25, 50, 0);
+    this.cameraActions = {};
+    this.cameraCurrentAction = null;
     this.cards = [];
     this.blockHeight = 3;
     this.blockSize = 4.5;
@@ -58,9 +65,26 @@ class Game extends React.Component {
     // camera
     
     this.camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, this.cameraNear, this.cameraFar);
-    this.camera.position.set( 50, 100, 500 );
-    this.camera.lookAt( new THREE.Vector3( 0, 2, 0 ) );
+    this.camera.position.copy(this.cameraSelectPos);
+    this.camera.lookAt(this.cameraLookAtPos);
     this.scene.add(this.camera);
+    
+    // camera animation
+    
+    this.cameraAnimationMixer = new THREE.AnimationMixer(this.camera);
+    this.cameraAnimationMixer.addEventListener('finished', this.finishedCameraAnimation);
+    
+    this.cameraActions["init"] = this.createAction("init",3,this.cameraInitPos,this.cameraSelectPos,new THREE.Vector3(this.cameraSelectPos.x,this.cameraSelectPos.y,this.cameraSelectPos.z+100));
+    
+    this.cameraActions["right"] = this.createAction("right",2,this.cameraSelectPos,this.cameraRightPos);
+    this.cameraActions["left"] = this.createAction("left",2,this.cameraSelectPos,this.cameraLeftPos);
+    
+    this.cameraCurrentAction = this.cameraActions["init"];
+    this.cameraCurrentAction.play();
+    
+    // clock (for camera animation)
+    
+    this.clock = new THREE.Clock();
 
     // lights
 
@@ -148,7 +172,7 @@ class Game extends React.Component {
     this.renderer.setSize( window.innerWidth, window.innerHeight );
     this.renderer.gammaOutput = true;
     this.renderer.gammaFactor = 2.2;
-    this.renderer.shadowMap.enabled = true; // Comment out to increase performance
+    //this.renderer.shadowMap.enabled = true; // Comment out to increase performance
     this.container.appendChild(this.renderer.domElement);
 
     window.addEventListener( 'resize', this.onWindowResize, false );
@@ -187,6 +211,32 @@ class Game extends React.Component {
     // Start animation loop
     this.animate();
     
+  }
+  
+  // Create action for camera animation
+  createAction = (name,duration,startPos, endPos, middlePos=null) => {
+    let times = [0,1];
+    let values = [
+      startPos.x,startPos.y,startPos.z,
+      endPos.x,endPos.y,endPos.z
+    ]
+    if (middlePos) {
+      times = [0,0.5,1];
+      values = [
+        startPos.x,startPos.y,startPos.z,
+        middlePos.x,middlePos.y,middlePos.z,
+        endPos.x,endPos.y,endPos.z
+      ]
+    }
+    
+    let track = new THREE.VectorKeyframeTrack('.position',times,values);
+    track.setInterpolation(THREE.InterpolateSmooth);
+    let clip = new THREE.AnimationClip(name,1,[track]);
+    let action = this.cameraAnimationMixer.clipAction(clip);
+    action.clampWhenFinished = true;
+    action.setDuration(duration);
+    action.setLoop(THREE.LoopOnce);
+    return action;
   }
   
   // Functions called by GamePage (and this)
@@ -438,10 +488,14 @@ class Game extends React.Component {
   Position = () => {
     // Play camera animation
     if (this.props.game.players[0].id  == localStorage.getItem('player_id')) {
-        this.playStartAnimation = 1;
-      } else {
-        this.playStartAnimation = 2;
-      }
+      this.playStartAnimation = 1;
+      this.playCameraAnimation("right");
+    } else {
+      this.playStartAnimation = 2;
+      this.playCameraAnimation("left");
+    }
+    
+    // Disable controls during animation
     this.setControls(false,false); // lookAround=false,select=false
   }
   
@@ -927,6 +981,52 @@ class Game extends React.Component {
     worker.userData.field = field;
   }
   
+  playCameraAnimation = (key) => {
+    if (!this.cameraCurrentAction.isRunning()) {
+      this.cameraCurrentAction = this.cameraActions[key];
+      this.cameraCurrentAction.fadeIn(0.1);
+      this.cameraCurrentAction.reset().play();
+  
+      //this.cameraAnimationMixer.addEventListener('finished', this.finishedCameraAnimation);
+    }
+  }
+  
+  // Gets called when an animation finished
+  finishedCameraAnimation = (event) => {
+    //this.cameraAnimationMixer.removeEventListener('finished', this.finishedCameraAnimation);
+    
+    // Initialization animation finished
+    if(event.action.getClip().name == "init") {
+      this.playInitAnimation = false;
+      
+      this.cameraCurrentAction.fadeOut(0.1);
+      //this.cameraCurrentAction.enabled = false;
+      //this.cameraAnimationMixer.uncacheAction(this.cameraCurrentAction);
+      //this.cameraCurrentAction = this.cameraActions["right"];
+      
+      if (this.playStartAnimation == 1) {
+        this.playCameraAnimation("right");
+      }
+      if (this.playStartAnimation == 2) {
+        this.playCameraAnimation("left");
+      }
+      
+      // Logic
+      this.camera.children.forEach((child) => {child.visible = true;});
+      this.inputEnabled = true;
+      
+      // Tell GamePage that initialization animation finished
+      this.props.initFinish();
+      
+    // Start animation finished
+    } else if(event.action.getClip().name == "right" || event.action.getClip().name == "left") {
+      this.playStartAnimation = 0;
+      
+      // Enable controls after camera animation
+      this.setControls(true,true,true); // lookAround=true,select=false,move=true
+    }
+  }
+  
   animate = () => {
     // animate
     window.requestAnimationFrame(this.animate);
@@ -947,41 +1047,16 @@ class Game extends React.Component {
       });
     }
     
-    // Play initialization animation of camera
-    if (this.playInitAnimation) {
-      //this.camera.position.x -= 1;
-      //this.camera.position.y -= 1;
-      this.camera.position.z -= this.camera.position.z/90;
-      this.camera.lookAt( new THREE.Vector3( 0, 2, 0 ) );
-      if (this.camera.position.z <= 100) {
-        //this.camera.position.set( 50, 100, 100 );
-        this.playInitAnimation = false;
-        
-        // Logic
-        this.camera.children.forEach((child) => {child.visible = true;});
-        this.inputEnabled = true;
-        
-        this.props.initFinish();
-      }
+    // Animate camera
+    // Update camera animation mixer
+    if (this.cameraAnimationMixer) {
+      this.cameraAnimationMixer.update(this.clock.getDelta());
     }
     
-    // Play start animation of camera
-    if (this.playStartAnimation > 0) {
-      if (this.playStartAnimation == 1) {
-        this.camera.position.x += 0.1;
-        this.camera.position.z -= 1.2;
-      } else {
-        this.camera.position.x -= 2;
-        this.camera.position.z -= 1;
-      }
-      this.camera.position.y -= 1;
-      this.camera.lookAt( new THREE.Vector3( 0, 2, 0 ) );
-      if (this.camera.position.y <= 40) {
-        //this.camera.position.set( -55, 40, 50 );
-        this.playStartAnimation = 0;
-        
-        // Enable controls after camera animation
-        this.setControls(true,true,true); // lookAround=true,select=false,move=true
+    // Update camera look at position when animating camera position
+    if (this.cameraCurrentAction) {
+      if (this.cameraCurrentAction.isRunning()) {
+        this.camera.lookAt(this.cameraLookAtPos);
       }
     }
   }

@@ -10,9 +10,6 @@ import {Spinner} from "../../views/design/Spinner";
 import Game from "./Game";
 import statusEnum from "../../helpers/statusEnum";
 
-// For testing
-//import GamePlayer from "../shared/models/Player"
-
 const Container = styled(BaseContainer)`
   color: white;
   text-align: center;
@@ -343,41 +340,33 @@ class GamePage extends React.Component {
           this.setState({displayMsg:"Choose a color!"});
         } else {
           // Display waiting msg
-          this.outputHander.current.setControls(false,false); // lookAround=false,select=false
+          if (this.state.game.status == "COLOR1") {
+            this.outputHander.current.setControls(false,false); // lookAround=false,select=false
+          } else {
+            this.outputHander.current.setControls(true,true); // lookAround=true,select=true
+          }
           this.setState({displayMsg:"Other player is choosing color..."});
         }
         
         break;
       case "POSITION1":
-        console.log("POSITION1");
-        
-        // Display workers of player 1 next to board when color has been chosen
-        this.outputHander.current.initWorkers(1);
-        
-        if (this.getPlayer().isCurrentPlayer) {
-          // Init position (1 = pan left)
-          this.outputHander.current.Position(); // Controls get set inside here
-          this.setState({displayMsg:"Position your workers!"});
-        } else {
-          // Display waiting msg
-          this.outputHander.current.setControls(false,false); // lookAround=false,select=false
-          this.setState({displayMsg:"Other player is positioning workers..."});
-        }
-        
-        break;
       case "POSITION2":
-        console.log("POSITION2");
+        console.log("POSITION 1 & 2");
         
-        // Display workers of player 2 next to board when color has been chosen
-        this.outputHander.current.initWorkers(2);
+        // Initialize workers of players who have chosen a color
+        this.outputHander.current.initWorkers();
         
         if (this.getPlayer().isCurrentPlayer) {
-          // Init position (2 = pan right)
+          // Init position
           this.outputHander.current.Position(); // Controls get set inside here
           this.setState({displayMsg:"Position your workers!"});
         } else {
           // Display waiting msg
-          this.outputHander.current.setControls(true,true); // lookAround=true,select=true
+          if (this.state.game.status == "POSITION1") {
+            this.outputHander.current.setControls(false,false); // lookAround=false,select=false
+          } else {
+            this.outputHander.current.setControls(true,true); // lookAround=true,select=true
+          }
           this.setState({displayMsg:"Other player is positioning workers..."});
         }
         
