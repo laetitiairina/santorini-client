@@ -16,6 +16,7 @@ class Game extends React.Component {
     this.blockSize = 4.5;
     this.blockMaterial = new THREE.MeshLambertMaterial( { color: 0xaaaaaa } );
     this.blocks = [];
+    this.colorPreset = {"BLUE":"#0000ff","GREY":"#888888","WHITE":"#ffffff"};
     this.myWorkers = [];
     this.oppoWorkers = [];
     this.mouse = new THREE.Vector2();
@@ -221,37 +222,42 @@ class Game extends React.Component {
   // Initialize workers of one player next to board
   // (call once for each player after color was selected)
   // nr represents the order ( so if COLOR1 was selected -> nr=1)
-  initWorkers = (nr,curr=true) => {
+  initWorkers = () => {
     if (this.myWorkers.length > 0 && this.oppoWorkers.length > 0) {
       return;
     }
     
-    let colorPreset = {"BLUE":"#0000ff","GREY":"#dddddd","WHITE":"#ffffff"}
-    let playerWorkers = null;
     this.props.game.players.forEach((player) => {
-      if(player.isCurrentPlayer && curr) {
-        playerWorkers = player;
-      } else if(!player.isCurrentPlayer && !curr) {
-        playerWorkers = player;
+      if (player.color) {
+        if (player.id == localStorage.getItem('player_id')){
+          if (this.myWorkers.length == 0) {
+            this._initWorkers(player,this.myWorkers);
+          }
+        } else {
+          if (this.oppoWorkers.length == 0) {
+            this._initWorkers(player,this.oppoWorkers);
+          }
+        }
       }
     });
-    
+  }
+  
+  _initWorkers = (player,arr) => {
     for ( let i = 0; i < 2; i++ ) {
-      let worker = new THREE.Mesh( new THREE.CylinderBufferGeometry( 0,1,4,20 ), new THREE.MeshLambertMaterial( { color: colorPreset[playerWorkers.color] } ) );
-      if (playerWorkers.id == this.props.game.players[0].id) {
+      let worker = new THREE.Mesh( new THREE.CylinderBufferGeometry( 0,1,4,20 ), new THREE.MeshLambertMaterial( { color: this.colorPreset[player.color] } ) );
+      
+      if (player.id == this.props.game.players[0].id) {
         worker.position.set( 10 - 3 * i - 17 * 0, 2, 20);
       } else {
         worker.position.set( 10 - 3 * i - 17 * 1, 2, 20);
       }
+      
       worker.castShadow = true;
       worker.receiveShadow = true;
       this.scene.add( worker );
-      worker.userData = {"worker":playerWorkers.workers[i],"field":null,"onBoard":false,"posX":null,"posY":null};
-      if (playerWorkers.id == localStorage.getItem('player_id')){
-        this.myWorkers.push( worker );
-      } else {
-        this.oppoWorkers.push( worker );
-      }
+      worker.userData = {"worker":player.workers[i],"field":null,"onBoard":false,"posX":null,"posY":null};
+      
+      arr.push( worker );
     }
   }
   

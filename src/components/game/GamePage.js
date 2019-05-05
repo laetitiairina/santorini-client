@@ -267,10 +267,10 @@ class GamePage extends React.Component {
       // TODO: Doesn't work on reload, workers gets initialized on wrong side
       // Init workers
       if(statusEnum[this.state.game.status] > 5) {
-        this.outputHander.current.initWorkers(1);
+        this.outputHander.current.initWorkers();
       }
       if(statusEnum[this.state.game.status] > 7) {
-        this.outputHander.current.initWorkers(2,false);
+        this.outputHander.current.initWorkers();
       }
     }
     
@@ -414,6 +414,8 @@ class GamePage extends React.Component {
         console.log("END");
         
         this.setState({gameEnds : true});
+        
+        // TODO: stop polling and delete player_id and playerToken from localStorage
         
         if (this.getPlayer().isCurrentPlayer) {
           // Display winning msg
