@@ -145,7 +145,7 @@ class HUD extends React.Component {
           </ContainerTopMiddleRight>
           <ContainerTopRight>
             <ExitButton onClick={() => {
-              // TODO: Send exit signal to GamePage
+              this.props.displayExit(true);
             }}>
               EXIT
             </ExitButton>

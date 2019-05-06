@@ -39,6 +39,8 @@ const ContainerLeft = styled.div`
 const ContainerRight = styled.div`
   grid-column: 2;
   grid-row: 1;
+  overflow: hidden;
+  height: 500px;
 
   @media only screen and (max-width: 700px){
     grid-column: 1;
@@ -150,6 +152,49 @@ const LoaderSpinner = styled.div`
   height: 100px;
 `;
 
+const RejoinContainer = styled.div`
+  overflow: hidden;
+  position: absolute;
+  top: 575px;
+  right: 0px;
+  width: 40%;
+  height: 100px;
+`;
+
+const Appear = keyframes`
+    0% { transform: translateX(300px); }
+    100% { transform: translateX(0px); }
+`;
+
+const Disappear = keyframes`
+    0% { transform: translateX(0px); }
+    100% { transform: translateX(300px); }
+`;
+
+const RejoinButton = styled(Button2)`
+  &:hover {
+    background-color:"#3E5774";
+  }
+  &:active {
+    background-color:"#3E5774";
+    opacity: 0.6;
+  }
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border-width: 4px;
+  background-color:"transparent";
+  position: absolute;
+  right:20%;
+
+  text-transform: uppercase;
+  font-size: 14px;
+
+  visibility: ${props => props.activeGame ? "visible" : "hidden"};
+
+  animation: ${props => props.activeGameAnimation || null} 1.5s forwards;
+`;
+
 class StartPage extends React.Component {
   constructor(props) {
     super(props);
@@ -170,7 +215,9 @@ class StartPage extends React.Component {
       startButtonColor: "transparent",
       animationButton: "normal",
       animationText: "normal",
-      loaderStrip: "#2167AC"
+      loaderStrip: "#2167AC",
+      activeGame: false,
+      activeGameAnimation: null
     };
   }
   
@@ -189,9 +236,38 @@ class StartPage extends React.Component {
     if (localStorage.getItem('userToken')) {
       this.login();
     }
-    // three.js prototype
-    //init();
-    //animate();
+    
+    // Check if user has active game
+    if (localStorage.getItem('game_id') && localStorage.getItem('player_id') && localStorage.getItem('playerToken')) {
+      const url = `${getDomain()}/games/${localStorage.getItem('game_id')}`;
+      const fields = ['status'];
+    
+      fetch(`${url}?fields=${fields.join('&')}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Token": localStorage.getItem('playerToken')
+        },
+      })
+      .then(response => {
+        if (!response.ok) {
+          // If response not ok get response text and throw error
+          return response.text().then( err => { throw Error(err); } );
+        } else {
+          // Get returned status
+          return response.json();
+        }
+      })
+      .then(response => {
+        if (response[fields[0]] && response[fields[0]] !== "END") {
+          // Display option to rejoin active game
+          this.setState({activeGame:true, activeGameAnimation:Appear});
+        }
+      })
+      .catch(err => {
+        console.log(err);
+      });
+    }
   }
 
   addPlayerToQueue() {
@@ -239,27 +315,28 @@ class StartPage extends React.Component {
     .then(result => {
     
       // Game was found
-      
+      // Stop polling
       clearInterval(this.poller);
       
+      // Save game id to local storage
       localStorage.setItem('game_id', result);
       
-      this.setState({foundGame: true, startButtonText : "GAME FOUND", animationButton: "normal",
-          animationText: "normal"});
+      // Update state
+      this.setState({
+        foundGame: true,
+        startButtonText : "GAME FOUND",
+        animationButton: "normal",
+        animationText: "normal",
+        loaderStrip: "#2167AC"
+      });
+      
+      // Redirect to game page
       setTimeout(() => this.props.history.push("/game"), 2000);
       
       },
       rejected => {
-        clearInterval(this.poller);
-        this.setState(
-            {
-              inQueue: false,
-              animationButton: "normal",
-              animationText: "normal",
-              startButtonText: "START",
-              startButtonTextSize: "50px"
-            }
-        );
+        // Reset search
+        this.resetSearch();
         alert("Something went wrong: " + rejected);
       }
     )
@@ -297,6 +374,52 @@ class StartPage extends React.Component {
     .catch(err => {
       console.log(err);
     });
+  }
+  
+  resetSearch = () => {
+    clearInterval(this.poller);
+    this.setState(
+        {
+          inQueue: false,
+          animationButton: "normal",
+          animationText: "normal",
+          startButtonText: "START",
+          startButtonTextSize: "50px",
+          loaderStrip: "#2167AC"
+        }
+    );
+  }
+  
+  abortSearch() {
+    this.resetSearch()
+    
+    const url = `${getDomain()}/players/${localStorage.getItem('player_id')}`;
+    const id = localStorage.getItem('player_id');
+    const token = localStorage.getItem('playerToken');
+    
+    fetch(`${url}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Token": token
+      },
+      body: JSON.stringify({
+        id: id,
+        game_id: -1
+      })
+    })
+    .then(response => {
+      if (!response.ok) {
+        // If response not ok get response text and throw error
+        return response.text().then( err => { throw Error(err); } );
+      }
+    })
+    .catch(err => {
+      console.log(err);
+    });
+    
+    localStorage.setItem('player_id',null);
+    localStorage.setItem('playerToken',null);
   }
 
   componentWillUnmount() {
@@ -354,30 +477,41 @@ class StartPage extends React.Component {
                            if (!this.state.inQueue) this.setState({ startButtonColor: "transparent"});
                          }}
                          onClick={() => {
-                           this.setState({inQueue : true, startButtonColor : "#3E5774", startButtonText : "SEARCHING", startButtonTextSize:"30px", animationButton : Spin, animationText: NoSpin, loaderStrip: "white"});
+                           this.setState({inQueue : true, activeGameAnimation: Disappear, startButtonColor : "#3E5774", startButtonText : "SEARCHING", startButtonTextSize:"30px", animationButton : Spin, animationText: NoSpin, loaderStrip: "white"});
                            this.addPlayerToQueue();
                          }}
             >
               <LoaderContent animation={this.state.animationText}>
-                  <LoaderSpinner>
-                    {this.state.foundGame ? (<Spinner />) : (<div></div>)}
-                  </LoaderSpinner>
-                  <LoaderText style={{fontSize:this.state.startButtonTextSize}}>
-                    {this.state.startButtonText}
-                  </LoaderText>
-                  {(!this.state.foundGame && this.state.inQueue) ? (
-                    <AbortButton
-                      onClick={() => {
-                        // TODO: Abort
-                      }}
-                    >Abort</AbortButton>
-                  ) : (<div></div>)}
-                  <LoaderSlots>
-                    <Slot size="15px" enabled={this.state.inQueue}></Slot>
-                    <Slot size="15px" enabled={this.state.foundGame}></Slot>
-                  </LoaderSlots>
+                <LoaderSpinner>
+                  {this.state.foundGame ? (<Spinner />) : (<div></div>)}
+                </LoaderSpinner>
+                <LoaderText style={{fontSize:this.state.startButtonTextSize}}>
+                  {this.state.startButtonText}
+                </LoaderText>
+                {(!this.state.foundGame && this.state.inQueue) ? (
+                  <AbortButton
+                    onClick={() => {
+                      this.abortSearch();
+                    }}
+                  >Abort</AbortButton>
+                ) : (<div></div>)}
+                <LoaderSlots>
+                  <Slot size="15px" enabled={this.state.inQueue}></Slot>
+                  <Slot size="15px" enabled={this.state.foundGame}></Slot>
+                </LoaderSlots>
               </LoaderContent>
             </StartButton>
+            <RejoinContainer>
+              {this.state.activeGame ? (
+                <RejoinButton activeGame={this.state.activeGame} activeGameAnimation={this.state.activeGameAnimation}
+                  onClick={() => {
+                    this.props.history.push("/game");
+                  }}
+                >
+                  Rejoin Game
+                </RejoinButton>
+              ) : (<div></div>)}
+            </RejoinContainer>
             <div id="container"/>
           </ContainerRight>
         </Container>

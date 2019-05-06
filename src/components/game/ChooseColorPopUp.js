@@ -54,8 +54,6 @@ class ChooseColorPopUp extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      appears: this.props.appears,
-      blockedColor: this.props.blockedColor,
       blue: false,
       grey: false,
       white: false,
@@ -63,33 +61,16 @@ class ChooseColorPopUp extends React.Component {
     };
   }
 
-  /**
-   * updates the appears value from parent
-   *
-   * @param props {appears: BOOLEAN}
-   * @param state
-   * @returns {null|{appears: *}}
-   */
-  static getDerivedStateFromProps(props, state) {
-    if (props.appears !== state.appears) {
-      return {
-        appears: props.appears,
-        blocked: props.blockedColor,
-      };
-    }
-    return null;
-  }
-
   render() {
     return (
-        <Popup modal open={this.state.appears} closeOnDocumentClick={false}
+        <Popup modal open={this.props.appears} closeOnDocumentClick={false}
                contentStyle={{background: "transparent", color: "#1059ff", border: "0px"}} overlayStyle={{background: "transparent"}}>
           {close => (
           <Container>
             {/*<Header> CHOOSE A COLOR </Header>*/}
             <Contents>
               <WorkerButton style={{borderBottomColor: (this.state.blue) ? "#1059ff" : "transparent",
-                visibility: (this.state.blockedColor === "BLUE") ? "hidden" : "visible"}}
+                visibility: (this.props.blockedColor === "BLUE") ? "hidden" : "visible"}}
                             onMouseOver={() => {
                               this.setState({blue: true});
                             }}
@@ -102,7 +83,7 @@ class ChooseColorPopUp extends React.Component {
                 <Worker src={Blue} alt={"Blue Worker"}/>
               </WorkerButton>
               <WorkerButton style={{borderBottomColor: (this.state.grey) ? "#1059ff" : "transparent",
-                visibility: (this.state.blockedColor === "GREY") ? "hidden" : "visible"}}
+                visibility: (this.props.blockedColor === "GREY") ? "hidden" : "visible"}}
                             onMouseOver={() => {
                               this.setState({grey: true});
                             }}
@@ -115,7 +96,7 @@ class ChooseColorPopUp extends React.Component {
                 <Worker src={Grey} alt={"Grey Worker"}/>
               </WorkerButton>
               <WorkerButton style={{borderBottomColor: (this.state.white) ? "#1059ff" : "transparent",
-                visibility: (this.state.blockedColor === "WHITE") ? "hidden" : "visible"}}
+                visibility: (this.props.blockedColor === "WHITE") ? "hidden" : "visible"}}
                             onMouseOver={() => {
                               this.setState({white: true});
                             }}

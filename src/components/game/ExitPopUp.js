@@ -29,41 +29,32 @@ const Contents =  styled.div`
  * https://reactjs.org/docs/components-and-props.html
  * @FunctionalComponent
  * */
-const EndPopUp =  ({appears, endState, props}) => {
+const ExitPopUp =  ({appears, displayExit, deinitGame, props}) => {
   return (
       <Popup modal open={appears} closeOnDocumentClick={false} contentStyle={{background: "transparent", color: "#E4F5B2", border: "0px"}}>
             <Container>
-              <Header> GAME </Header>
+              <Header> EXIT GAME </Header>
               <Contents>
-                {result(endState)}
+                Do you want to quit the current Game?
               </Contents>
-                <Button
+                <Button style={{margin:"20px"}}
                     onClick={() => {
-                      props.history.push("/home")
+                      deinitGame();
+                      props.history.push("/home");
                     }}
                 >
                   Exit
+                </Button>
+                <Button style={{margin:"20px"}}
+                    onClick={() => {
+                      displayExit(false);
+                    }}
+                >
+                  Continue
                 </Button>
             </Container>
       </Popup>
   );
 };
 
-function result (state) {
-  switch (state) {
-    case "WON":
-      return "CONGRATULATIONS, YOU WON!";
-      break;
-    case "LOST":
-      return "WHAT A BUMMER, YOU LOST!";
-      break;
-    case "ABORT":
-      return "GAME WAS ABORTED!";
-      break;
-    default:
-      return "";
-      break;
-  }
-}
-
-export default EndPopUp;
+export default ExitPopUp;

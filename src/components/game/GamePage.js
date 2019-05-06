@@ -4,8 +4,9 @@ import {BaseContainer} from "../../helpers/layout";
 import {Button} from "../../views/design/Button";
 import {withRouter} from "react-router-dom";
 import {getDomain} from "../../helpers/getDomain";
-import EndPopUp from "./EndPopUp";
+import ExitPopUp from "./ExitPopUp";
 import ChooseColorPopUp from "./ChooseColorPopUp";
+import EndPopUp from "./EndPopUp";
 import {Spinner} from "../../views/design/Spinner";
 import Game from "./Game";
 import statusEnum from "../../helpers/statusEnum";
@@ -70,7 +71,7 @@ class GamePage extends React.Component {
     // Create reference to outputHandler so GamePage can call functions in Game component
     this.outputHander = React.createRef();
     
-    if (localStorage.getItem('player_id') && localStorage.getItem('playerToken')) {
+    if (localStorage.getItem('game_id') && localStorage.getItem('player_id') && localStorage.getItem('playerToken')) {
       this.unautherizedAccess = false;
     } else {
       // Page /game was accessed without proper initialization of the game -> display error msg
@@ -85,6 +86,7 @@ class GamePage extends React.Component {
       isWinner: false,
       blockedColor: null,
       displayMsg: null,
+      chooseExit: false,
       finishInitGame: false,
       game: null // game object, ex. {"status":"MOVE", "board": ...}
     };
@@ -149,7 +151,9 @@ class GamePage extends React.Component {
   }
 
   componentWillUnmount() {
-    clearInterval(this.poller);
+    /*if (this.poller) {
+      clearInterval(this.poller);
+    }*/
   }
   
   // Fetch player
@@ -252,7 +256,6 @@ class GamePage extends React.Component {
         this.outputHander.current.initCards();
       }
       
-      // TODO: Doesn't work on reload, workers gets initialized on wrong side
       // Init workers
       if(statusEnum[this.state.game.status] > 5) {
         this.outputHander.current.initWorkers();
@@ -325,6 +328,13 @@ class GamePage extends React.Component {
       case "COLOR2":
         console.log("COLOR 1 & 2");
         
+        // Block color if already chosen
+        this.state.game.players.forEach((player) => {
+          if(player.color != null) {
+            this.setState({blockedColor: player.color});
+          }
+        });
+        
         if (this.getPlayer().isCurrentPlayer) {
           // Display msg
           this.outputHander.current.setControls(false,false); // lookAround=false,select=false
@@ -395,8 +405,6 @@ class GamePage extends React.Component {
         
         this.setState({gameEnds : true});
         
-        // TODO: stop polling and delete player_id and playerToken from localStorage
-        
         if (this.getPlayer().isCurrentPlayer) {
           // Display winning msg
           this.outputHander.current.setControls(true,true); // lookAround=true,select=true,move=false,build=true
@@ -413,13 +421,32 @@ class GamePage extends React.Component {
           this.setState({displayMsg:"Game was aborted!"});
         }
         
+        // Game was finished
+        this.deinitGame();
+        
         break;
     }
     
-    // Always update game board accoriding to this.state.game or if COLOR2,(POSITION2),MOVE,BUILD,END
+    // Always update game board accoriding to this.state.game
     this.outputHander.current.update();
   }
+  
+  //
+  
+  deinitGame() {
+    // Stop polling
+    /*if(this.poller) {
+      clearInterval(this.poller);
+    }*/
 
+    // Delete game_id, player_id and playerToken from localStorage
+    localStorage.setItem('game_id', null);
+    localStorage.setItem('player_id', null);
+    localStorage.setItem('playerToken', null);
+  }
+
+  // Pop-Up helper functions
+  
   setColor = (param) => {
     this.inputHandler("player",param);
   };
@@ -431,13 +458,9 @@ class GamePage extends React.Component {
     }
     return (curr && (this.state.game.status === "COLOR1" || this.state.game.status === "COLOR2") && this.state.finishInitGame)
   }
-
-  gameEnds() {
-    return this.state.gameEnds;
-  }
-
-  getBlockedColor() {
-    return this.state.blockedColor;
+  
+  displayExit = (bool) => {
+    this.setState({chooseExit:bool});
   }
   
   // Game functions (these function gets called from Game component)
@@ -528,11 +551,12 @@ class GamePage extends React.Component {
         ) : (
           <GameContainer>
             <PopupContainer>
-              <EndPopUp appears={this.gameEnds()} winner={this.state.isWinner} props={this.props}/>
-              <ChooseColorPopUp appears={this.chooseColor()} setColor={this.setColor} blockedColor={this.getBlockedColor()}/>
+              <ExitPopUp appears={this.state.chooseExit} displayExit={this.displayExit} deinitGame={this.deinitGame} props={this.props}/>
+              <ChooseColorPopUp appears={this.chooseColor()} setColor={this.setColor} blockedColor={this.state.blockedColor}/>
+              <EndPopUp appears={this.state.gameEnds} winner={this.state.isWinner} props={this.props}/>
             </PopupContainer>
             {this.state.finishInitGame ? (
-              <HUD displayMsg={this.state.displayMsg}/>
+              <HUD displayMsg={this.state.displayMsg} displayExit={this.displayExit}/>
             ) : (<div></div>)}
             <Game game={this.state.game} initFinish={this.initFinish} inputHandler={this.inputHandler} ref={this.outputHander}/>
           </GameContainer>
