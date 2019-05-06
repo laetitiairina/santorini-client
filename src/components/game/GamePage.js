@@ -538,6 +538,13 @@ class GamePage extends React.Component {
     });
   }
   
+  // Camera functions
+  
+  // Tell Game to set camera position
+  setCameraPos = (pos) => {
+    this.outputHander.current.setCameraPos(pos);
+  }
+  
   //
 
   render() {
@@ -556,7 +563,7 @@ class GamePage extends React.Component {
               <EndPopUp appears={this.state.gameEnds} winner={this.state.isWinner} props={this.props}/>
             </PopupContainer>
             {this.state.finishInitGame ? (
-              <HUD displayMsg={this.state.displayMsg} displayExit={this.displayExit}/>
+              <HUD displayMsg={this.state.displayMsg} displayExit={this.displayExit} setCameraPos={this.setCameraPos}/>
             ) : (<div></div>)}
             <Game game={this.state.game} initFinish={this.initFinish} inputHandler={this.inputHandler} ref={this.outputHander}/>
           </GameContainer>

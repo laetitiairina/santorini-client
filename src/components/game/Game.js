@@ -21,9 +21,11 @@ class Game extends React.Component {
     this.cards = [];
     this.blockHeight = 3;
     this.blockSize = 4.5;
+    this.blockBagPos = new THREE.Vector3(0, this.blockHeight / 2, 17);
     this.blockMaterial = new THREE.MeshLambertMaterial( { color: 0xaaaaaa } );
     this.blocks = [];
     this.colorPreset = {"BLUE":"#0000ff","GREY":"#888888","WHITE":"#ffffff"};
+    this.initWorkerPos = new THREE.Vector3(10, 2, 17);
     this.myWorkers = [];
     this.oppoWorkers = [];
     this.mouse = new THREE.Vector2();
@@ -39,7 +41,7 @@ class Game extends React.Component {
     this.posRevEnum = {"0":-10,"1":-5,"2":0,"3":5,"4":10};
     this.playStartAnimation = 0;
     this.playInitAnimation = true;
-    this.waterSpeed = 0.03;
+    this.waterSpeed = 1.2;
     this.inputEnabled = false;
     
     this.ghostWorker = null;
@@ -121,7 +123,7 @@ class Game extends React.Component {
         z: v.z,
         a: Math.random() * Math.PI * 2,
         A: 0.5 + Math.random() * 1.5,
-        v: 0.01 + Math.random() * 0.02
+        v: (1/3)*this.waterSpeed + Math.random() * (2/3)*this.waterSpeed
       })
     });
     this.water = new THREE.Mesh( this.waterGeometry, this.waterMaterial );
@@ -160,7 +162,7 @@ class Game extends React.Component {
     // block bag (a simple block for now)
     
     this.initBlock = new THREE.Mesh( new THREE.BoxBufferGeometry( this.blockSize, this.blockHeight, this.blockSize ), new THREE.MeshLambertMaterial( { color: 0xB5651D } ));
-    this.initBlock.position.set( 0, this.blockHeight / 2, 20 );
+    this.initBlock.position.copy(this.blockBagPos);
     this.initBlock.castShadow = true;
     this.initBlock.receiveShadow = true;
     this.scene.add( this.initBlock );
@@ -297,9 +299,9 @@ class Game extends React.Component {
       let worker = new THREE.Mesh( new THREE.CylinderBufferGeometry( 0,1,4,20 ), new THREE.MeshLambertMaterial( { color: this.colorPreset[player.color] } ) );
       
       if (player.id == this.props.game.players[0].id) {
-        worker.position.set( 10 - 3 * i - 17 * 0, 2, 20);
+        worker.position.set(this.initWorkerPos.x - 3 * i - 17 * 0, this.initWorkerPos.y, this.initWorkerPos.z);
       } else {
-        worker.position.set( 10 - 3 * i - 17 * 1, 2, 20);
+        worker.position.set(this.initWorkerPos.x - 3 * i - 17 * 1, this.initWorkerPos.y, this.initWorkerPos.z);
       }
       
       worker.castShadow = true;
@@ -328,6 +330,24 @@ class Game extends React.Component {
     } else {
       this.dragControlsBlock.enabled = false;
       this.dragControlsBlock.deactivate();
+    }
+  }
+  
+  // Set camera position
+  setCameraPos = (pos) => {
+    if(!this.controls.enabled){
+      return;
+    }
+    
+    switch (pos) {
+      case "top":
+        if (!this.playInitAnimation && this.playStartAnimation == 0) {
+          this.camera.position.set(0,50,0);
+          this.camera.lookAt(this.cameraLookAtPos);
+        }
+        break;
+      default:
+        break;
     }
   }
   
@@ -651,7 +671,7 @@ class Game extends React.Component {
     let posX = Math.floor( ( event.object.position.x + 2.5 ) / 5 ) * 5;
     let posZ = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
     
-    event.object.position.set( 0, this.blockHeight / 2, 20 );
+    event.object.position.copy(this.blockBagPos);
     event.object.geometry = this.placeholderBlock.geometry.clone();
     event.object.material = this.placeholderBlock.material.clone();
     this.scene.remove(this.placeholderBlock);
@@ -1032,14 +1052,18 @@ class Game extends React.Component {
     window.requestAnimationFrame(this.animate);
     this.renderer.render(this.scene, this.camera);
     
+    let delta = this.clock.getDelta()
+    
     // Animate water
     this.water.geometry.vertices.forEach((v,i) => {
       v.x = this.waterVertices[i].x + Math.cos(this.waterVertices[i].a) * this.waterVertices[i].A
       v.y = this.waterVertices[i].y + Math.sin(this.waterVertices[i].a) * this.waterVertices[i].A
-      this.waterVertices[i].a += this.waterVertices[i].v;
+      this.waterVertices[i].a += this.waterVertices[i].v*delta;
     });
     this.water.geometry.verticesNeedUpdate = true;
-    this.water.position.z -= this.waterSpeed;
+    this.water.position.z -= this.waterSpeed*delta;
+    
+    // Reverse water if off screen
     if ( (this.water.position.z <= (-500 + this.cameraFar) && this.waterSpeed > 0) || (this.water.position.z >= (500 - this.cameraFar) && this.waterSpeed < 0) ) {
       this.waterSpeed *= -1;
       this.water.geometry.vertices.forEach((v,i) => {
@@ -1050,7 +1074,7 @@ class Game extends React.Component {
     // Animate camera
     // Update camera animation mixer
     if (this.cameraAnimationMixer) {
-      this.cameraAnimationMixer.update(this.clock.getDelta());
+      this.cameraAnimationMixer.update(delta);
     }
     
     // Update camera look at position when animating camera position

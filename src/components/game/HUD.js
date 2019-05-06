@@ -11,9 +11,11 @@ const Container = styled(BaseContainer)`
   justify-items: center;
   align-items: center;
   display: grid;
-  grid-template-columns: 3fr 8fr 1fr 1fr;
+  grid-template-columns: 3fr 7fr 1fr 1fr;
   grid-template-rows: 1fr 10fr 1fr;
+  grid-auto-rows: 1fr;
   grid-gap: 10px;
+  height:100%;
 
   @media only screen and (max-width: 700px){
     
@@ -99,6 +101,8 @@ const ErrorLabel = styled.label`
 
 const TopViewButton = styled(Button)`
   pointer-events: all;
+  margin: 10px;
+  margin-bottom: 20px;
 `;
 
 const ExitButton = styled(Button)`
@@ -154,7 +158,7 @@ class HUD extends React.Component {
           </ContainerBottomLeft>
           <ContainerBottomRight>
             <TopViewButton onClick={() => {
-              // TODO: Send signal to GamePage to put camera at specific position
+              this.props.setCameraPos("top");
             }}>
               TOP
             </TopViewButton>

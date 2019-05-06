@@ -27,7 +27,8 @@ const Contents = styled.div`
 `
 
 const Worker = styled.img`
-  width: 100%;
+  width: 70%;
+  margin:-20px;
   pointer-events: none;
   user-select: none;
 `
