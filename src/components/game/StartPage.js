@@ -418,8 +418,8 @@ class StartPage extends React.Component {
       console.log(err);
     });
     
-    localStorage.setItem('player_id',null);
-    localStorage.setItem('playerToken',null);
+    localStorage.removeItem('player_id');
+    localStorage.removeItem('playerToken');
   }
 
   componentWillUnmount() {

@@ -83,7 +83,7 @@ class GamePage extends React.Component {
       prevStatus: null,
       amountOfPolls: 0,
       gameEnds: false,
-      isWinner: false,
+      endState: null,
       blockedColor: null,
       displayMsg: null,
       chooseExit: false,
@@ -409,16 +409,17 @@ class GamePage extends React.Component {
           // Display winning msg
           this.outputHander.current.setControls(true,true); // lookAround=true,select=true,move=false,build=true
           this.setState({displayMsg:"You Won! Congratulations!"});
-          this.setState({isWinner : true});
-        } if (this.getOpponentPlayer().isCurrentPlayer) {
+          this.setState({endState : "WON"});
+        } else if (this.getOpponentPlayer().isCurrentPlayer) {
           // Display losing msg
           this.outputHander.current.setControls(true,true); // lookAround=true,select=true
           this.setState({displayMsg:"You Lost!"});
-          this.setState({isWinner : false});
+          this.setState({endState : "LOST"});
         } else {
           // Game was aborted
           this.outputHander.current.setControls(false,false); // lookAround=false,select=false
           this.setState({displayMsg:"Game was aborted!"});
+          this.setState({endState : "ABORT"});
         }
         
         // Game was finished
@@ -440,9 +441,9 @@ class GamePage extends React.Component {
     }*/
 
     // Delete game_id, player_id and playerToken from localStorage
-    localStorage.setItem('game_id', null);
-    localStorage.setItem('player_id', null);
-    localStorage.setItem('playerToken', null);
+    localStorage.removeItem('game_id');
+    localStorage.removeItem('player_id');
+    localStorage.removeItem('playerToken');
   }
 
   // Pop-Up helper functions
@@ -560,7 +561,7 @@ class GamePage extends React.Component {
             <PopupContainer>
               <ExitPopUp appears={this.state.chooseExit} displayExit={this.displayExit} deinitGame={this.deinitGame} props={this.props}/>
               <ChooseColorPopUp appears={this.chooseColor()} setColor={this.setColor} blockedColor={this.state.blockedColor}/>
-              <EndPopUp appears={this.state.gameEnds} winner={this.state.isWinner} props={this.props}/>
+              <EndPopUp appears={this.state.gameEnds} endState={this.state.endState} props={this.props}/>
             </PopupContainer>
             {this.state.finishInitGame ? (
               <HUD displayMsg={this.state.displayMsg} displayExit={this.displayExit} setCameraPos={this.setCameraPos}/>
