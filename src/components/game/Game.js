@@ -12,6 +12,8 @@ class Game extends React.Component {
     
     // Have move and build validity check in frontend (this)
     this.frontendCheck = true;
+    // TODO: update this
+    this.implementedCards = [1,2,4];
     
     this.cameraNear = 0.25;
     this.cameraFar = 300;
@@ -22,7 +24,12 @@ class Game extends React.Component {
     this.cameraLeftPos = new THREE.Vector3(-25, 50, 0);
     this.cameraActions = {};
     this.cameraCurrentAction = null;
+    this.selectDis = -30;
+    this.selectCardDis = -40;
+    this.selectDelta = 1;
+    this.selectCardDelta = 5; // Has to be bigger than 0
     this.cards = [];
+    this.cardsHorizontal = true;
     this.blockHeight = 3;
     this.blockSize = 4.5;
     this.blockBagPos = new THREE.Vector3(0, this.blockHeight / 2, 17);
@@ -48,7 +55,7 @@ class Game extends React.Component {
     }
     this.posEnum = {"-10":0,"-5":1,"0":2,"5":3,"10":4};
     this.posRevEnum = {"0":-10,"1":-5,"2":0,"3":5,"4":10};
-    this.playStartAnimation = 0;
+    this.playStartAnimation = -1;
     this.playInitAnimation = true;
     this.waterSpeed = 1.2;
     this.inputEnabled = false;
@@ -143,12 +150,16 @@ class Game extends React.Component {
     // island
     
     this.islandGeometry = new THREE.CylinderGeometry( 25, 35, 20, 10, 10 );
-    this.islandMaterial = new THREE.MeshPhongMaterial({ color: 0x22cc22, flatShading: true });
+    this.islandMaterial = new THREE.MeshPhongMaterial({vertexColors: THREE.FaceColors, flatShading: true });
     this.islandGeometry.mergeVertices();
     this.islandGeometry.vertices.forEach((v) => {
       v.x += -1 + Math.random()*2;
       v.y += -1 + Math.random()*2;
       v.z += -1 + Math.random()*2;
+    });
+    let islandColors = [0x44cc44,0x44ee44];
+    this.islandGeometry.faces.forEach((f) => {
+      f.color.setHex(islandColors[Math.floor(Math.random()*islandColors.length)]);
     });
     this.island = new THREE.Mesh( this.islandGeometry, this.islandMaterial);
     this.island.position.y = -11.1;
@@ -198,8 +209,8 @@ class Game extends React.Component {
     // renderer
 
     this.renderer = new THREE.WebGLRenderer({ antialias: false, alpha:true });
-    this.renderer.setPixelRatio( window.devicePixelRatio );
-    this.renderer.setSize( window.innerWidth, window.innerHeight );
+    this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.gammaOutput = true;
     this.renderer.gammaFactor = 2.2;
     this.renderer.shadowMap.enabled = true; // Comment out to increase performance
@@ -212,6 +223,8 @@ class Game extends React.Component {
     this.raycaster = new THREE.Raycaster();
     this.container.addEventListener( 'mousedown', this.onMouseDown, false);
     this.container.addEventListener( 'mouseup', this.onMouseUp, false);
+    this.container.addEventListener( 'touchstart', this.onMouseDown, false);
+    this.container.addEventListener( 'touchend', this.onMouseUp, false);
     
     // orbit controls
     
@@ -241,6 +254,15 @@ class Game extends React.Component {
     // Start animation loop
     this.animate();
     
+  }
+  
+  // Get larger screen size
+  isHorizontal = () => {
+    if (window.innerWidth > window.innerHeight) {
+      return true;
+    } else {
+      return false;
+    }
   }
   
   // Create action for camera animation
@@ -343,6 +365,9 @@ class Game extends React.Component {
   
   // Always call this function in the update() function of GamePage when not current player
   setControls = (lookAround, select, move = false, build = false) => {
+    // Tell GamePage about lookAround
+    this.props.cameraControlsEnabled(lookAround);
+    
     this.controls.enabled = lookAround;
     this.inputEnabled = select;
     if (move) {
@@ -367,12 +392,34 @@ class Game extends React.Component {
       return;
     }
     
+    if (this.playInitAnimation || this.playStartAnimation > 0) {
+      return;
+    }
+    
     switch (pos) {
       case "top":
-        if (!this.playInitAnimation && this.playStartAnimation == 0) {
-          this.camera.position.set(0,60,0);
-          this.camera.lookAt(this.cameraLookAtPos);
-        }
+        this.camera.position.set(0,60,0);
+        this.camera.lookAt(this.cameraLookAtPos);
+        break;
+      case "front":
+        this.camera.position.set(0,0,60);
+        this.camera.lookAt(this.cameraLookAtPos);
+        break;
+      case "back":
+        this.camera.position.set(0,0,-60);
+        this.camera.lookAt(this.cameraLookAtPos);
+        break;
+      case "left":
+        this.camera.position.set(-60,0,0);
+        this.camera.lookAt(this.cameraLookAtPos);
+        break;
+      case "right":
+        this.camera.position.set(60,0,0);
+        this.camera.lookAt(this.cameraLookAtPos);
+        break;
+      case "side":
+        this.camera.position.set(30,60,30);
+        this.camera.lookAt(this.cameraLookAtPos);
         break;
       default:
         break;
@@ -426,14 +473,19 @@ class Game extends React.Component {
     draw["ctx"].textAlign = "center";
     draw["ctx"].textBaseline = "middle";
     draw["ctx"].fillStyle = 'blue';
-    draw["ctx"].font = "6pt American Typewriter";
+    draw["ctx"].font = "bold 6pt American Typewriter";
     draw["ctx"].fillText(GodCardsData[nr].name,draw["canvas"].width/4,10);
-    draw["ctx"].font = "4pt American Typewriter";
+    draw["ctx"].font = "bold 3.8pt American Typewriter";
     GodCardsData[nr].text.forEach((line,i) => {
       draw["ctx"].fillText(line,draw["canvas"].width/4,25+10*i);
     })
-    // DEBUG
     draw["ctx"].fillText(nr,draw["canvas"].width/4,draw["canvas"].height/2-10);
+    // TODO: Remove when all cards are implemented
+    if (!this.implementedCards.includes(nr)) {
+      draw["ctx"].font = "bold 3pt American Typewriter";
+      draw["ctx"].fillStyle = 'red';
+      draw["ctx"].fillText("NOT IMPLEMENTED YET",draw["canvas"].width/4,draw["canvas"].height/2-20);
+    }
     return draw["canvas"];
   }
   
@@ -451,37 +503,70 @@ class Game extends React.Component {
   _displayConfirmButton = (posX,posY,posZ) => {
     // Display confirm button
     let texture = new THREE.CanvasTexture(this._canvasTextTexture("Confirm",15,128,64));
-    let confirmButton = new THREE.Mesh( new THREE.BoxBufferGeometry( 4, 2, 2 ), new THREE.MeshPhongMaterial({ flatShading: true, map: texture }) );
+    
+    let confirmMaterials = new Array(6).fill(new THREE.MeshPhongMaterial({ flatShading: true}));
+    confirmMaterials[3] = new THREE.MeshPhongMaterial({ flatShading: true, map: texture });
+    
+    let confirmButton = new THREE.Mesh(new THREE.BoxBufferGeometry( 4, 2, 2 ), confirmMaterials);
     confirmButton.rotation.x = - Math.PI / 2;
     confirmButton.position.set(posX,posY,posZ);
     confirmButton.name = "confirm";
+    confirmButton.visible = false;
     this.camera.add( confirmButton );
   }
   
   _displayUsernames = (posX,posY,posZ, username) => {
     // Display card
-    let texture = new THREE.CanvasTexture(this._canvasTextTexture(username,15,200,80));
-    let usernameTag = new THREE.Mesh( new THREE.BoxBufferGeometry( 10, 0.1, 4 ), new THREE.MeshPhongMaterial({ color: 0xffffff, flatShading: true, map: texture }) );
+    let texture = new THREE.CanvasTexture(this._canvasTextTexture(username,15,128,64));
+    let usernameTag = new THREE.Mesh( new THREE.BoxBufferGeometry( 8, 0.1, 4 ), new THREE.MeshPhongMaterial({ color: 0xffffff, flatShading: true, map: texture }) );
     usernameTag.position.set(posX,posY,posZ);
     usernameTag.rotation.x = - Math.PI / 2;
+    usernameTag.name = "select";
     if(username == "YOU") {
-      usernameTag.name = "YOU";
+      usernameTag.userData = {"level":"player","data":{isCurrentPlayer:true}};
     } else {
-      usernameTag.name = "OPPO";
+      usernameTag.userData = {"level":"opponent","data":{isCurrentPlayer:true}};
     }
     this.camera.add( usernameTag );
+  }
+  
+  _displayColors = (posX,posY,posZ, color) => {
+    // Display color
+    let geometry = this.workerGeometry;
+    let material = new THREE.MeshPhongMaterial({color: this.colorPreset[color], flatShading: true});
+    let colorMesh = new THREE.Mesh(geometry, material);
+    colorMesh.position.set(posX,posY,posZ);
+    colorMesh.rotation.z = 0.1;
+    colorMesh.rotation.x = 0.1;
+    colorMesh.scale.set(2,2,2);
+    colorMesh.name = "select";
+    colorMesh.userData = {"level":"player","data":{"color":color}};
+    this.camera.add(colorMesh);
+  }
+  
+  _cleanUpSelection = () => {
+    while(this.camera.children.length) {
+      this.camera.remove(this.camera.children[0]);
+    }
   }
   
   // Display 10 cards to choose from
   Cards10 = () => {
     this.setControls(false,true); // lookAround=false,select=true
     
-    // Display 10 cards
-    for ( let i = 0; i < 10; i++ ) {
-      this._displayCard(-12+3*(i-(i%2)), 5-12*(i%2), -40, i+1)
+    if (this.cards.length == 10) {
+      return;
     }
     
-    this._displayConfirmButton(0, -15, -40);
+    // Display 10 cards
+    for ( let i = 0; i < 10; i++ ) {
+      this._displayCard(-12+3*(i-(i%2)), 5-11*(i%2), this.selectCardDis, i+1)
+    }
+    
+    this._displayConfirmButton(0, -14, this.selectCardDis);
+    
+    // Make sure everything fits on the screen
+    this.resizeCardSelection();
     
     // Because of init animation
     if (this.playInitAnimation) {
@@ -494,16 +579,20 @@ class Game extends React.Component {
   Cards2 = () => {
     this.setControls(false,true); // lookAround=false,select=true
     
+    if (this.cards.length == 2) {
+      return;
+    }
+    
     // Display 2 cards
     this.props.game.cards.forEach((cardname,i) => {
-      this._displayCard(-5+10*i, 0, -40, godCardsEnum[cardname]);
+      this._displayCard(-5+10*i, 0, this.selectCardDis, godCardsEnum[cardname]);
     });
     
     //For testing
     //this._displayCard(-10, 0, -40, 2);
     //this._displayCard(-10+20, 0, -40, 5);
     
-    this._displayConfirmButton(0, -15, -40);
+    this._displayConfirmButton(0, -10, this.selectCardDis);
   }
   
   cleanUpCards = () => {
@@ -521,30 +610,61 @@ class Game extends React.Component {
     
     // Display both usernames
     this.props.game.players.forEach((player,i) => {
-      this._displayUsernames(-10+20*i, 0, -40, this._getUsername(player));
+      this._displayUsernames(-5+10*i, 0, this.selectDis, this._getUsername(player));
     });
+    
+    // Make sure everything fits on the screen
+    this.resizeSelection();
   }
   
-  cleanUpUsernames = () => {
-    let you = this.camera.getObjectByName("YOU");
-    let oppo = this.camera.getObjectByName("OPPO");
-    this.camera.remove(you);
-    this.camera.remove(oppo);
+  // Display colors to choose from
+  Color = () => {
+    this.setControls(false,true); // lookAround=false,select=true
+    
+    // Block color if already chosen
+    let blockedColor = null;
+    this.props.game.players.forEach((player) => {
+      if(player.color != null) {
+        blockedColor = player.color;
+      }
+    });
+    
+    // Display colors
+    let i = 0;
+    for (let color in this.colorPreset) {
+      if (color != blockedColor) {
+        this._displayColors(10*(i-1), 0, this.selectDis, color);
+      }
+      i++;
+    }
+    
+    // Make sure everything fits on the screen
+    this.resizeSelection();
+    
+    // Because of init animation
+    if (this.playInitAnimation) {
+      this.inputEnabled = false;
+      this.camera.children.forEach((child) => {child.visible = false;});
+    }
   }
   
   // Initialize postion selection (nr is either 1 or 2 depending on the player)
   Position = () => {
-    // Play camera animation
-    if (this.props.game.players[0].id  == localStorage.getItem('player_id')) {
-      this.playStartAnimation = 1;
-      this.playCameraAnimation("right");
-    } else {
-      this.playStartAnimation = 2;
-      this.playCameraAnimation("left");
-    }
+    this.setControls(true,true,true); // lookAround=true,select=true,move=true
     
-    // Disable controls during animation
-    this.setControls(false,false); // lookAround=false,select=false
+    // Play camera animation
+    if (this.playStartAnimation == -1) {
+      if (this.props.game.players[0].id  == localStorage.getItem('player_id')) {
+        this.playStartAnimation = 1;
+        this.playCameraAnimation("right");
+      } else {
+        this.playStartAnimation = 2;
+        this.playCameraAnimation("left");
+      }
+      
+      // Disable controls during animation
+      this.setControls(false,false,false); // lookAround=false,select=false,move=false
+    }
   }
   
   // Input
@@ -554,10 +674,37 @@ class Game extends React.Component {
     if(!this.frontendCheck) {
       return true;
     }
-    if (this.fields[posX][posZ].blocks > 3 || this.fields[posX][posZ].hasDome || this.fields[posX][posZ].worker != null) {
+    if (this.fields[posX][posZ].blocks > 3 || this.fields[posX][posZ].hasDome) {
+      return false;
+    }
+    if (this.fields[posX][posZ].worker != null) {
       return false;
     }
     return true;
+  }
+  
+  frontendGodCardsMoveCheck = () => {
+    if(!this.frontendCheck) {
+      return false;
+    }
+    if(!this.props.game.isGodMode) {
+      return false;
+    }
+    let ownCardNr = null;
+    let oppoCardNr = null;
+    this.props.game.players.forEach((player) => {
+      if (player.id == localStorage.getItem('player_id')) {
+        ownCardNr = godCardsEnum[player.card];
+      } else {
+        oppoCardNr = godCardsEnum[player.card];
+      }
+    });
+    
+    // APOLLO
+    if (ownCardNr == 1) {
+      return true;
+    }
+    return false;
   }
   
   onDragStartWorker = (event) => {
@@ -572,7 +719,7 @@ class Game extends React.Component {
     this.ghostWorker = event.object.clone();
     this.ghostWorker.material = event.object.material.clone();
     this.ghostWorker.material.transparent = true;
-    this.ghostWorker.material.opacity = 0.3;
+    this.ghostWorker.material.opacity = 0.4;
     this.ghostWorker.name = "ghost";
     this.ghostWorker.castShadow = false;
     this.ghostWorker.receiveShadow = false;
@@ -584,27 +731,34 @@ class Game extends React.Component {
     let posZ = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
     
     // Update ghost worker position
-    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10 || !this.frontendMoveBuildCheck(posX,posZ)) {
+    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
       this.ghostWorker.position.y = -500;
     } else {
+      if (!this.frontendMoveBuildCheck(posX,posZ) && !this.frontendGodCardsMoveCheck()) {
+        this.ghostWorker.material.color.setHex(0xff0000);
+      } else {
+        this.ghostWorker.material.color.setHex(0x00ff00);
+      }
       this.ghostWorker.position.x = posX;
       this.ghostWorker.position.z = posZ;
       this.ghostWorker.position.y = 2 + this.blockHeight * this.fields[posX][posZ].blocks;
-      
+      if(this.fields[posX][posZ].worker != null || this.fields[posX][posZ].hasDome) {
+        this.ghostWorker.position.y += this.blockHeight;
+      }
     }
   }
   
   onDragEndWorker = (event) => {
-    // Remove ghost worker
-    this.scene.remove(this.ghostWorker);
-    
     this.controls.enabled = true;
     this.inputEnabled = true;
+    
+    // Remove ghost worker
+    this.scene.remove(this.ghostWorker);
     
     let posX = Math.floor( ( event.object.position.x + 2.5 ) / 5 ) * 5;
     let posZ = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
     
-    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10 || !this.frontendMoveBuildCheck(posX,posZ)) {
+    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10 || (!this.frontendMoveBuildCheck(posX,posZ) && !this.frontendGodCardsMoveCheck())) {
       // Reset position of worker
       event.object.position.copy(this.dragedWorkerInitPos);
     } else {
@@ -703,7 +857,7 @@ class Game extends React.Component {
     this.ghostBlock = event.object.clone();
     this.ghostBlock.material = event.object.material.clone();
     this.ghostBlock.material.transparent = true;
-    this.ghostBlock.material.opacity = 0.3;
+    this.ghostBlock.material.opacity = 0.4;
     this.ghostBlock.name = "ghost";
     this.ghostBlock.castShadow = false;
     this.ghostBlock.receiveShadow = false;
@@ -715,9 +869,16 @@ class Game extends React.Component {
     let posZ = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
     
     // Update ghost block position
-    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10 || !this.frontendMoveBuildCheck(posX,posZ)) {
+    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
       this.ghostBlock.position.y = -500;
     } else {
+      if (!this.frontendMoveBuildCheck(posX,posZ)) {
+        this.ghostBlock.material.color.setHex(0xff0000);
+      } else {
+        this.ghostBlock.material.color.setHex(0x00ff00);
+      }
+      
+      // Update geometry
       if (event.object.name == "domeBag") {
         //
       } else {
@@ -726,18 +887,22 @@ class Game extends React.Component {
           this.ghostBlock.geometry = this.blockGeometries[this.fields[posX][posZ].blocks];
         }
       }
+      
       this.ghostBlock.position.x = posX;
       this.ghostBlock.position.z = posZ;
       this.ghostBlock.position.y = this.blockHeight/2 + this.blockHeight * this.fields[posX][posZ].blocks;
+      if(this.fields[posX][posZ].worker != null || this.fields[posX][posZ].hasDome) {
+        this.ghostBlock.position.y += this.blockHeight;
+      }
     }
   }
   
   onDragEndBlock = (event) => {
-    // Remove ghost block
-    this.scene.remove(this.ghostBlock);
-    
     this.controls.enabled = true;
     this.inputEnabled = true;
+  
+    // Remove ghost block
+    this.scene.remove(this.ghostBlock);
     
     let posX = Math.floor( ( event.object.position.x + 2.5 ) / 5 ) * 5;
     let posZ = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
@@ -816,18 +981,29 @@ class Game extends React.Component {
     
     event.preventDefault();
     
+    if (event.type == "touchstart") {
+      event = event.changedTouches[0];
+    }
+    
     let intersections = this._raycasterGetIntersections(event);
 
     if ( intersections.length > 0 && intersections[0] !== null ) {
       let obj = intersections[0].object;
       
+      if (!this.props.game) {
+        return;
+      }
       switch(this.props.game.status) {
         case "CARDS1":
         case "CARDS2":
         case "STARTPLAYER":
+        case "COLOR1":
+        case "COLOR2":
           // Check if obj was clicked, then move it back
-          if (obj.name == "confirm" || obj.name == "YOU" || obj.name == "OPPO") {
-            obj.position.z = -42;
+          if (obj.position.z == this.selectCardDis && obj.name && (obj.name == "confirm" || !isNaN(obj.name))) {
+            obj.position.z = obj.position.z-this.selectDelta;
+          } else if (obj.name == "select") {
+            obj.position.z = this.selectDis-this.selectDelta;
           }
           break;
       }
@@ -854,6 +1030,10 @@ class Game extends React.Component {
     }
 
     event.preventDefault();
+    
+    if (event.type == "touchend") {
+      event = event.changedTouches[0];
+    }
 
     // Get intersections
     let intersections = this._raycasterGetIntersections(event);
@@ -861,24 +1041,51 @@ class Game extends React.Component {
     if ( intersections.length > 0 && intersections[0] !== null ) {
       let obj = intersections[0].object
       
+      if (!this.props.game) {
+        return;
+      }
       switch(this.props.game.status) {
         case "CARDS1":
         case "CARDS2":
           if(this.camera.getObjectByName("confirm")) {
-            this.camera.getObjectByName("confirm").position.z = -40;
+            this.camera.getObjectByName("confirm").position.z = this.selectCardDis;
           }
           
-          // Get selected cards
-          let selectedCardNrs = []
-          this.cards.forEach((card) => {
-            if (card.position.z > -40) {
-              selectedCardNrs.push(card.name);
+          // Get selected cards before
+          let selectedCardNrsBefore = this._getSelectedCardNrs();
+          
+          // Toggle card
+          if (this.cards.includes(obj)) {
+            // CARDS1
+            // Select/Deselect card
+            if (obj.position.z <= this.selectCardDis && (this.cards.length == 10 && selectedCardNrsBefore.length < 2)) {
+              obj.position.z = this.selectCardDis+this.selectCardDelta;
+              
+            // CARDS 2
+            } else if (obj.position.z <= this.selectCardDis && this.cards.length == 2) {
+              this.cards.forEach((card) => {
+                card.position.z = this.selectCardDis;
+              });
+              obj.position.z = this.selectCardDis+this.selectCardDelta;
+            } else {
+              obj.position.z = this.selectCardDis;
             }
-          })
+          }
+          
+          let selectedCardNrs = this._getSelectedCardNrs();
+          
+          // Display confirm button
+          if(this.camera.getObjectByName("confirm")) {
+            if ((this.cards.length == 10 && selectedCardNrs.length == 2) || (this.cards.length == 2 && selectedCardNrs.length == 1)) {
+              this.camera.getObjectByName("confirm").visible = true;
+            } else {
+              this.camera.getObjectByName("confirm").visible = false;
+            }
+          }
           
           // Check if confirm button was clicked
           if (obj.name == "confirm") {
-            obj.position.z = -40;
+            obj.position.z = this.selectCardDis;
             if (this.cards.length == 10 && selectedCardNrs.length == 2) {
               // Convert card nr to name
               let selectedCardNames = [];
@@ -897,42 +1104,23 @@ class Game extends React.Component {
               this.cleanUpCards();
             }
           }
-          
-          // Toggle card
-          if (this.cards.includes(obj)) {
-            // Select/Deselect card
-            if (obj.position.z <= -40 && ((this.cards.length == 10 && selectedCardNrs.length <= 1) || (this.cards.length == 2 && selectedCardNrs.length == 0))) {
-              obj.position.z = -35;
-            } else {
-              obj.position.z = -40;
-            }
-          }
           break;
         case "STARTPLAYER":
-          if(this.camera.getObjectByName("YOU")) {
-            this.camera.getObjectByName("YOU").position.z = -40;
-          }
-          if(this.camera.getObjectByName("OPPO")) {
-            this.camera.getObjectByName("OPPO").position.z = -40;
-          }
-          // Check if self was clicked
-          if (obj.name == "YOU") {
-          
-            // Send input to GamePage
-            this.props.inputHandler("player",{isCurrentPlayer:true});
-            this.cleanUpUsernames();
-            
-          } else if (obj.name == "OPPO") {
-          
-            // Send input to GamePage
-            this.props.inputHandler("opponent",{isCurrentPlayer:true});
-            this.cleanUpUsernames();
-          }
+        case "COLOR1":
+          this.handleSelect(obj);
           break;
+        case "COLOR2":
+          this.handleSelect(obj);
+          this.props.game.players.forEach((player) => {
+            if (player.id == localStorage.getItem('player_id') && player.isCurrentPlayer) {
+              return;
+            }
+          });
         case "POSITION1":
         case "POSITION2":
         case "MOVE":
         case "BUILD":
+          // Display card in front of camera if clicked
           if (this.cards.includes(obj) && obj.visible && this.scene.getObjectByName("displayCard") == null) {
               let displayCard = obj.clone();
               displayCard.name = "displayCard";
@@ -949,6 +1137,31 @@ class Game extends React.Component {
           }
           break;
       }
+    }
+  }
+  
+  _getSelectedCardNrs =() => {
+    // Get selected cards
+    let selectedCardNrs = []
+    this.cards.forEach((card) => {
+      if (card.position.z > this.selectCardDis) {
+        selectedCardNrs.push(card.name);
+      }
+    })
+    return selectedCardNrs;
+  }
+  
+  handleSelect = (obj) => {
+    this.camera.children.forEach((child) => {
+      if (child.name == "select") {
+        child.position.z = this.selectDis;
+      }
+    })
+    // Check if object was selected
+    if (obj.name == "select") {
+      // Send input to GamePage
+      this.props.inputHandler(obj.userData.level,obj.userData.data);
+      this._cleanUpSelection();
     }
   }
   
@@ -1088,7 +1301,11 @@ class Game extends React.Component {
       }
       
       // Logic
-      this.camera.children.forEach((child) => {child.visible = true;});
+      this.camera.children.forEach((child) => {
+        if(child.name != "confirm") {
+          child.visible = true;
+        }
+      });
       this.inputEnabled = true;
       
       // Tell GamePage that initialization animation finished
@@ -1099,7 +1316,7 @@ class Game extends React.Component {
       this.playStartAnimation = 0;
       
       // Enable controls after camera animation
-      this.setControls(true,true,true); // lookAround=true,select=false,move=true
+      this.setControls(true,true,true); // lookAround=true,select=true,move=true
     }
   }
   
@@ -1109,6 +1326,9 @@ class Game extends React.Component {
     this.renderer.render(this.scene, this.camera);
     
     let delta = this.clock.getDelta()
+    if (delta > 1) {
+      delta = 1;
+    }
     
     // Animate water
     this.water.geometry.vertices.forEach((v,i) => {
@@ -1146,6 +1366,45 @@ class Game extends React.Component {
     this.camera.updateProjectionMatrix();
 
     this.renderer.setSize( window.innerWidth, window.innerHeight );
+    
+    this.resizeSelection();
+    this.resizeCardSelection();
+  }
+  
+  resizeCardSelection = () => {
+    if(this.isHorizontal() && !this.cardsHorizontal && this.cards.length == 10){
+      this.cards.forEach((card,i) =>{
+        card.position.set(-12+3*(i-(i%2)), 5-11*(i%2), card.position.z);
+        card.scale.set(1,1,1);
+      });
+      this.cardsHorizontal = true;
+    } else if(!this.isHorizontal() && this.cardsHorizontal && this.cards.length == 10) {
+      this.cards.forEach((card,i) =>{
+        card.position.set( -5+1.5*(i-(i%3)), 8-8*(i%3), card.position.z);
+        card.scale.set(0.7,0.7,0.7);
+      });
+      this.cardsHorizontal = false;
+    }
+  }
+  
+  resizeSelection = () => {
+    this.camera.children.forEach((child) => {
+      if(child.name == "select") {
+        if(this.isHorizontal() && child.position.x == 0){
+          child.position.x = child.position.y*1.5;
+          child.position.y = 0;
+          if (child.scale.x > 1) {
+            child.scale.set(2,2,2)
+          }
+        } else if(!this.isHorizontal() && child.position.y == 0){
+          child.position.y = child.position.x/1.5;
+          child.position.x = 0;
+          if (child.scale.x > 1) {
+            child.scale.set(1.1,1.1,1.1)
+          }
+        }
+      }
+    });
   }
   
   render() {

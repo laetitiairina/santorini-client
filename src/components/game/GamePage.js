@@ -33,23 +33,6 @@ const GameContainer = styled.div`
 
 `;
 
-const ErrorContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-`;
-
-const ErrorLabel = styled.label`
-  color: #FF0000;
-  margin: 50px;
-  text-transform: uppercase;
-`;
-
-const BackButton = styled(Button)`
-
-`;
-
 const ExitButton = styled(Button)`
 
 `;
@@ -70,13 +53,6 @@ class GamePage extends React.Component {
     
     // Create reference to outputHandler so GamePage can call functions in Game component
     this.outputHander = React.createRef();
-    
-    if (localStorage.getItem('game_id') && localStorage.getItem('player_id') && localStorage.getItem('playerToken')) {
-      this.unautherizedAccess = false;
-    } else {
-      // Page /game was accessed without proper initialization of the game -> display error msg
-      this.unautherizedAccess = true;
-    }
 
     this.state = {
       status: null,
@@ -84,20 +60,15 @@ class GamePage extends React.Component {
       amountOfPolls: 0,
       gameEnds: false,
       endState: null,
-      blockedColor: null,
       displayMsg: null,
       chooseExit: false,
       finishInitGame: false,
+      areCameraControlsEnabled: false,
       game: null // game object, ex. {"status":"MOVE", "board": ...}
     };
   }
 
   componentDidMount() {
-    // Do not poll game if unautherized access
-    if (this.unautherizedAccess) {
-      return;
-    }
-    
     // Get game status
     const url = `${getDomain()}/games/${localStorage.getItem('game_id')}`;
     const fields = ['status'];
@@ -327,17 +298,10 @@ class GamePage extends React.Component {
       case "COLOR1":
       case "COLOR2":
         console.log("COLOR 1 & 2");
-        
-        // Block color if already chosen
-        this.state.game.players.forEach((player) => {
-          if(player.color != null) {
-            this.setState({blockedColor: player.color});
-          }
-        });
-        
+
         if (this.getPlayer().isCurrentPlayer) {
           // Display msg
-          this.outputHander.current.setControls(false,false); // lookAround=false,select=false
+          this.outputHander.current.Color(); // Controls get set inside here
           this.setState({displayMsg:"Choose a color!"});
         } else {
           // Display waiting msg
@@ -447,19 +411,7 @@ class GamePage extends React.Component {
   }
 
   // Pop-Up helper functions
-  
-  setColor = (param) => {
-    this.inputHandler("player",param);
-  };
 
-  chooseColor() {
-    let curr = false;
-    if (this.getPlayer()) {
-      curr = this.getPlayer().isCurrentPlayer;
-    }
-    return (curr && (this.state.game.status === "COLOR1" || this.state.game.status === "COLOR2") && this.state.finishInitGame)
-  }
-  
   displayExit = (bool) => {
     this.setState({chooseExit:bool});
   }
@@ -470,6 +422,10 @@ class GamePage extends React.Component {
     this.setState({finishInitGame: true});
   }
   
+  cameraControlsEnabled = (bool) => {
+    this.setState({areCameraControlsEnabled: bool});
+  }
+
   // Input handler from player (this function gets called from Game component (ex.: Player moves a worker on the board))
   inputHandler = (level, content) => {
   
@@ -528,9 +484,10 @@ class GamePage extends React.Component {
     .then(response => {
       // TODO: handle bad move/build
       if (!response.ok) {
-        // TODO: handle invalid request
+        // Handle invalid request
+        this.fetchGame();
         // If response not ok get response text and throw error
-        return response.text().then( err => { throw Error(err); } );
+        //return response.text().then( err => { throw Error(err); } );
       }
     })
     .catch(err => {
@@ -550,26 +507,16 @@ class GamePage extends React.Component {
 
   render() {
     return (
-      <div>
-        {this.unautherizedAccess ? (
-          <ErrorContainer>
-            <ErrorLabel>Game not initializated!</ErrorLabel>
-            <BackButton onClick={() => {this.props.history.push("/home");}}>Back</BackButton>
-          </ErrorContainer>
-        ) : (
-          <GameContainer>
-            <PopupContainer>
-              <ExitPopUp appears={this.state.chooseExit} displayExit={this.displayExit} deinitGame={this.deinitGame.bind(this)} props={this.props}/>
-              <ChooseColorPopUp appears={this.chooseColor()} setColor={this.setColor} blockedColor={this.state.blockedColor}/>
-              <EndPopUp appears={this.state.gameEnds} endState={this.state.endState} props={this.props}/>
-            </PopupContainer>
-            {this.state.finishInitGame ? (
-              <HUD displayMsg={this.state.displayMsg} displayExit={this.displayExit} setCameraPos={this.setCameraPos}/>
-            ) : (<div></div>)}
-            <Game game={this.state.game} initFinish={this.initFinish} inputHandler={this.inputHandler} ref={this.outputHander}/>
-          </GameContainer>
-        )}
-      </div>
+      <GameContainer>
+        <PopupContainer>
+          <ExitPopUp appears={this.state.chooseExit} displayExit={this.displayExit} deinitGame={this.deinitGame.bind(this)} props={this.props}/>
+          <EndPopUp appears={this.state.gameEnds} endState={this.state.endState} props={this.props}/>
+        </PopupContainer>
+        {this.state.finishInitGame ? (
+          <HUD displayMsg={this.state.displayMsg} displayExit={this.displayExit} setCameraPos={this.setCameraPos} areCameraControlsEnabled={this.state.areCameraControlsEnabled}/>
+        ) : (<div></div>)}
+        <Game game={this.state.game} initFinish={this.initFinish} cameraControlsEnabled={this.cameraControlsEnabled} inputHandler={this.inputHandler} ref={this.outputHander}/>
+      </GameContainer>
     );
   }
 }

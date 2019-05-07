@@ -99,10 +99,20 @@ const ErrorLabel = styled.label`
   text-transform: uppercase;
 `;
 
-const TopViewButton = styled(Button)`
+const ViewButtonTable = styled.table`
+  visibility: ${(props => props.areCameraControlsEnabled ? "visible" : "hidden") || "hidden"};
+  position:absolute;
+  right:10px;
+  bottom:10px;
+`;
+
+const ViewButton = styled(Button)`
   pointer-events: all;
-  margin: 10px;
-  margin-bottom: 20px;
+  margin:0px;
+  width:50px;
+  font-size:10px;
+  padding-left:0px;
+  padding-right:0px;
 `;
 
 const ExitButton = styled(Button)`
@@ -157,13 +167,61 @@ class HUD extends React.Component {
           <ContainerBottomLeft>
           </ContainerBottomLeft>
           <ContainerBottomRight>
-            <TopViewButton onClick={() => {
-              this.props.setCameraPos("top");
-            }}>
-              TOP
-            </TopViewButton>
           </ContainerBottomRight>
         </Container>
+        <ViewButtonTable areCameraControlsEnabled={this.props.areCameraControlsEnabled}>
+          <tr>
+            <td>
+              <ViewButton onClick={() => {
+                this.props.setCameraPos("side");
+              }}>
+                SIDE
+              </ViewButton>
+            </td>
+            <td>
+              <ViewButton onClick={() => {
+                this.props.setCameraPos("front");
+              }}>
+                FRONT
+              </ViewButton>
+            </td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>
+              <ViewButton onClick={() => {
+                this.props.setCameraPos("left");
+              }}>
+                LEFT
+              </ViewButton>
+            </td>
+            <td>
+              <ViewButton onClick={() => {
+                this.props.setCameraPos("top");
+              }}>
+                TOP
+              </ViewButton>
+            </td>
+            <td>
+              <ViewButton onClick={() => {
+                this.props.setCameraPos("right");
+              }}>
+                RIGHT
+              </ViewButton>
+            </td>
+          </tr>
+            <tr>
+            <td></td>
+            <td>
+              <ViewButton onClick={() => {
+                this.props.setCameraPos("back");
+              }}>
+                BACK
+              </ViewButton>
+            </td>
+            <td></td>
+          </tr>
+        </ViewButtonTable>
       </HUDOverlay>
     );
   }

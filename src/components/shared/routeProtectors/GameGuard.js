@@ -1,5 +1,6 @@
 import React from "react";
 import { Redirect } from "react-router-dom";
+import ErrorPage from "../pages/ErrorPage";
 
 /**
  * routeProtectors interfaces can tell the router whether or not it should allow navigation to a requested route.
@@ -11,12 +12,10 @@ import { Redirect } from "react-router-dom";
  * @param props
  */
 export const GameGuard = props => {
-  /* TODO: change as soon as users are implemented
-  if (localStorage.getItem("token")) {
+  if (localStorage.getItem('game_id') && localStorage.getItem('player_id') && localStorage.getItem('playerToken')) {
     return props.children;
-
-  // TODO: switch to /login when users are implemented
-  return <Redirect to={"/game"} />;
-  }*/
-  return props.children;
+  } else {
+    // Game page was accessed without proper initialization of the game -> redirect to error page
+    return <ErrorPage error="Game not Initialized!" />;
+  }
 };
