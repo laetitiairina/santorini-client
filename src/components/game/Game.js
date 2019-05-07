@@ -1269,6 +1269,9 @@ class Game extends React.Component {
     this.renderer.render(this.scene, this.camera);
     
     let delta = this.clock.getDelta()
+    if (delta > 1) {
+      delta = 1;
+    }
     
     // Animate water
     this.water.geometry.vertices.forEach((v,i) => {
