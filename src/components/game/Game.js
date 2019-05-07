@@ -12,6 +12,8 @@ class Game extends React.Component {
     
     // Have move and build validity check in frontend (this)
     this.frontendCheck = true;
+    // TODO: update this
+    this.implementedCards = [1,2,4];
     
     this.cameraNear = 0.25;
     this.cameraFar = 300;
@@ -27,6 +29,7 @@ class Game extends React.Component {
     this.selectDelta = 1;
     this.selectCardDelta = 5; // Has to be bigger than 0
     this.cards = [];
+    this.cardsHorizontal = true;
     this.blockHeight = 3;
     this.blockSize = 4.5;
     this.blockBagPos = new THREE.Vector3(0, this.blockHeight / 2, 17);
@@ -206,8 +209,8 @@ class Game extends React.Component {
     // renderer
 
     this.renderer = new THREE.WebGLRenderer({ antialias: false, alpha:true });
-    this.renderer.setPixelRatio( window.devicePixelRatio );
-    this.renderer.setSize( window.innerWidth, window.innerHeight );
+    this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.gammaOutput = true;
     this.renderer.gammaFactor = 2.2;
     this.renderer.shadowMap.enabled = true; // Comment out to increase performance
@@ -251,6 +254,15 @@ class Game extends React.Component {
     // Start animation loop
     this.animate();
     
+  }
+  
+  // Get larger screen size
+  isHorizontal = () => {
+    if (window.innerWidth > window.innerHeight) {
+      return true;
+    } else {
+      return false;
+    }
   }
   
   // Create action for camera animation
@@ -353,6 +365,9 @@ class Game extends React.Component {
   
   // Always call this function in the update() function of GamePage when not current player
   setControls = (lookAround, select, move = false, build = false) => {
+    // Tell GamePage about lookAround
+    this.props.cameraControlsEnabled(lookAround);
+    
     this.controls.enabled = lookAround;
     this.inputEnabled = select;
     if (move) {
@@ -377,12 +392,34 @@ class Game extends React.Component {
       return;
     }
     
+    if (this.playInitAnimation || this.playStartAnimation != 0) {
+      return;
+    }
+    
     switch (pos) {
       case "top":
-        if (!this.playInitAnimation && this.playStartAnimation == 0) {
-          this.camera.position.set(0,60,0);
-          this.camera.lookAt(this.cameraLookAtPos);
-        }
+        this.camera.position.set(0,60,0);
+        this.camera.lookAt(this.cameraLookAtPos);
+        break;
+      case "front":
+        this.camera.position.set(0,0,60);
+        this.camera.lookAt(this.cameraLookAtPos);
+        break;
+      case "back":
+        this.camera.position.set(0,0,-60);
+        this.camera.lookAt(this.cameraLookAtPos);
+        break;
+      case "left":
+        this.camera.position.set(-60,0,0);
+        this.camera.lookAt(this.cameraLookAtPos);
+        break;
+      case "right":
+        this.camera.position.set(60,0,0);
+        this.camera.lookAt(this.cameraLookAtPos);
+        break;
+      case "side":
+        this.camera.position.set(30,60,30);
+        this.camera.lookAt(this.cameraLookAtPos);
         break;
       default:
         break;
@@ -436,14 +473,19 @@ class Game extends React.Component {
     draw["ctx"].textAlign = "center";
     draw["ctx"].textBaseline = "middle";
     draw["ctx"].fillStyle = 'blue';
-    draw["ctx"].font = "6pt American Typewriter";
+    draw["ctx"].font = "bold 6pt American Typewriter";
     draw["ctx"].fillText(GodCardsData[nr].name,draw["canvas"].width/4,10);
-    draw["ctx"].font = "4pt American Typewriter";
+    draw["ctx"].font = "bold 3.8pt American Typewriter";
     GodCardsData[nr].text.forEach((line,i) => {
       draw["ctx"].fillText(line,draw["canvas"].width/4,25+10*i);
     })
-    // DEBUG
     draw["ctx"].fillText(nr,draw["canvas"].width/4,draw["canvas"].height/2-10);
+    // TODO: Remove when all cards are implemented
+    if (!this.implementedCards.includes(nr)) {
+      draw["ctx"].font = "bold 3pt American Typewriter";
+      draw["ctx"].fillStyle = 'red';
+      draw["ctx"].fillText("NOT IMPLEMENTED YET",draw["canvas"].width/4,draw["canvas"].height/2-20);
+    }
     return draw["canvas"];
   }
   
@@ -475,8 +517,8 @@ class Game extends React.Component {
   
   _displayUsernames = (posX,posY,posZ, username) => {
     // Display card
-    let texture = new THREE.CanvasTexture(this._canvasTextTexture(username,15,200,80));
-    let usernameTag = new THREE.Mesh( new THREE.BoxBufferGeometry( 10, 0.1, 4 ), new THREE.MeshPhongMaterial({ color: 0xffffff, flatShading: true, map: texture }) );
+    let texture = new THREE.CanvasTexture(this._canvasTextTexture(username,15,128,64));
+    let usernameTag = new THREE.Mesh( new THREE.BoxBufferGeometry( 8, 0.1, 4 ), new THREE.MeshPhongMaterial({ color: 0xffffff, flatShading: true, map: texture }) );
     usernameTag.position.set(posX,posY,posZ);
     usernameTag.rotation.x = - Math.PI / 2;
     usernameTag.name = "select";
@@ -491,15 +533,15 @@ class Game extends React.Component {
   _displayColors = (posX,posY,posZ, color) => {
     // Display color
     let geometry = this.workerGeometry;
-    let material = new THREE.MeshPhongMaterial({ color: this.colorPreset[color], flatShading: true });
-    let colorMesh = new THREE.Mesh( geometry, material );
+    let material = new THREE.MeshPhongMaterial({color: this.colorPreset[color], flatShading: true});
+    let colorMesh = new THREE.Mesh(geometry, material);
     colorMesh.position.set(posX,posY,posZ);
     colorMesh.rotation.z = 0.1;
     colorMesh.rotation.x = 0.1;
     colorMesh.scale.set(2,2,2);
     colorMesh.name = "select";
     colorMesh.userData = {"level":"player","data":{"color":color}};
-    this.camera.add( colorMesh );
+    this.camera.add(colorMesh);
   }
   
   _cleanUpSelection = () => {
@@ -514,10 +556,13 @@ class Game extends React.Component {
     
     // Display 10 cards
     for ( let i = 0; i < 10; i++ ) {
-      this._displayCard(-12+3*(i-(i%2)), 5-12*(i%2), this.selectCardDis, i+1)
+      this._displayCard(-12+3*(i-(i%2)), 5-11*(i%2), this.selectCardDis, i+1)
     }
     
-    this._displayConfirmButton(0, -15, this.selectCardDis);
+    this._displayConfirmButton(0, -14, this.selectCardDis);
+    
+    // Make sure everything fits on the screen
+    this.resizeCardSelection();
     
     // Because of init animation
     if (this.playInitAnimation) {
@@ -539,7 +584,7 @@ class Game extends React.Component {
     //this._displayCard(-10, 0, -40, 2);
     //this._displayCard(-10+20, 0, -40, 5);
     
-    this._displayConfirmButton(0, -15, this.selectCardDis);
+    this._displayConfirmButton(0, -10, this.selectCardDis);
   }
   
   cleanUpCards = () => {
@@ -557,8 +602,11 @@ class Game extends React.Component {
     
     // Display both usernames
     this.props.game.players.forEach((player,i) => {
-      this._displayUsernames(-7+14*i, 0, this.selectDis, this._getUsername(player));
+      this._displayUsernames(-5+10*i, 0, this.selectDis, this._getUsername(player));
     });
+    
+    // Make sure everything fits on the screen
+    this.resizeSelection();
   }
   
   // Display colors to choose from
@@ -581,6 +629,9 @@ class Game extends React.Component {
       }
       i++;
     }
+    
+    // Make sure everything fits on the screen
+    this.resizeSelection();
     
     // Because of init animation
     if (this.playInitAnimation) {
@@ -948,8 +999,16 @@ class Game extends React.Component {
           
           // Toggle card
           if (this.cards.includes(obj)) {
+            // CARDS1
             // Select/Deselect card
-            if (obj.position.z <= this.selectCardDis && ((this.cards.length == 10 && selectedCardNrsBefore.length < 2) || (this.cards.length == 2 && selectedCardNrsBefore.length == 0))) {
+            if (obj.position.z <= this.selectCardDis && (this.cards.length == 10 && selectedCardNrsBefore.length < 2)) {
+              obj.position.z = this.selectCardDis+this.selectCardDelta;
+              
+            // CARDS 2
+            } else if (obj.position.z <= this.selectCardDis && this.cards.length == 2) {
+              this.cards.forEach((card) => {
+                card.position.z = this.selectCardDis;
+              });
               obj.position.z = this.selectCardDis+this.selectCardDelta;
             } else {
               obj.position.z = this.selectCardDis;
@@ -959,10 +1018,12 @@ class Game extends React.Component {
           let selectedCardNrs = this._getSelectedCardNrs();
           
           // Display confirm button
-          if ((this.cards.length == 10 && selectedCardNrs.length == 2) || (this.cards.length == 2 && selectedCardNrs.length == 1)) {
-            this.camera.getObjectByName("confirm").visible = true;
-          } else {
-            this.camera.getObjectByName("confirm").visible = false;
+          if(this.camera.getObjectByName("confirm")) {
+            if ((this.cards.length == 10 && selectedCardNrs.length == 2) || (this.cards.length == 2 && selectedCardNrs.length == 1)) {
+              this.camera.getObjectByName("confirm").visible = true;
+            } else {
+              this.camera.getObjectByName("confirm").visible = false;
+            }
           }
           
           // Check if confirm button was clicked
@@ -1245,6 +1306,45 @@ class Game extends React.Component {
     this.camera.updateProjectionMatrix();
 
     this.renderer.setSize( window.innerWidth, window.innerHeight );
+    
+    this.resizeSelection();
+    this.resizeCardSelection();
+  }
+  
+  resizeCardSelection = () => {
+    if(this.isHorizontal() && !this.cardsHorizontal && this.cards.length == 10){
+      this.cards.forEach((card,i) =>{
+        card.position.set(-12+3*(i-(i%2)), 5-11*(i%2), card.position.z);
+        card.scale.set(1,1,1);
+      });
+      this.cardsHorizontal = true;
+    } else if(!this.isHorizontal() && this.cardsHorizontal && this.cards.length == 10) {
+      this.cards.forEach((card,i) =>{
+        card.position.set( -5+1.5*(i-(i%3)), 8-8*(i%3), card.position.z);
+        card.scale.set(0.7,0.7,0.7);
+      });
+      this.cardsHorizontal = false;
+    }
+  }
+  
+  resizeSelection = () => {
+    this.camera.children.forEach((child) => {
+      if(child.name == "select") {
+        if(this.isHorizontal() && child.position.x == 0){
+          child.position.x = child.position.y*1.5;
+          child.position.y = 0;
+          if (child.scale.x > 1) {
+            child.scale.set(2,2,2)
+          }
+        } else if(!this.isHorizontal() && child.position.y == 0){
+          child.position.y = child.position.x/1.5;
+          child.position.x = 0;
+          if (child.scale.x > 1) {
+            child.scale.set(1.1,1.1,1.1)
+          }
+        }
+      }
+    });
   }
   
   render() {

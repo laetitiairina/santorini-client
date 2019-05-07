@@ -87,6 +87,7 @@ class GamePage extends React.Component {
       displayMsg: null,
       chooseExit: false,
       finishInitGame: false,
+      areCameraControlsEnabled: false,
       game: null // game object, ex. {"status":"MOVE", "board": ...}
     };
   }
@@ -450,6 +451,10 @@ class GamePage extends React.Component {
     this.setState({finishInitGame: true});
   }
   
+  cameraControlsEnabled = (bool) => {
+    this.setState({areCameraControlsEnabled: bool});
+  }
+  
   // Input handler from player (this function gets called from Game component (ex.: Player moves a worker on the board))
   inputHandler = (level, content) => {
   
@@ -543,9 +548,9 @@ class GamePage extends React.Component {
               <EndPopUp appears={this.state.gameEnds} endState={this.state.endState} props={this.props}/>
             </PopupContainer>
             {this.state.finishInitGame ? (
-              <HUD displayMsg={this.state.displayMsg} displayExit={this.displayExit} setCameraPos={this.setCameraPos}/>
+              <HUD displayMsg={this.state.displayMsg} displayExit={this.displayExit} setCameraPos={this.setCameraPos} areCameraControlsEnabled={this.state.areCameraControlsEnabled}/>
             ) : (<div></div>)}
-            <Game game={this.state.game} initFinish={this.initFinish} inputHandler={this.inputHandler} ref={this.outputHander}/>
+            <Game game={this.state.game} initFinish={this.initFinish} cameraControlsEnabled={this.cameraControlsEnabled} inputHandler={this.inputHandler} ref={this.outputHander}/>
           </GameContainer>
         )}
       </div>
