@@ -662,10 +662,37 @@ class Game extends React.Component {
     if(!this.frontendCheck) {
       return true;
     }
-    if (this.fields[posX][posZ].blocks > 3 || this.fields[posX][posZ].hasDome || this.fields[posX][posZ].worker != null) {
+    if (this.fields[posX][posZ].blocks > 3 || this.fields[posX][posZ].hasDome) {
+      return false;
+    }
+    if (this.fields[posX][posZ].worker != null) {
       return false;
     }
     return true;
+  }
+  
+  frontendGodCardsMoveCheck = () => {
+    if(!this.frontendCheck) {
+      return false;
+    }
+    if(!this.props.game.isGodMode) {
+      return false;
+    }
+    let ownCardNr = null;
+    let oppoCardNr = null;
+    this.props.game.players.forEach((player) => {
+      if (player.id == localStorage.getItem('player_id')) {
+        ownCardNr = godCardsEnum[player.card];
+      } else {
+        oppoCardNr = godCardsEnum[player.card];
+      }
+    });
+    
+    // APOLLO
+    if (ownCardNr == 1) {
+      return true;
+    }
+    return false;
   }
   
   onDragStartWorker = (event) => {
@@ -680,7 +707,7 @@ class Game extends React.Component {
     this.ghostWorker = event.object.clone();
     this.ghostWorker.material = event.object.material.clone();
     this.ghostWorker.material.transparent = true;
-    this.ghostWorker.material.opacity = 0.3;
+    this.ghostWorker.material.opacity = 0.4;
     this.ghostWorker.name = "ghost";
     this.ghostWorker.castShadow = false;
     this.ghostWorker.receiveShadow = false;
@@ -692,13 +719,20 @@ class Game extends React.Component {
     let posZ = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
     
     // Update ghost worker position
-    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10 || !this.frontendMoveBuildCheck(posX,posZ)) {
+    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
       this.ghostWorker.position.y = -500;
     } else {
+      if (!this.frontendMoveBuildCheck(posX,posZ) && !this.frontendGodCardsMoveCheck()) {
+        this.ghostWorker.material.color.setHex(0xff0000);
+      } else {
+        this.ghostWorker.material.color.setHex(0x00ff00);
+      }
       this.ghostWorker.position.x = posX;
       this.ghostWorker.position.z = posZ;
       this.ghostWorker.position.y = 2 + this.blockHeight * this.fields[posX][posZ].blocks;
-      
+      if(this.fields[posX][posZ].worker != null || this.fields[posX][posZ].hasDome) {
+        this.ghostWorker.position.y += this.blockHeight;
+      }
     }
   }
   
@@ -712,7 +746,7 @@ class Game extends React.Component {
     let posX = Math.floor( ( event.object.position.x + 2.5 ) / 5 ) * 5;
     let posZ = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
     
-    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10 || !this.frontendMoveBuildCheck(posX,posZ)) {
+    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10 || (!this.frontendMoveBuildCheck(posX,posZ) && !this.frontendGodCardsMoveCheck())) {
       // Reset position of worker
       event.object.position.copy(this.dragedWorkerInitPos);
     } else {
@@ -811,7 +845,7 @@ class Game extends React.Component {
     this.ghostBlock = event.object.clone();
     this.ghostBlock.material = event.object.material.clone();
     this.ghostBlock.material.transparent = true;
-    this.ghostBlock.material.opacity = 0.3;
+    this.ghostBlock.material.opacity = 0.4;
     this.ghostBlock.name = "ghost";
     this.ghostBlock.castShadow = false;
     this.ghostBlock.receiveShadow = false;
@@ -823,9 +857,16 @@ class Game extends React.Component {
     let posZ = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
     
     // Update ghost block position
-    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10 || !this.frontendMoveBuildCheck(posX,posZ)) {
+    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
       this.ghostBlock.position.y = -500;
     } else {
+      if (!this.frontendMoveBuildCheck(posX,posZ)) {
+        this.ghostBlock.material.color.setHex(0xff0000);
+      } else {
+        this.ghostBlock.material.color.setHex(0x00ff00);
+      }
+      
+      // Update geometry
       if (event.object.name == "domeBag") {
         //
       } else {
@@ -834,9 +875,13 @@ class Game extends React.Component {
           this.ghostBlock.geometry = this.blockGeometries[this.fields[posX][posZ].blocks];
         }
       }
+      
       this.ghostBlock.position.x = posX;
       this.ghostBlock.position.z = posZ;
       this.ghostBlock.position.y = this.blockHeight/2 + this.blockHeight * this.fields[posX][posZ].blocks;
+      if(this.fields[posX][posZ].worker != null || this.fields[posX][posZ].hasDome) {
+        this.ghostBlock.position.y += this.blockHeight;
+      }
     }
   }
   
