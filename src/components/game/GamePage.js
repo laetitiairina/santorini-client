@@ -61,7 +61,7 @@ const QuestionMarkButton = styled(Button)`
 class GamePage extends React.Component {
   constructor(props) {
     super(props);
-    
+
     // References to Game component
     
     // Bind inputHandler so it can get called from Game component
@@ -151,9 +151,9 @@ class GamePage extends React.Component {
   }
 
   componentWillUnmount() {
-    /*if (this.poller) {
+     if (this.poller) {
       clearInterval(this.poller);
-    }*/
+    }
   }
   
   // Fetch player
@@ -436,9 +436,9 @@ class GamePage extends React.Component {
   
   deinitGame() {
     // Stop polling
-    /*if(this.poller) {
+    if(this.poller) {
       clearInterval(this.poller);
-    }*/
+    }
 
     // Delete game_id, player_id and playerToken from localStorage
     localStorage.removeItem('game_id');
@@ -559,7 +559,7 @@ class GamePage extends React.Component {
         ) : (
           <GameContainer>
             <PopupContainer>
-              <ExitPopUp appears={this.state.chooseExit} displayExit={this.displayExit} deinitGame={this.deinitGame} props={this.props}/>
+              <ExitPopUp appears={this.state.chooseExit} displayExit={this.displayExit} deinitGame={this.deinitGame.bind(this)} props={this.props}/>
               <ChooseColorPopUp appears={this.chooseColor()} setColor={this.setColor} blockedColor={this.state.blockedColor}/>
               <EndPopUp appears={this.state.gameEnds} endState={this.state.endState} props={this.props}/>
             </PopupContainer>
