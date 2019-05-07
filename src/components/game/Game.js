@@ -22,6 +22,10 @@ class Game extends React.Component {
     this.cameraLeftPos = new THREE.Vector3(-25, 50, 0);
     this.cameraActions = {};
     this.cameraCurrentAction = null;
+    this.selectDis = -30;
+    this.selectCardDis = -40;
+    this.selectDelta = 1;
+    this.selectCardDelta = 5; // Has to be bigger than 0
     this.cards = [];
     this.blockHeight = 3;
     this.blockSize = 4.5;
@@ -143,12 +147,16 @@ class Game extends React.Component {
     // island
     
     this.islandGeometry = new THREE.CylinderGeometry( 25, 35, 20, 10, 10 );
-    this.islandMaterial = new THREE.MeshPhongMaterial({ color: 0x22cc22, flatShading: true });
+    this.islandMaterial = new THREE.MeshPhongMaterial({vertexColors: THREE.FaceColors, flatShading: true });
     this.islandGeometry.mergeVertices();
     this.islandGeometry.vertices.forEach((v) => {
       v.x += -1 + Math.random()*2;
       v.y += -1 + Math.random()*2;
       v.z += -1 + Math.random()*2;
+    });
+    let islandColors = [0x44cc44,0x44ee44];
+    this.islandGeometry.faces.forEach((f) => {
+      f.color.setHex(islandColors[Math.floor(Math.random()*islandColors.length)]);
     });
     this.island = new THREE.Mesh( this.islandGeometry, this.islandMaterial);
     this.island.position.y = -11.1;
@@ -212,6 +220,8 @@ class Game extends React.Component {
     this.raycaster = new THREE.Raycaster();
     this.container.addEventListener( 'mousedown', this.onMouseDown, false);
     this.container.addEventListener( 'mouseup', this.onMouseUp, false);
+    this.container.addEventListener( 'touchstart', this.onMouseDown, false);
+    this.container.addEventListener( 'touchend', this.onMouseUp, false);
     
     // orbit controls
     
@@ -451,10 +461,15 @@ class Game extends React.Component {
   _displayConfirmButton = (posX,posY,posZ) => {
     // Display confirm button
     let texture = new THREE.CanvasTexture(this._canvasTextTexture("Confirm",15,128,64));
-    let confirmButton = new THREE.Mesh( new THREE.BoxBufferGeometry( 4, 2, 2 ), new THREE.MeshPhongMaterial({ flatShading: true, map: texture }) );
+    
+    let confirmMaterials = new Array(6).fill(new THREE.MeshPhongMaterial({ flatShading: true}));
+    confirmMaterials[3] = new THREE.MeshPhongMaterial({ flatShading: true, map: texture });
+    
+    let confirmButton = new THREE.Mesh(new THREE.BoxBufferGeometry( 4, 2, 2 ), confirmMaterials);
     confirmButton.rotation.x = - Math.PI / 2;
     confirmButton.position.set(posX,posY,posZ);
     confirmButton.name = "confirm";
+    confirmButton.visible = false;
     this.camera.add( confirmButton );
   }
   
@@ -464,12 +479,33 @@ class Game extends React.Component {
     let usernameTag = new THREE.Mesh( new THREE.BoxBufferGeometry( 10, 0.1, 4 ), new THREE.MeshPhongMaterial({ color: 0xffffff, flatShading: true, map: texture }) );
     usernameTag.position.set(posX,posY,posZ);
     usernameTag.rotation.x = - Math.PI / 2;
+    usernameTag.name = "select";
     if(username == "YOU") {
-      usernameTag.name = "YOU";
+      usernameTag.userData = {"level":"player","data":{isCurrentPlayer:true}};
     } else {
-      usernameTag.name = "OPPO";
+      usernameTag.userData = {"level":"opponent","data":{isCurrentPlayer:true}};
     }
     this.camera.add( usernameTag );
+  }
+  
+  _displayColors = (posX,posY,posZ, color) => {
+    // Display color
+    let geometry = this.workerGeometry;
+    let material = new THREE.MeshPhongMaterial({ color: this.colorPreset[color], flatShading: true });
+    let colorMesh = new THREE.Mesh( geometry, material );
+    colorMesh.position.set(posX,posY,posZ);
+    colorMesh.rotation.z = 0.1;
+    colorMesh.rotation.x = 0.1;
+    colorMesh.scale.set(2,2,2);
+    colorMesh.name = "select";
+    colorMesh.userData = {"level":"player","data":{"color":color}};
+    this.camera.add( colorMesh );
+  }
+  
+  _cleanUpSelection = () => {
+    while(this.camera.children.length) {
+      this.camera.remove(this.camera.children[0]);
+    }
   }
   
   // Display 10 cards to choose from
@@ -478,10 +514,10 @@ class Game extends React.Component {
     
     // Display 10 cards
     for ( let i = 0; i < 10; i++ ) {
-      this._displayCard(-12+3*(i-(i%2)), 5-12*(i%2), -40, i+1)
+      this._displayCard(-12+3*(i-(i%2)), 5-12*(i%2), this.selectCardDis, i+1)
     }
     
-    this._displayConfirmButton(0, -15, -40);
+    this._displayConfirmButton(0, -15, this.selectCardDis);
     
     // Because of init animation
     if (this.playInitAnimation) {
@@ -496,14 +532,14 @@ class Game extends React.Component {
     
     // Display 2 cards
     this.props.game.cards.forEach((cardname,i) => {
-      this._displayCard(-5+10*i, 0, -40, godCardsEnum[cardname]);
+      this._displayCard(-5+10*i, 0, this.selectCardDis, godCardsEnum[cardname]);
     });
     
     //For testing
     //this._displayCard(-10, 0, -40, 2);
     //this._displayCard(-10+20, 0, -40, 5);
     
-    this._displayConfirmButton(0, -15, -40);
+    this._displayConfirmButton(0, -15, this.selectCardDis);
   }
   
   cleanUpCards = () => {
@@ -521,15 +557,36 @@ class Game extends React.Component {
     
     // Display both usernames
     this.props.game.players.forEach((player,i) => {
-      this._displayUsernames(-10+20*i, 0, -40, this._getUsername(player));
+      this._displayUsernames(-7+14*i, 0, this.selectDis, this._getUsername(player));
     });
   }
   
-  cleanUpUsernames = () => {
-    let you = this.camera.getObjectByName("YOU");
-    let oppo = this.camera.getObjectByName("OPPO");
-    this.camera.remove(you);
-    this.camera.remove(oppo);
+  // Display colors to choose from
+  Color = () => {
+    this.setControls(false,true); // lookAround=false,select=true
+    
+    // Block color if already chosen
+    let blockedColor = null;
+    this.props.game.players.forEach((player) => {
+      if(player.color != null) {
+        blockedColor = player.color;
+      }
+    });
+    
+    // Display colors
+    let i = 0;
+    for (let color in this.colorPreset) {
+      if (color != blockedColor) {
+        this._displayColors(10*(i-1), 0, this.selectDis, color);
+      }
+      i++;
+    }
+    
+    // Because of init animation
+    if (this.playInitAnimation) {
+      this.inputEnabled = false;
+      this.camera.children.forEach((child) => {child.visible = false;});
+    }
   }
   
   // Initialize postion selection (nr is either 1 or 2 depending on the player)
@@ -595,11 +652,11 @@ class Game extends React.Component {
   }
   
   onDragEndWorker = (event) => {
-    // Remove ghost worker
-    this.scene.remove(this.ghostWorker);
-    
     this.controls.enabled = true;
     this.inputEnabled = true;
+    
+    // Remove ghost worker
+    this.scene.remove(this.ghostWorker);
     
     let posX = Math.floor( ( event.object.position.x + 2.5 ) / 5 ) * 5;
     let posZ = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
@@ -733,11 +790,11 @@ class Game extends React.Component {
   }
   
   onDragEndBlock = (event) => {
-    // Remove ghost block
-    this.scene.remove(this.ghostBlock);
-    
     this.controls.enabled = true;
     this.inputEnabled = true;
+  
+    // Remove ghost block
+    this.scene.remove(this.ghostBlock);
     
     let posX = Math.floor( ( event.object.position.x + 2.5 ) / 5 ) * 5;
     let posZ = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
@@ -816,18 +873,29 @@ class Game extends React.Component {
     
     event.preventDefault();
     
+    if (event.type == "touchstart") {
+      event = event.changedTouches[0];
+    }
+    
     let intersections = this._raycasterGetIntersections(event);
 
     if ( intersections.length > 0 && intersections[0] !== null ) {
       let obj = intersections[0].object;
       
+      if (!this.props.game) {
+        return;
+      }
       switch(this.props.game.status) {
         case "CARDS1":
         case "CARDS2":
         case "STARTPLAYER":
+        case "COLOR1":
+        case "COLOR2":
           // Check if obj was clicked, then move it back
-          if (obj.name == "confirm" || obj.name == "YOU" || obj.name == "OPPO") {
-            obj.position.z = -42;
+          if (obj.position.z == this.selectCardDis && obj.name && (obj.name == "confirm" || !isNaN(obj.name))) {
+            obj.position.z = obj.position.z-this.selectDelta;
+          } else if (obj.name == "select") {
+            obj.position.z = this.selectDis-this.selectDelta;
           }
           break;
       }
@@ -854,6 +922,10 @@ class Game extends React.Component {
     }
 
     event.preventDefault();
+    
+    if (event.type == "touchend") {
+      event = event.changedTouches[0];
+    }
 
     // Get intersections
     let intersections = this._raycasterGetIntersections(event);
@@ -861,24 +933,41 @@ class Game extends React.Component {
     if ( intersections.length > 0 && intersections[0] !== null ) {
       let obj = intersections[0].object
       
+      if (!this.props.game) {
+        return;
+      }
       switch(this.props.game.status) {
         case "CARDS1":
         case "CARDS2":
           if(this.camera.getObjectByName("confirm")) {
-            this.camera.getObjectByName("confirm").position.z = -40;
+            this.camera.getObjectByName("confirm").position.z = this.selectCardDis;
           }
           
-          // Get selected cards
-          let selectedCardNrs = []
-          this.cards.forEach((card) => {
-            if (card.position.z > -40) {
-              selectedCardNrs.push(card.name);
+          // Get selected cards before
+          let selectedCardNrsBefore = this._getSelectedCardNrs();
+          
+          // Toggle card
+          if (this.cards.includes(obj)) {
+            // Select/Deselect card
+            if (obj.position.z <= this.selectCardDis && ((this.cards.length == 10 && selectedCardNrsBefore.length < 2) || (this.cards.length == 2 && selectedCardNrsBefore.length == 0))) {
+              obj.position.z = this.selectCardDis+this.selectCardDelta;
+            } else {
+              obj.position.z = this.selectCardDis;
             }
-          })
+          }
+          
+          let selectedCardNrs = this._getSelectedCardNrs();
+          
+          // Display confirm button
+          if ((this.cards.length == 10 && selectedCardNrs.length == 2) || (this.cards.length == 2 && selectedCardNrs.length == 1)) {
+            this.camera.getObjectByName("confirm").visible = true;
+          } else {
+            this.camera.getObjectByName("confirm").visible = false;
+          }
           
           // Check if confirm button was clicked
           if (obj.name == "confirm") {
-            obj.position.z = -40;
+            obj.position.z = this.selectCardDis;
             if (this.cards.length == 10 && selectedCardNrs.length == 2) {
               // Convert card nr to name
               let selectedCardNames = [];
@@ -897,42 +986,23 @@ class Game extends React.Component {
               this.cleanUpCards();
             }
           }
-          
-          // Toggle card
-          if (this.cards.includes(obj)) {
-            // Select/Deselect card
-            if (obj.position.z <= -40 && ((this.cards.length == 10 && selectedCardNrs.length <= 1) || (this.cards.length == 2 && selectedCardNrs.length == 0))) {
-              obj.position.z = -35;
-            } else {
-              obj.position.z = -40;
-            }
-          }
           break;
         case "STARTPLAYER":
-          if(this.camera.getObjectByName("YOU")) {
-            this.camera.getObjectByName("YOU").position.z = -40;
-          }
-          if(this.camera.getObjectByName("OPPO")) {
-            this.camera.getObjectByName("OPPO").position.z = -40;
-          }
-          // Check if self was clicked
-          if (obj.name == "YOU") {
-          
-            // Send input to GamePage
-            this.props.inputHandler("player",{isCurrentPlayer:true});
-            this.cleanUpUsernames();
-            
-          } else if (obj.name == "OPPO") {
-          
-            // Send input to GamePage
-            this.props.inputHandler("opponent",{isCurrentPlayer:true});
-            this.cleanUpUsernames();
-          }
+        case "COLOR1":
+          this.handleSelect(obj);
           break;
+        case "COLOR2":
+          this.handleSelect(obj);
+          this.props.game.players.forEach((player) => {
+            if (player.id == localStorage.getItem('player_id') && player.isCurrentPlayer) {
+              return;
+            }
+          });
         case "POSITION1":
         case "POSITION2":
         case "MOVE":
         case "BUILD":
+          // Display card in front of camera if clicked
           if (this.cards.includes(obj) && obj.visible && this.scene.getObjectByName("displayCard") == null) {
               let displayCard = obj.clone();
               displayCard.name = "displayCard";
@@ -949,6 +1019,31 @@ class Game extends React.Component {
           }
           break;
       }
+    }
+  }
+  
+  _getSelectedCardNrs =() => {
+    // Get selected cards
+    let selectedCardNrs = []
+    this.cards.forEach((card) => {
+      if (card.position.z > this.selectCardDis) {
+        selectedCardNrs.push(card.name);
+      }
+    })
+    return selectedCardNrs;
+  }
+  
+  handleSelect = (obj) => {
+    this.camera.children.forEach((child) => {
+      if (child.name == "select") {
+        child.position.z = this.selectDis;
+      }
+    })
+    // Check if object was selected
+    if (obj.name == "select") {
+      // Send input to GamePage
+      this.props.inputHandler(obj.userData.level,obj.userData.data);
+      this._cleanUpSelection();
     }
   }
   
@@ -1088,7 +1183,11 @@ class Game extends React.Component {
       }
       
       // Logic
-      this.camera.children.forEach((child) => {child.visible = true;});
+      this.camera.children.forEach((child) => {
+        if(child.name != "confirm") {
+          child.visible = true;
+        }
+      });
       this.inputEnabled = true;
       
       // Tell GamePage that initialization animation finished
@@ -1099,7 +1198,7 @@ class Game extends React.Component {
       this.playStartAnimation = 0;
       
       // Enable controls after camera animation
-      this.setControls(true,true,true); // lookAround=true,select=false,move=true
+      this.setControls(true,true,true); // lookAround=true,select=true,move=true
     }
   }
   

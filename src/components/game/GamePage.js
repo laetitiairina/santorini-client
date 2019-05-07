@@ -84,7 +84,6 @@ class GamePage extends React.Component {
       amountOfPolls: 0,
       gameEnds: false,
       endState: null,
-      blockedColor: null,
       displayMsg: null,
       chooseExit: false,
       finishInitGame: false,
@@ -328,16 +327,9 @@ class GamePage extends React.Component {
       case "COLOR2":
         console.log("COLOR 1 & 2");
         
-        // Block color if already chosen
-        this.state.game.players.forEach((player) => {
-          if(player.color != null) {
-            this.setState({blockedColor: player.color});
-          }
-        });
-        
         if (this.getPlayer().isCurrentPlayer) {
           // Display msg
-          this.outputHander.current.setControls(false,false); // lookAround=false,select=false
+          this.outputHander.current.Color(); // Controls get set inside here
           this.setState({displayMsg:"Choose a color!"});
         } else {
           // Display waiting msg
@@ -448,18 +440,6 @@ class GamePage extends React.Component {
 
   // Pop-Up helper functions
   
-  setColor = (param) => {
-    this.inputHandler("player",param);
-  };
-
-  chooseColor() {
-    let curr = false;
-    if (this.getPlayer()) {
-      curr = this.getPlayer().isCurrentPlayer;
-    }
-    return (curr && (this.state.game.status === "COLOR1" || this.state.game.status === "COLOR2") && this.state.finishInitGame)
-  }
-  
   displayExit = (bool) => {
     this.setState({chooseExit:bool});
   }
@@ -560,7 +540,6 @@ class GamePage extends React.Component {
           <GameContainer>
             <PopupContainer>
               <ExitPopUp appears={this.state.chooseExit} displayExit={this.displayExit} deinitGame={this.deinitGame} props={this.props}/>
-              <ChooseColorPopUp appears={this.chooseColor()} setColor={this.setColor} blockedColor={this.state.blockedColor}/>
               <EndPopUp appears={this.state.gameEnds} endState={this.state.endState} props={this.props}/>
             </PopupContainer>
             {this.state.finishInitGame ? (
