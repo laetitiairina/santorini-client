@@ -484,9 +484,10 @@ class GamePage extends React.Component {
     .then(response => {
       // TODO: handle bad move/build
       if (!response.ok) {
-        // TODO: handle invalid request
+        // Handle invalid request
+        this.fetchGame();
         // If response not ok get response text and throw error
-        return response.text().then( err => { throw Error(err); } );
+        //return response.text().then( err => { throw Error(err); } );
       }
     })
     .catch(err => {

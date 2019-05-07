@@ -55,7 +55,7 @@ class Game extends React.Component {
     }
     this.posEnum = {"-10":0,"-5":1,"0":2,"5":3,"10":4};
     this.posRevEnum = {"0":-10,"1":-5,"2":0,"3":5,"4":10};
-    this.playStartAnimation = 0;
+    this.playStartAnimation = -1;
     this.playInitAnimation = true;
     this.waterSpeed = 1.2;
     this.inputEnabled = false;
@@ -392,7 +392,7 @@ class Game extends React.Component {
       return;
     }
     
-    if (this.playInitAnimation || this.playStartAnimation != 0) {
+    if (this.playInitAnimation || this.playStartAnimation > 0) {
       return;
     }
     
@@ -554,6 +554,10 @@ class Game extends React.Component {
   Cards10 = () => {
     this.setControls(false,true); // lookAround=false,select=true
     
+    if (this.cards.length == 10) {
+      return;
+    }
+    
     // Display 10 cards
     for ( let i = 0; i < 10; i++ ) {
       this._displayCard(-12+3*(i-(i%2)), 5-11*(i%2), this.selectCardDis, i+1)
@@ -574,6 +578,10 @@ class Game extends React.Component {
   // Display 2 cards to choose from
   Cards2 = () => {
     this.setControls(false,true); // lookAround=false,select=true
+    
+    if (this.cards.length == 2) {
+      return;
+    }
     
     // Display 2 cards
     this.props.game.cards.forEach((cardname,i) => {
@@ -642,17 +650,21 @@ class Game extends React.Component {
   
   // Initialize postion selection (nr is either 1 or 2 depending on the player)
   Position = () => {
-    // Play camera animation
-    if (this.props.game.players[0].id  == localStorage.getItem('player_id')) {
-      this.playStartAnimation = 1;
-      this.playCameraAnimation("right");
-    } else {
-      this.playStartAnimation = 2;
-      this.playCameraAnimation("left");
-    }
+    this.setControls(true,true,true); // lookAround=true,select=true,move=true
     
-    // Disable controls during animation
-    this.setControls(false,false); // lookAround=false,select=false
+    // Play camera animation
+    if (this.playStartAnimation == -1) {
+      if (this.props.game.players[0].id  == localStorage.getItem('player_id')) {
+        this.playStartAnimation = 1;
+        this.playCameraAnimation("right");
+      } else {
+        this.playStartAnimation = 2;
+        this.playCameraAnimation("left");
+      }
+      
+      // Disable controls during animation
+      this.setControls(false,false,false); // lookAround=false,select=false,move=false
+    }
   }
   
   // Input
