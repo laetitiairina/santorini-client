@@ -1,4 +1,5 @@
 import React from "react";
+import styled from "styled-components";
 import Header from "../../../views/Header";
 import { BrowserRouter, Redirect, Route, Switch } from "react-router-dom";
 import { GameGuard } from "../routeProtectors/GameGuard";
@@ -7,6 +8,7 @@ import { LoginGuard } from "../routeProtectors/LoginGuard";
 import Login from "../../login/Login";
 import StartPage from "../../game/StartPage";
 import GamePage from "../../game/GamePage";
+import ErrorPage from "../pages/ErrorPage";
 
 /**
  * Main router of your application.
@@ -22,43 +24,47 @@ class AppRouter extends React.Component {
     return (
       <BrowserRouter>
         <Switch>
-          <div>
-            <Route
-              path="/game"
-              render={() => (
-                <GameGuard>
-                  {/*<GameRouter base={"/game"} />*/}
-                  <GamePage />
-                </GameGuard>
-              )}
-            />
-            <Route
-              path="/login"
-              exact
-              render={() => (
-                <LoginGuard>
-                  <Redirect to={"/home"} />
-                </LoginGuard>
-              )}
-            />
-            <Route
-              path="/register"
-              exact
-              render={() => (
-                <div>Registration coming soon!</div>
-              )}
-            />
-            <Route
-              path="/home"
-              exact
-              render={() => (
-                <div>
-                  <Header height={"100"} />
-                  <StartPage />
-                </div>
-              )} />
-            <Route path="/" exact render={() => <Redirect to={"/home"} />} />
-          </div>
+          <Route
+            path="/game"
+            render={() => (
+              <GameGuard>
+                {/*<GameRouter base={"/game"} />*/}
+                <GamePage />
+              </GameGuard>
+            )}
+          />
+          <Route
+            path="/login"
+            exact
+            render={() => (
+              <LoginGuard>
+                <Redirect to={"/home"} />
+              </LoginGuard>
+            )}
+          />
+          <Route
+            path="/register"
+            exact
+            render={() => (
+              <div style={{textAlign:"center"}}>Registration coming soon!</div>
+            )}
+          />
+          <Route
+            path="/home"
+            exact
+            render={() => (
+              <div>
+                <Header height={"100"} />
+                <StartPage />
+              </div>
+            )} />
+          <Route path="/" exact render={() => <Redirect to={"/home"} />} />
+          <Route
+            path="*"
+            render={() => (
+              <ErrorPage error="Page Not Found!" />
+            )}
+          />
         </Switch>
       </BrowserRouter>
     );
