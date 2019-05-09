@@ -461,6 +461,10 @@ class Game extends React.Component {
     }
   }
   
+  setGraphics = (high) => {
+    this.dirLight.castShadow = high;
+  }
+  
   _getUsername = (player) => {
     let username = "GUEST";
     

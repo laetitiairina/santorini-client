@@ -513,6 +513,11 @@ class GamePage extends React.Component {
     this.outputHandler.current.setCameraPos(pos);
   }
   
+  // Change graphics setting
+  setGraphics = (high) => {
+    this.outputHandler.current.setGraphics(high);
+  }
+  
   // M3: Fast-forward
   // TODO: Delete after M3
   // Fast-forward current game
@@ -560,7 +565,7 @@ class GamePage extends React.Component {
           <EndPopUp appears={this.state.gameEnd} endState={this.state.endState} props={this.props}/>
         </PopupContainer>
         {this.state.finishInitGame ? (
-          <HUD displayMsg={this.state.displayMsg} invalidMoveMsg={this.state.invalidMoveMsg} displayExit={this.displayExit} setCameraPos={this.setCameraPos} areCameraControlsEnabled={this.state.areCameraControlsEnabled} gameEnd={this.state.gameEnd} fastforwardGame={this.fastforwardGame.bind(this)}/>
+          <HUD displayMsg={this.state.displayMsg} invalidMoveMsg={this.state.invalidMoveMsg} displayExit={this.displayExit} setCameraPos={this.setCameraPos} setGraphics={this.setGraphics} areCameraControlsEnabled={this.state.areCameraControlsEnabled} gameEnd={this.state.gameEnd} fastforwardGame={this.fastforwardGame.bind(this)}/>
         ) : (<div></div>)}
         <Game game={this.state.game} initFinish={this.initFinish} cameraControlsEnabled={this.cameraControlsEnabled} inputHandler={this.inputHandler} ref={this.outputHandler}/>
       </GameContainer>

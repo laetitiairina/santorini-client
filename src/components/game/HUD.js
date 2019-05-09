@@ -143,6 +143,23 @@ const QuestionMarkButton = styled(Button)`
   margin-top:20px;
 `;
 
+const ControlsLabel = styled.button`
+  pointer-events: all;
+  margin:0px;
+  font-size:10px;
+  padding: 10px;
+  padding-left: 20px;
+  padding-right: 20px;
+  font-weight: 700;
+  text-transform: uppercase;
+  text-align: center;
+  color: rgba(255, 255, 255, 1);
+  border: none;
+  border-radius: 20px;
+  background: #007090; /* #1059ff */
+`;
+
+// TODO: Delete this after M3
 const FastForwardButton = styled(Button)`
   pointer-events: all;
 `;
@@ -152,6 +169,7 @@ class HUD extends React.Component {
     super(props);
 
     this.state = {
+      graphicsSetting:false
     };
   }
 
@@ -173,7 +191,7 @@ class HUD extends React.Component {
           </ContainerTopLeft>
           <ContainerTopMiddleRight>
           <QuestionMarkButton disabled={this.props.gameEnd} onClick={() => {
-              // TODO: Display Manual
+              // TODO: Display game manual
             }}>
               ?
             </QuestionMarkButton>
@@ -197,6 +215,21 @@ class HUD extends React.Component {
         </Container>
         <ViewButtonTable areCameraControlsEnabled={this.props.areCameraControlsEnabled && !this.props.gameEnd}>
           <tr>
+            <td colspan="2">
+              <ControlsLabel>
+                GRAPHICS:
+              </ControlsLabel>
+            </td>
+            <td>
+              <ViewButton disabled={this.props.gameEnd} onClick={() => {
+                this.setState({graphicsSetting:!this.state.graphicsSetting})
+                this.props.setGraphics(this.state.graphicsSetting);
+              }}>
+                {this.state.graphicsSetting ? ("LOW") : ("HIGH")}
+              </ViewButton>
+            </td>
+          </tr>
+          <tr>
             <td>
               <ViewButton onClick={() => {
                 this.props.setCameraPos("side");
@@ -211,7 +244,11 @@ class HUD extends React.Component {
                 FRONT
               </ViewButton>
             </td>
-            <td></td>
+            <td>
+              <ControlsLabel style={{width:"50px",paddingLeft:"0px",paddingRight:"0px"}}>
+                CAM
+              </ControlsLabel>
+            </td>
           </tr>
           <tr>
             <td>
