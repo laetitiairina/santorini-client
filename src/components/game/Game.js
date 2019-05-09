@@ -41,9 +41,11 @@ class Game extends React.Component {
     this.blocks = [];
     this.colorPreset = {"BLUE":"#4444ff","GREY":"#888888","WHITE":"#ffffff"};
     this.initWorkerPos = new THREE.Vector3(10, 2, 17);
-    this.workerGeometry = new THREE.CylinderBufferGeometry( 0,1,4,10 );
+    this.workerGeometry = new THREE.CylinderBufferGeometry(0,1,4,10);
     this.myWorkers = [];
     this.oppoWorkers = [];
+    this.indicators = [];
+    this.indicatorGeometry = new THREE.CylinderBufferGeometry(0,1,4,10);
     this.mouse = new THREE.Vector2();
     this.blockDraged = false;
     this.fields = {};
@@ -363,10 +365,36 @@ class Game extends React.Component {
     }
   }
   
+  showIndicators = (move, build, bags=true) => {
+    this.indicators.forEach((indicator) => {
+      this.scene.remove(indicator);
+    })
+    this.indicators = [];
+    
+    if (move) {
+      this.myWorkers.forEach((worker) => {
+        this._displayIndicator(worker.position,true);
+      })
+    } else if (build) {
+      if (bags) {
+        this._displayIndicator(this.blockBag.position,false);
+        this._displayIndicator(this.domeBag.position,false);
+      }
+      this.myWorkers.forEach((worker) => {
+        if (worker.userData.worker.isCurrentWorker) {
+          this._displayIndicator(worker.position,true);
+        }
+      });
+    }
+  }
+  
   // Always call this function in the update() function of GamePage when not current player
   setControls = (lookAround, select, move = false, build = false) => {
     // Tell GamePage about lookAround
     this.props.cameraControlsEnabled(lookAround);
+    
+    // Show indicators
+    this.showIndicators(move,build);
     
     this.controls.enabled = lookAround;
     this.inputEnabled = select;
@@ -513,6 +541,20 @@ class Game extends React.Component {
     confirmButton.name = "confirm";
     confirmButton.visible = false;
     this.camera.add( confirmButton );
+  }
+  
+  _displayIndicator = (pos, onField) => {
+    if (onField && (pos.x > 10 || pos.x < -10 || pos.z > 10 || pos.z < -10)) {
+      return;
+    }
+    let indicator = new THREE.Mesh(this.indicatorGeometry, new THREE.MeshPhongMaterial({color: 0x00ff00, flatShading: true}));
+    indicator.rotation.x = -Math.PI;
+    indicator.scale.set(0.4,0.4,0.4);
+    indicator.opacity = 0.5;
+    indicator.position.copy(pos);
+    indicator.position.y += this.blockHeight+1;
+    this.scene.add(indicator);
+    this.indicators.push(indicator);
   }
   
   _displayUsernames = (posX,posY,posZ, username) => {
@@ -711,6 +753,8 @@ class Game extends React.Component {
     this.controls.enabled = false;
     this.inputEnabled = false;
     
+    this.showIndicators(false,false);
+    
     this.draged = true;
     
     this.dragedWorkerInitPos = event.object.position.clone();
@@ -761,6 +805,7 @@ class Game extends React.Component {
     if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10 || (!this.frontendMoveBuildCheck(posX,posZ) && !this.frontendGodCardsMoveCheck())) {
       // Reset position of worker
       event.object.position.copy(this.dragedWorkerInitPos);
+      this.showIndicators(true,false);
     } else {
       // Worker was placed on board
       event.object.position.x = posX;
@@ -796,6 +841,8 @@ class Game extends React.Component {
           if(workerFields.length == 2) {
             // Send input to GamePage
             this.props.inputHandler("board",workerFields);
+          } else {
+            this.showIndicators(true,false);
           }
           
           break;
@@ -839,6 +886,8 @@ class Game extends React.Component {
   onDragStartBlock = (event) => {
     this.controls.enabled = false;
     this.inputEnabled = false;
+    
+    this.showIndicators(false,true,false);
     
     this.draged = true;
     
@@ -914,6 +963,7 @@ class Game extends React.Component {
     
     if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10 || !this.frontendMoveBuildCheck(posX,posZ)) {
       // Invalid action
+      this.showIndicators(false,true);
     } else {
       switch(this.props.game.status) {
           case "BUILD":
@@ -1268,6 +1318,7 @@ class Game extends React.Component {
     worker.userData.posX = field.posX;
     worker.userData.posY = field.posY;
     worker.userData.field = field;
+    worker.userData.worker = field.worker;
   }
   
   playCameraAnimation = (key) => {
