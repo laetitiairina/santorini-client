@@ -718,7 +718,37 @@ class Game extends React.Component {
   // Input
   // Use this.props.inputHandler() to pass input to GamePage in order to process it
   
-  frontendMoveBuildCheck = (posX,posZ) => {
+  frontendMoveCheck = (posX,posZ,initPos) => {
+    if(!this.frontendCheck) {
+      return true;
+    }
+    let initMove = false;
+    if (initPos.x > 10 || initPos.x < -10 || initPos.z > 10 || initPos.z < -10) {
+      initMove = true;
+    }
+    if (this.fields[posX][posZ].blocks > 3 || this.fields[posX][posZ].hasDome) {
+      return false;
+    }
+    if (this.fields[posX][posZ].worker != null && !this.frontendGodCardsCheck(1,true,initMove)) {
+      return false;
+    }
+    if (initMove) {
+      return true;
+    }
+    let maxMoveDis = 6;
+    if (this.frontendGodCardsCheck(2,true)) {
+      maxMoveDis = 11;
+    }
+    if (Math.abs((posX+10)-(Math.floor(initPos.x)+10)) > maxMoveDis) {
+      return false;
+    }
+    if (Math.abs((posZ+10)-(Math.floor(initPos.z)+10)) > maxMoveDis) {
+      return false;
+    }
+    return true;
+  }
+  
+  frontendBuildCheck = (posX,posZ) => {
     if(!this.frontendCheck) {
       return true;
     }
@@ -728,14 +758,28 @@ class Game extends React.Component {
     if (this.fields[posX][posZ].worker != null) {
       return false;
     }
-    return true;
+    let flag = true;
+    this.myWorkers.forEach((worker) => {
+      if (worker.userData.worker.isCurrentWorker) {
+        if (Math.abs((posX+10)-(Math.floor(worker.position.x)+10)) > 6) {
+          flag = false;
+        }
+        if (Math.abs((posZ+10)-(Math.floor(worker.position.z)+10)) > 6) {
+          flag = false;
+        }
+      }
+    });
+    return flag;
   }
   
-  frontendGodCardsMoveCheck = () => {
+  frontendGodCardsCheck = (cardNr,own,initMove=false) => {
     if(!this.frontendCheck) {
       return false;
     }
     if(!this.props.game.isGodMode) {
+      return false;
+    }
+    if (initMove) {
       return false;
     }
     let ownCardNr = null;
@@ -747,10 +791,11 @@ class Game extends React.Component {
         oppoCardNr = godCardsEnum[player.card];
       }
     });
-    
-    // APOLLO
-    if (ownCardNr == 1) {
-      return true;
+    if (own && ownCardNr == cardNr) {
+          return true;
+    }
+    if (!own && oppoCardNr == cardNr) {
+          return true;
     }
     return false;
   }
@@ -784,7 +829,7 @@ class Game extends React.Component {
     if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
       this.ghostWorker.position.y = -500;
     } else {
-      if (!this.frontendMoveBuildCheck(posX,posZ) && !this.frontendGodCardsMoveCheck()) {
+      if (!this.frontendMoveCheck(posX,posZ,this.dragedWorkerInitPos)) {
         this.ghostWorker.material.color.setHex(0xff0000);
       } else {
         this.ghostWorker.material.color.setHex(0x00ff00);
@@ -808,7 +853,10 @@ class Game extends React.Component {
     let posX = Math.floor( ( event.object.position.x + 2.5 ) / 5 ) * 5;
     let posZ = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
     
-    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10 || (!this.frontendMoveBuildCheck(posX,posZ) && !this.frontendGodCardsMoveCheck())) {
+    // Uncomment to let frontend prevent invalid move
+    // if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10 || !this.frontendMoveCheck(posX,posZ,this.dragedWorkerInitPos)) {
+    // Worker outside field
+    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
       // Reset position of worker
       event.object.position.copy(this.dragedWorkerInitPos);
       this.showIndicators(true,false);
@@ -927,7 +975,7 @@ class Game extends React.Component {
     if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
       this.ghostBlock.position.y = -500;
     } else {
-      if (!this.frontendMoveBuildCheck(posX,posZ)) {
+      if (!this.frontendBuildCheck(posX,posZ)) {
         this.ghostBlock.material.color.setHex(0xff0000);
       } else {
         this.ghostBlock.material.color.setHex(0x00ff00);
@@ -967,7 +1015,10 @@ class Game extends React.Component {
     event.object.material = this.placeholderBlock.material.clone();
     this.scene.remove(this.placeholderBlock);
     
-    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10 || !this.frontendMoveBuildCheck(posX,posZ)) {
+    // Uncomment to let frontend prevent invalid move
+    // if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10 || !this.frontendBuildCheck(posX,posZ)) {
+    // Worker outside field
+    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
       // Invalid action
       this.showIndicators(false,true);
     } else {
