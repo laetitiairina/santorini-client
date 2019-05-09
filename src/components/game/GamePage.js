@@ -52,7 +52,7 @@ class GamePage extends React.Component {
     this.initFinish = this.initFinish.bind(this);
     
     // Create reference to outputHandler so GamePage can call functions in Game component
-    this.outputHander = React.createRef();
+    this.outputHandler = React.createRef();
     
     this.poller = null;
 
@@ -230,15 +230,15 @@ class GamePage extends React.Component {
       // Init cards
       if(this.state.game.isGodMode && statusEnum[this.state.game.status] > 2) {
         // Display cards on board when they have been chosen
-        this.outputHander.current.initCards();
+        this.outputHandler.current.initCards();
       }
       
       // Init workers
       if(statusEnum[this.state.game.status] > 5) {
-        this.outputHander.current.initWorkers();
+        this.outputHandler.current.initWorkers();
       }
       if(statusEnum[this.state.game.status] > 7) {
-        this.outputHander.current.initWorkers();
+        this.outputHandler.current.initWorkers();
       }
     }
     
@@ -250,7 +250,7 @@ class GamePage extends React.Component {
         // Do this if current player
       } else {
         // Do this if not current player
-        // this.outputHander.current.setControls(<lookAround>,<select>);
+        // this.outputHandler.current.setControls(<lookAround>,<select>);
       }
     */
     switch(this.state.game.status) {
@@ -259,11 +259,11 @@ class GamePage extends React.Component {
         
         if (this.getPlayer().isCurrentPlayer) {
           // Display 10 cards to choose from
-          this.outputHander.current.Cards10(); // Controls get set inside here
+          this.outputHandler.current.Cards10(); // Controls get set inside here
           this.setState({displayMsg:"Choose 2 cards!"});
         } else {
           // Display waiting msg
-          this.outputHander.current.setControls(false,false); // lookAround=false,select=false
+          this.outputHandler.current.setControls(false,false); // lookAround=false,select=false
           this.setState({displayMsg:"Other player is choosing cards..."});
         }
         
@@ -273,11 +273,11 @@ class GamePage extends React.Component {
         
         if (this.getPlayer().isCurrentPlayer) {
           // Display 2 cards to choose from
-          this.outputHander.current.Cards2(); // Controls get set inside here
+          this.outputHandler.current.Cards2(); // Controls get set inside here
           this.setState({displayMsg:"Choose your card!"});
         } else {
           // Display waiting msg
-          this.outputHander.current.setControls(false,false); // lookAround=false,select=false
+          this.outputHandler.current.setControls(false,false); // lookAround=false,select=false
           this.setState({displayMsg:"Other player is choosing a card..."});
         }
         
@@ -287,16 +287,16 @@ class GamePage extends React.Component {
         
         if(this.state.game.isGodMode) {
           // Display cards on board after they have been chosen
-          this.outputHander.current.initCards();
+          this.outputHandler.current.initCards();
         }
         
         if (this.getPlayer().isCurrentPlayer) {
           // Display both player usernames
-          this.outputHander.current.StartPlayer(); // Controls get set inside here
+          this.outputHandler.current.StartPlayer(); // Controls get set inside here
           this.setState({displayMsg:"Choose a start player!"});
         } else {
           // Display waiting msg
-          this.outputHander.current.setControls(false,false); // lookAround=false,select=false
+          this.outputHandler.current.setControls(false,false); // lookAround=false,select=false
           this.setState({displayMsg:"Other player is choosing start player..."});
         }
         
@@ -307,14 +307,14 @@ class GamePage extends React.Component {
 
         if (this.getPlayer().isCurrentPlayer) {
           // Display msg
-          this.outputHander.current.Color(); // Controls get set inside here
+          this.outputHandler.current.Color(); // Controls get set inside here
           this.setState({displayMsg:"Choose a color!"});
         } else {
           // Display waiting msg
           if (this.state.game.status == "COLOR1") {
-            this.outputHander.current.setControls(false,false); // lookAround=false,select=false
+            this.outputHandler.current.setControls(false,false); // lookAround=false,select=false
           } else {
-            this.outputHander.current.setControls(true,true); // lookAround=true,select=true
+            this.outputHandler.current.setControls(true,true); // lookAround=true,select=true
           }
           this.setState({displayMsg:"Other player is choosing color..."});
         }
@@ -325,18 +325,18 @@ class GamePage extends React.Component {
         console.log("POSITION 1 & 2");
         
         // Initialize workers of players who have chosen a color
-        this.outputHander.current.initWorkers();
+        this.outputHandler.current.initWorkers();
         
         if (this.getPlayer().isCurrentPlayer) {
           // Init position
-          this.outputHander.current.Position(); // Controls get set inside here
+          this.outputHandler.current.Position(); // Controls get set inside here
           this.setState({displayMsg:"Position your workers!"});
         } else {
           // Display waiting msg
           if (this.state.game.status == "POSITION1") {
-            this.outputHander.current.setControls(false,false); // lookAround=false,select=false
+            this.outputHandler.current.setControls(false,false); // lookAround=false,select=false
           } else {
-            this.outputHander.current.setControls(true,true); // lookAround=true,select=true
+            this.outputHandler.current.setControls(true,true); // lookAround=true,select=true
           }
           this.setState({displayMsg:"Other player is positioning workers..."});
         }
@@ -347,11 +347,11 @@ class GamePage extends React.Component {
         
         if (this.getPlayer().isCurrentPlayer) {
           // Set controls so workers can be moved
-          this.outputHander.current.setControls(true,true,true); // lookAround=true,select=true,move=true
+          this.outputHandler.current.setControls(true,true,true); // lookAround=true,select=true,move=true
           this.setState({displayMsg:"Move a worker!"});
         } else {
           // Display waiting msg
-          this.outputHander.current.setControls(true,true); // lookAround=true,select=true
+          this.outputHandler.current.setControls(true,true); // lookAround=true,select=true
           this.setState({displayMsg:"Other player is moving..."});
         }
         
@@ -361,11 +361,11 @@ class GamePage extends React.Component {
         
         if (this.getPlayer().isCurrentPlayer) {
           // Set controls so player can build
-          this.outputHander.current.setControls(true,true,false,true); // lookAround=true,select=true,move=false,build=true
+          this.outputHandler.current.setControls(true,true,false,true); // lookAround=true,select=true,move=false,build=true
           this.setState({displayMsg:"Build!"});
         } else {
           // Display waiting msg
-          this.outputHander.current.setControls(true,true); // lookAround=true,select=true
+          this.outputHandler.current.setControls(true,true); // lookAround=true,select=true
           this.setState({displayMsg:"Other player is building..."});
         }
         
@@ -377,17 +377,17 @@ class GamePage extends React.Component {
         
         if (this.getPlayer().isCurrentPlayer) {
           // Display winning msg
-          this.outputHander.current.setControls(true,true); // lookAround=true,select=true,move=false,build=true
+          this.outputHandler.current.setControls(true,true); // lookAround=true,select=true,move=false,build=true
           this.setState({displayMsg:"You Won! Congratulations!"});
           this.setState({endState : "WON"});
         } else if (this.getOpponentPlayer().isCurrentPlayer) {
           // Display losing msg
-          this.outputHander.current.setControls(true,true); // lookAround=true,select=true
+          this.outputHandler.current.setControls(true,true); // lookAround=true,select=true
           this.setState({displayMsg:"You Lost!"});
           this.setState({endState : "LOST"});
         } else {
           // Game was aborted
-          this.outputHander.current.setControls(false,false); // lookAround=false,select=false
+          this.outputHandler.current.setControls(false,false); // lookAround=false,select=false
           this.setState({displayMsg:"Game was aborted!"});
           this.setState({endState : "ABORT"});
         }
@@ -399,7 +399,7 @@ class GamePage extends React.Component {
     }
     
     // Always update game board accoriding to this.state.game
-    this.outputHander.current.update();
+    this.outputHandler.current.update();
   }
   
   //
@@ -506,7 +506,7 @@ class GamePage extends React.Component {
   
   // Tell Game to set camera position
   setCameraPos = (pos) => {
-    this.outputHander.current.setCameraPos(pos);
+    this.outputHandler.current.setCameraPos(pos);
   }
   
   // M3: Fast-forward
@@ -537,7 +537,7 @@ class GamePage extends React.Component {
         // If response not ok get response text and throw error
         return response.text().then( err => { throw Error(err); } );
       } else {
-        this.outputHander.current._cleanUpSelection();
+        this.outputHandler.current._cleanUpSelection();
       }
     })
     .catch(err => {
@@ -558,7 +558,7 @@ class GamePage extends React.Component {
         {this.state.finishInitGame ? (
           <HUD displayMsg={this.state.displayMsg} displayExit={this.displayExit} setCameraPos={this.setCameraPos} areCameraControlsEnabled={this.state.areCameraControlsEnabled} fastforwardGame={this.fastforwardGame.bind(this)}/>
         ) : (<div></div>)}
-        <Game game={this.state.game} initFinish={this.initFinish} cameraControlsEnabled={this.cameraControlsEnabled} inputHandler={this.inputHandler} ref={this.outputHander}/>
+        <Game game={this.state.game} initFinish={this.initFinish} cameraControlsEnabled={this.cameraControlsEnabled} inputHandler={this.inputHandler} ref={this.outputHandler}/>
       </GameContainer>
     );
   }
