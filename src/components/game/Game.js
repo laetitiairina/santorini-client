@@ -308,6 +308,9 @@ class Game extends React.Component {
     }
     
     this.props.game.players.forEach((player,i) => {
+      if (player.card == null) {
+        return;
+      }
     
       // Display name tag
       let textureNameTag = new THREE.CanvasTexture(this._canvasTextTexture(this._getUsername(player),10,100,40));
