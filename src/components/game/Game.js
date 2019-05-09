@@ -46,6 +46,8 @@ class Game extends React.Component {
     this.oppoWorkers = [];
     this.indicators = [];
     this.indicatorGeometry = new THREE.CylinderBufferGeometry(0,1,4,10);
+    this.indicatorMaterialAction = new THREE.MeshPhongMaterial({color: 0x00ff00, flatShading: true});
+    this.indicatorMaterialShow = new THREE.MeshPhongMaterial({color: 0xffff00, flatShading: true});
     this.mouse = new THREE.Vector2();
     this.blockDraged = false;
     this.fields = {};
@@ -94,10 +96,10 @@ class Game extends React.Component {
     this.cameraAnimationMixer = new THREE.AnimationMixer(this.camera);
     this.cameraAnimationMixer.addEventListener('finished', this.finishedCameraAnimation);
     
-    this.cameraActions["init"] = this.createAction("init",3,this.cameraInitPos,this.cameraSelectPos,new THREE.Vector3(this.cameraSelectPos.x,this.cameraSelectPos.y,this.cameraSelectPos.z+100));
+    this.cameraActions["init"] = this.createAction(this.cameraAnimationMixer,"init",3,this.cameraInitPos,this.cameraSelectPos,new THREE.Vector3(this.cameraSelectPos.x,this.cameraSelectPos.y,this.cameraSelectPos.z+100));
     
-    this.cameraActions["right"] = this.createAction("right",2,this.cameraSelectPos,this.cameraRightPos);
-    this.cameraActions["left"] = this.createAction("left",2,this.cameraSelectPos,this.cameraLeftPos);
+    this.cameraActions["right"] = this.createAction(this.cameraAnimationMixer,"right",2,this.cameraSelectPos,this.cameraRightPos);
+    this.cameraActions["left"] = this.createAction(this.cameraAnimationMixer,"left",2,this.cameraSelectPos,this.cameraLeftPos);
     
     this.cameraCurrentAction = this.cameraActions["init"];
     this.cameraCurrentAction.play();
@@ -268,7 +270,7 @@ class Game extends React.Component {
   }
   
   // Create action for camera animation
-  createAction = (name,duration,startPos, endPos, middlePos=null) => {
+  createAction = (mixer,name,duration,startPos, endPos, middlePos=null, infinite=false) => {
     let times = [0,1];
     let values = [
       startPos.x,startPos.y,startPos.z,
@@ -286,10 +288,14 @@ class Game extends React.Component {
     let track = new THREE.VectorKeyframeTrack('.position',times,values);
     track.setInterpolation(THREE.InterpolateSmooth);
     let clip = new THREE.AnimationClip(name,1,[track]);
-    let action = this.cameraAnimationMixer.clipAction(clip);
+    let action = mixer.clipAction(clip);
     action.clampWhenFinished = true;
     action.setDuration(duration);
-    action.setLoop(THREE.LoopOnce);
+    if (infinite) {
+      action.setLoop(THREE.LoopRepeat);
+    } else {
+      action.setLoop(THREE.LoopOnce);
+    }
     return action;
   }
   
@@ -367,22 +373,23 @@ class Game extends React.Component {
   
   showIndicators = (move, build, bags=true) => {
     this.indicators.forEach((indicator) => {
+      indicator.userData = null;
       this.scene.remove(indicator);
     })
     this.indicators = [];
     
     if (move) {
       this.myWorkers.forEach((worker) => {
-        this._displayIndicator(worker.position,true);
+        this._displayIndicator(worker.position, this.indicatorMaterialAction);
       })
     } else if (build) {
       if (bags) {
-        this._displayIndicator(this.blockBag.position,false);
-        this._displayIndicator(this.domeBag.position,false);
+        this._displayIndicator(this.blockBag.position, this.indicatorMaterialAction);
+        this._displayIndicator(this.domeBag.position, this.indicatorMaterialAction);
       }
       this.myWorkers.forEach((worker) => {
         if (worker.userData.worker.isCurrentWorker) {
-          this._displayIndicator(worker.position,true);
+          this._displayIndicator(worker.position, this.indicatorMaterialShow);
         }
       });
     }
@@ -392,9 +399,6 @@ class Game extends React.Component {
   setControls = (lookAround, select, move = false, build = false) => {
     // Tell GamePage about lookAround
     this.props.cameraControlsEnabled(lookAround);
-    
-    // Show indicators
-    this.showIndicators(move,build);
     
     this.controls.enabled = lookAround;
     this.inputEnabled = select;
@@ -543,16 +547,18 @@ class Game extends React.Component {
     this.camera.add( confirmButton );
   }
   
-  _displayIndicator = (pos, onField) => {
-    if (onField && (pos.x > 10 || pos.x < -10 || pos.z > 10 || pos.z < -10)) {
-      return;
-    }
-    let indicator = new THREE.Mesh(this.indicatorGeometry, new THREE.MeshPhongMaterial({color: 0x00ff00, flatShading: true}));
+  _displayIndicator = (pos, material) => {
+    let indicator = new THREE.Mesh(this.indicatorGeometry, material);
     indicator.rotation.x = -Math.PI;
     indicator.scale.set(0.4,0.4,0.4);
     indicator.opacity = 0.5;
     indicator.position.copy(pos);
     indicator.position.y += this.blockHeight+1;
+    
+    indicator.userData.mixer = new THREE.AnimationMixer(indicator);
+    indicator.userData.action = this.createAction(indicator.userData.mixer,"indicate",1,indicator.position,indicator.position,new THREE.Vector3(indicator.position.x,indicator.position.y+1,indicator.position.z),true);
+    indicator.userData.action.play();
+    
     this.scene.add(indicator);
     this.indicators.push(indicator);
   }
@@ -1239,6 +1245,9 @@ class Game extends React.Component {
       // Update frontend fields
       this.updateFields(field);
     }
+    
+    // Show indicators
+    this.showIndicators(this.dragControlsWorker.enabled,this.dragControlsBlock.enabled);
   }
   
   updateFields = (field) => {
@@ -1368,6 +1377,8 @@ class Game extends React.Component {
       
       // Enable controls after camera animation
       this.setControls(true,true,true); // lookAround=true,select=true,move=true
+      // Show indicators
+      this.showIndicators(this.dragControlsWorker.enabled,this.dragControlsBlock.enabled);
     }
   }
   
@@ -1410,6 +1421,11 @@ class Game extends React.Component {
         this.camera.lookAt(this.cameraLookAtPos);
       }
     }
+    
+    // Animate Indicators
+    this.indicators.forEach((indicator) => {
+      indicator.userData.mixer.update(delta);
+    })
   }
 
   onWindowResize = () => {

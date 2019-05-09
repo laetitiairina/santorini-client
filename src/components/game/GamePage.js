@@ -219,9 +219,6 @@ class GamePage extends React.Component {
     
     this.setState({displayMsg:null});
     
-    //
-    this.outputHandler.current.update();
-    
     // TODO: Maybe delete this
     let diffBetweenStatus = 1;
     if (this.state.prevStatus != null) {
