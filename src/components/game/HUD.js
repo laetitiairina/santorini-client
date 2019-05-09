@@ -50,8 +50,8 @@ const ContainerTopRight = styled.div`
 `;
 
 const ContainerBottomLeft = styled.div`
-  grid-column: 3;
-  grid-row: 1;
+  grid-column: 1;
+  grid-row: 3;
 
   @media only screen and (max-width: 700px){
     
@@ -129,6 +129,10 @@ const QuestionMarkButton = styled(Button)`
   margin-top:20px;
 `;
 
+const FastForwardButton = styled(Button)`
+  pointer-events: all;
+`;
+
 class HUD extends React.Component {
   constructor(props) {
     super(props);
@@ -165,6 +169,11 @@ class HUD extends React.Component {
             </ExitButton>
           </ContainerTopRight>
           <ContainerBottomLeft>
+            <FastForwardButton onClick={() => {
+              this.props.fastforwardGame();
+            }}>
+              FAST-FORWARD
+            </FastForwardButton>
           </ContainerBottomLeft>
           <ContainerBottomRight>
           </ContainerBottomRight>

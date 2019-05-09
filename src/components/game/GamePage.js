@@ -53,12 +53,14 @@ class GamePage extends React.Component {
     
     // Create reference to outputHandler so GamePage can call functions in Game component
     this.outputHander = React.createRef();
+    
+    this.poller = null;
 
     this.state = {
       status: null,
       prevStatus: null,
       amountOfPolls: 0,
-      gameEnds: false,
+      gameEnd: false,
       endState: null,
       displayMsg: null,
       chooseExit: false,
@@ -82,13 +84,11 @@ class GamePage extends React.Component {
   
   startPolling(url, fields) {
     return new Promise((resolve, reject) => {
-          this.setState({inQueue: true, amountOfPolls: 0});
-          this.poller = setInterval(() => this.poll(url, fields, 1000, resolve, reject), 100)
-        }
-    );
+      this.poller = setInterval(() => this.poll(url, fields, resolve, reject), 100)
+    });
   }
 
-  poll(url, fields, maxPolls, resolve, reject) {
+  poll(url, fields, resolve, reject) {
     fetch(`${url}?fields=${fields.join('&')}`, {
       method: "GET",
       headers: {
@@ -111,9 +111,6 @@ class GamePage extends React.Component {
         // 1. Get new game object from server
         // 2. Performe update action according to game status (switch)
         this.fetchGame();
-        
-      } else if (this.state.amountOfPolls >= maxPolls) {
-        reject("Timeout")
       }
     })
     .catch(err => {
@@ -184,7 +181,6 @@ class GamePage extends React.Component {
     })
     .catch(err => {
       console.log(err);
-      alert("Something went wrong: " + err);
     });
   }
   
@@ -216,10 +212,20 @@ class GamePage extends React.Component {
 
   // Performe action based on status
   update() {
+    if (this.state.gameEnd) {
+      return;
+    }
+    
     this.setState({displayMsg:null});
     
+    // TODO: Maybe delete this
+    let diffBetweenStatus = 1;
+    if (this.state.prevStatus != null) {
+      diffBetweenStatus = statusEnum[this.state.game.status] - statusEnum[this.state.prevStatus];
+    }
+    
     // Make sure everything is initialized (this allows for reload of page)
-    if(((this.state.game.isGodMode && statusEnum[this.state.game.status] > 1) || (!this.state.game.isGodMode && statusEnum[this.state.game.status] > 4)) && this.state.prevStatus == null) {
+    if(((this.state.game.isGodMode && statusEnum[this.state.game.status] > 1) || (!this.state.game.isGodMode && statusEnum[this.state.game.status] > 4)) && (this.state.prevStatus == null || diffBetweenStatus > 1)) {
       
       // Init cards
       if(this.state.game.isGodMode && statusEnum[this.state.game.status] > 2) {
@@ -367,7 +373,7 @@ class GamePage extends React.Component {
       case "END":
         console.log("END");
         
-        this.setState({gameEnds : true});
+        this.setState({gameEnd : true});
         
         if (this.getPlayer().isCurrentPlayer) {
           // Display winning msg
@@ -503,6 +509,43 @@ class GamePage extends React.Component {
     this.outputHander.current.setCameraPos(pos);
   }
   
+  // M3: Fast-forward
+  // TODO: Delete after M3
+  // Fast-forward current game
+  fastforwardGame = () => {
+    if(!this.getPlayer().isCurrentPlayer) {
+      alert("You are not the current Player! Wait for your turn!");
+      return;
+    }
+    
+    if (!window.confirm("FAST-FORWARD\n\nThe current game state will be discarded!\nYour opponent might not like that!\nAre you sure you want to fast-forward the game?\n")) {
+      return;
+    }
+  
+    const url = `${getDomain()}/games/${localStorage.getItem('game_id')}/fastforward`;
+    
+    fetch(`${url}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Token": localStorage.getItem('playerToken')
+      },
+      body: JSON.stringify(this.state.game)
+    })
+    .then(response => {
+      if (!response.ok) {
+        // If response not ok get response text and throw error
+        return response.text().then( err => { throw Error(err); } );
+      } else {
+        this.outputHander.current._cleanUpSelection();
+      }
+    })
+    .catch(err => {
+      console.log(err);
+      alert("Something went wrong: " + err);
+    });
+  }
+  
   //
 
   render() {
@@ -510,10 +553,10 @@ class GamePage extends React.Component {
       <GameContainer>
         <PopupContainer>
           <ExitPopUp appears={this.state.chooseExit} displayExit={this.displayExit} deinitGame={this.deinitGame.bind(this)} props={this.props}/>
-          <EndPopUp appears={this.state.gameEnds} endState={this.state.endState} props={this.props}/>
+          <EndPopUp appears={this.state.gameEnd} endState={this.state.endState} props={this.props}/>
         </PopupContainer>
         {this.state.finishInitGame ? (
-          <HUD displayMsg={this.state.displayMsg} displayExit={this.displayExit} setCameraPos={this.setCameraPos} areCameraControlsEnabled={this.state.areCameraControlsEnabled}/>
+          <HUD displayMsg={this.state.displayMsg} displayExit={this.displayExit} setCameraPos={this.setCameraPos} areCameraControlsEnabled={this.state.areCameraControlsEnabled} fastforwardGame={this.fastforwardGame.bind(this)}/>
         ) : (<div></div>)}
         <Game game={this.state.game} initFinish={this.initFinish} cameraControlsEnabled={this.cameraControlsEnabled} inputHandler={this.inputHandler} ref={this.outputHander}/>
       </GameContainer>
