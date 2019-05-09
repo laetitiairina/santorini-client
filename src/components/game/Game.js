@@ -861,9 +861,9 @@ class Game extends React.Component {
     let posZ = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
     
     // Uncomment to let frontend prevent invalid move
-    // if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10 || !this.frontendMoveCheck(posX,posZ,this.dragedWorkerInitPos)) {
+    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10 || !this.frontendMoveCheck(posX,posZ,this.dragedWorkerInitPos)) {
     // Worker outside field
-    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
+    //if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
       // Reset position of worker
       event.object.position.copy(this.dragedWorkerInitPos);
       this.showIndicators(true,false);
@@ -1023,9 +1023,9 @@ class Game extends React.Component {
     this.scene.remove(this.placeholderBlock);
     
     // Uncomment to let frontend prevent invalid move
-    // if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10 || !this.frontendBuildCheck(posX,posZ)) {
+    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10 || !this.frontendBuildCheck(posX,posZ)) {
     // Worker outside field
-    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
+    //if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
       // Invalid action
       this.showIndicators(false,true);
     } else {
