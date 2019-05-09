@@ -63,6 +63,7 @@ class GamePage extends React.Component {
       gameEnd: false,
       endState: null,
       displayMsg: null,
+      invalidMoveMsg: null,
       chooseExit: false,
       finishInitGame: false,
       areCameraControlsEnabled: false,
@@ -488,17 +489,20 @@ class GamePage extends React.Component {
       body: JSON.stringify(bodyObject)
     })
     .then(response => {
-      // TODO: handle bad move/build
       if (!response.ok) {
         // Handle invalid request
+        // Display message
+        this.setState({invalidMoveMsg:"Invalid Move!"});
+        setTimeout(() => this.setState({invalidMoveMsg:null}), 2000);
+        
         this.fetchGame();
+        
         // If response not ok get response text and throw error
         //return response.text().then( err => { throw Error(err); } );
       }
     })
     .catch(err => {
       console.log(err);
-      alert("Something went wrong: " + err);
     });
   }
   
@@ -556,7 +560,7 @@ class GamePage extends React.Component {
           <EndPopUp appears={this.state.gameEnd} endState={this.state.endState} props={this.props}/>
         </PopupContainer>
         {this.state.finishInitGame ? (
-          <HUD displayMsg={this.state.displayMsg} displayExit={this.displayExit} setCameraPos={this.setCameraPos} areCameraControlsEnabled={this.state.areCameraControlsEnabled} gameEnd={this.state.gameEnd} fastforwardGame={this.fastforwardGame.bind(this)}/>
+          <HUD displayMsg={this.state.displayMsg} invalidMoveMsg={this.state.invalidMoveMsg} displayExit={this.displayExit} setCameraPos={this.setCameraPos} areCameraControlsEnabled={this.state.areCameraControlsEnabled} gameEnd={this.state.gameEnd} fastforwardGame={this.fastforwardGame.bind(this)}/>
         ) : (<div></div>)}
         <Game game={this.state.game} initFinish={this.initFinish} cameraControlsEnabled={this.cameraControlsEnabled} inputHandler={this.inputHandler} ref={this.outputHandler}/>
       </GameContainer>

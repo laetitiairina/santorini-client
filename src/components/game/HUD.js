@@ -86,6 +86,20 @@ const MessageLabel= styled(Label)`
   margin-top:20px;
 `;
 
+const InvalidMoveLabel= styled(Label)`
+  margin-top: 20px;
+  color: #ff0000;
+  animation: show 20s;
+
+  @keyframes show {
+    0% {transform: translateY(-100px);}
+    1% {transform: translateY(0px);}
+    9% {transform: translateY(0px);}
+    10% {transform: translateY(-100px);}
+    100% {transform: translateY(-100px);}
+  }
+`;
+
 const ErrorContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -148,6 +162,9 @@ class HUD extends React.Component {
   render() {
     return (
       <HUDOverlay>
+        {this.props.invalidMoveMsg ? (
+              <div style={{width:"100%",position:"absolute",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",zIndex:"10"}}><InvalidMoveLabel>{this.props.invalidMoveMsg}</InvalidMoveLabel></div>
+            ) : (<div></div>)}
         <Container>
           <ContainerTopLeft>
             {this.props.displayMsg ? (
