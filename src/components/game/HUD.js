@@ -155,21 +155,21 @@ class HUD extends React.Component {
             ) : (<div></div>)}
           </ContainerTopLeft>
           <ContainerTopMiddleRight>
-          <QuestionMarkButton onClick={() => {
+          <QuestionMarkButton disabled={this.props.gameEnd} onClick={() => {
               // TODO: Display Manual
             }}>
               ?
             </QuestionMarkButton>
           </ContainerTopMiddleRight>
           <ContainerTopRight>
-            <ExitButton onClick={() => {
+            <ExitButton disabled={this.props.gameEnd} onClick={() => {
               this.props.displayExit(true);
             }}>
               EXIT
             </ExitButton>
           </ContainerTopRight>
           <ContainerBottomLeft>
-            <FastForwardButton onClick={() => {
+            <FastForwardButton disabled={this.props.gameEnd} onClick={() => {
               this.props.fastforwardGame();
             }}>
               FAST-FORWARD
@@ -178,7 +178,7 @@ class HUD extends React.Component {
           <ContainerBottomRight>
           </ContainerBottomRight>
         </Container>
-        <ViewButtonTable areCameraControlsEnabled={this.props.areCameraControlsEnabled}>
+        <ViewButtonTable areCameraControlsEnabled={this.props.areCameraControlsEnabled && !this.props.gameEnd}>
           <tr>
             <td>
               <ViewButton onClick={() => {
