@@ -195,6 +195,32 @@ const RejoinButton = styled(Button2)`
   animation: ${props => props.activeGameAnimation || null} 1.5s forwards;
 `;
 
+// TODO: Delete after M3
+const TestWarningContainer = styled.div`
+  position:absolute;
+  right:10px;
+  top:10px;
+`;
+const TestWarningLabel= styled.div`
+  margin-top: 20px;
+  color: #fffff;
+  background-color: #3E5774;
+  animation: warning 15s;
+  font-size:12px;
+  width:150px;
+  padding: 10px;
+  border-radius: 5px;
+  font-family: "Arial",sans-serif;
+  transform: translateY(-500px);
+
+  @keyframes warning {
+    0% {transform: translateY(-500px);}
+    10% {transform: translateY(0px);}
+    90% {transform: translateY(0px);}
+    100% {transform: translateY(-500px);}
+  }
+`;
+
 class StartPage extends React.Component {
   constructor(props) {
     super(props);
@@ -429,6 +455,11 @@ class StartPage extends React.Component {
   render() {
     return (
         <Container>
+          <TestWarningContainer>
+            <TestWarningLabel>
+              <h2>M3</h2><p>For Testing:</p><p>It is recommended to use 2 different devices!</p>
+            </TestWarningLabel>
+          </TestWarningContainer>
           <ContainerLeft>
             {!this.state.loggedIn ? (
               <Login login={this.login.bind(this)} />
