@@ -162,6 +162,7 @@ const ControlsLabel = styled.button`
 // TODO: Delete this after M3
 const FastForwardButton = styled(Button)`
   pointer-events: all;
+  margin-bottom: 10px;
 `;
 
 class HUD extends React.Component {

@@ -221,6 +221,7 @@ class Game extends React.Component {
     this.container.appendChild(this.renderer.domElement);
 
     window.addEventListener( 'resize', this.onWindowResize, false );
+    window.addEventListener( 'orientationchange', this.onWindowResize, false );
     
     // raycaster
     
@@ -1534,7 +1535,7 @@ class Game extends React.Component {
   
   render() {
     return (
-      <div style={{position:"absolute",top:"0px",left:"0px",width: "100%", height: "100%",zIndex:"-1"}} ref={container => { this.container = container }} />
+      <div style={{position:"absolute",overflow:"hidden",top:"0px",left:"0px",width:"100%", height:"100%",zIndex:"-1"}} ref={container => { this.container = container }} />
     )
   }
 }
