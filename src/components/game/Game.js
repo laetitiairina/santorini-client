@@ -2,8 +2,10 @@ import React from "react";
 import * as THREE from "three";
 import DragControls from 'three-dragcontrols';
 import OrbitControls from 'three-orbitcontrols';
+import Sky from 'three-sky';
 import GodCardsData from "../../views/design/GodCardsData";
 import godCardsEnum from "../../helpers/godCardsEnum";
+import bgTexture from "../../views/design/background-gradient.png";
 
 class Game extends React.Component {
 
@@ -15,8 +17,14 @@ class Game extends React.Component {
     // TODO: update this
     this.implementedCards = [1,2,4];
     
+    this.fogColor = 0xF0F5F7;
+    this.skyScalar = 400;
+    this.sunSkyPos = new THREE.Vector3(-50,200,-100);
+    this.sunLightPos = new THREE.Vector3(-50,200,-100);
+    this.ambiLightColor = 0xffcccc;
+    this.hemiLightColor = 0xcccccc;
     this.cameraNear = 0.25;
-    this.cameraFar = 300;
+    this.cameraFar = 1000;
     this.cameraLookAtPos = new THREE.Vector3(0, 2, 0);
     this.cameraInitPos = new THREE.Vector3(50, 100, 500);
     this.cameraSelectPos = new THREE.Vector3(50, 100, 100);
@@ -32,15 +40,18 @@ class Game extends React.Component {
     this.cardsHorizontal = true;
     this.blockHeight = 3;
     this.blockSize = 4.5;
-    this.blockBagPos = new THREE.Vector3(0, this.blockHeight / 2, 17);
+    this.blockBagPos = new THREE.Vector3(-3, this.blockHeight / 2, 17);
     this.blockGeometries = [];
     this.blockMaterials = new Array(3).fill(new THREE.MeshPhongMaterial({ color: 0xaaaaaa, flatShading: true }));
-    this.domeBagPos = new THREE.Vector3(0, this.blockHeight / 2, 22);
+    this.domeBagPos = new THREE.Vector3(3, this.blockHeight / 2, 17);
     this.domeGeometry = new THREE.ConeBufferGeometry((this.blockSize-0.5*3)/2, this.blockHeight, 10);
-    this.domeMaterial = new THREE.MeshPhongMaterial({ color: 0x0000ff, flatShading: true });
+    //this.domeGeometry = new THREE.SphereBufferGeometry((this.blockSize-0.5*3)/2, 10, 5, 0, Math.PI*2, 0, Math.PI/2);
+    this.domeMaterial = new THREE.MeshPhongMaterial({ color: 0x2222ff, flatShading: true });
     this.blocks = [];
-    this.colorPreset = {"BLUE":"#4444ff","GREY":"#888888","WHITE":"#ffffff"};
-    this.initWorkerPos = new THREE.Vector3(10, 2, 17);
+    //this.colorPreset = {"BLUE":"#4444ff","GREY":"#888888","WHITE":"#ffffff"};
+    this.colorPreset = {"BLUE":"#207AB6","GREY":"#8E68A3","WHITE":"#65CBA6"};
+    //this.initWorkerPos = new THREE.Vector3(0, 2, 0);
+    this.workerHeight = 4;
     this.workerGeometry = new THREE.CylinderBufferGeometry(0,1,4,10);
     this.myWorkers = [];
     this.oppoWorkers = [];
@@ -62,6 +73,7 @@ class Game extends React.Component {
     this.playStartAnimation = -1;
     this.playInitAnimation = true;
     this.waterSpeed = 1.2;
+    this.animateWater = true;
     this.inputEnabled = false;
     
     this.ghostWorker = null;
@@ -77,12 +89,58 @@ class Game extends React.Component {
   }
 
   componentDidMount() {
+  
+    // day / night
+    
+    let hours = (new Date()).getHours();
+    if (hours < 8 || hours > 21) {
+      this.fogColor = 0x514141;
+      this.sunSkyPos.set(-50,10,-100);
+      this.sunLightPos.set(-50,150,-100);
+      this.ambiLightColor = 0xff4444;
+      this.hemiLightColor = 0x888888;
+    }
 
     // scene
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color( 0x60c0ff );
-    this.scene.fog = new THREE.Fog(0x60c0ff, 250, this.cameraFar);
+    //this.scene.background = new THREE.Color( 0xFEFFD8 );
+    //this.scene.background = new THREE.Color( 0x60c0ff );
+    //this.scene.fog = new THREE.Fog(0xFEFFD8, 250, 500);
+    this.scene.fog = new THREE.FogExp2(this.fogColor, 0.002);
+    
+    // sky
+    
+    this.sky = new Sky();
+    this.sky.scale.setScalar(this.skyScalar);
+    this.sky.material.uniforms["turbidity"].value = 5;
+    this.sky.material.uniforms["rayleigh"].value = 2;
+    this.sky.material.uniforms["luminance"].value = 1.1;
+    this.sky.material.uniforms["mieCoefficient"].value = 0.002;
+    this.sky.material.uniforms["mieDirectionalG"].value = 0.99;
+    this.sky.material.uniforms["sunPosition"].value.copy(this.sunSkyPos);
+    this.scene.add(this.sky);
+    
+    // lights
+
+    this.hemiLight = new THREE.HemisphereLight(this.hemiLightColor, 0x000000, 0.8);
+    this.scene.add( this.hemiLight );
+    
+    this.ambiLight = new THREE.AmbientLight(this.ambiLightColor, 0.4 );
+    this.scene.add( this.ambiLight );
+
+    this.dirLight = new THREE.DirectionalLight(0xffffff, 0.4);
+    this.dirLight.position.copy(this.sunLightPos);
+    this.dirLight.castShadow = true;
+    this.dirLight.shadow.mapSize.width = 2048;
+    this.dirLight.shadow.mapSize.height = 2048;
+    this.dirLight.shadow.camera.left = -50;
+    this.dirLight.shadow.camera.right = 50;
+    this.dirLight.shadow.camera.top = 50;
+    this.dirLight.shadow.camera.bottom = -50;
+    this.dirLight.shadow.camera.near = 1;
+    this.dirLight.shadow.camera.far = this.cameraFar;
+    this.scene.add(this.dirLight);
     
     // camera
     
@@ -104,35 +162,14 @@ class Game extends React.Component {
     this.cameraCurrentAction = this.cameraActions["init"];
     this.cameraCurrentAction.play();
     
-    // clock (for camera animation)
+    // clock (for animation)
     
     this.clock = new THREE.Clock();
-
-    // lights
-
-    this.hemiLight = new THREE.HemisphereLight( 0xcccccc, 0x000000, 0.8);
-    this.scene.add( this.hemiLight );
-
-    this.dirLight = new THREE.DirectionalLight( 0xffffff, 0.4);
-    this.dirLight.position.set( -50, 200, 200 );
-    this.dirLight.castShadow = true;
-    this.dirLight.shadow.mapSize.width = 2048;
-    this.dirLight.shadow.mapSize.height = 2048;
-    this.dirLight.shadow.camera.left = -50;
-    this.dirLight.shadow.camera.right = 50;
-    this.dirLight.shadow.camera.top = 50;
-    this.dirLight.shadow.camera.bottom = -50;
-    this.dirLight.shadow.camera.near = 1;
-    this.dirLight.shadow.camera.far = 500;
-    this.scene.add( this.dirLight );
-    
-    this.ambiLight = new THREE.AmbientLight( 0xffcccc, 0.4 );
-    this.scene.add( this.ambiLight );
 
     // water
     
     this.waterGeometry = new THREE.PlaneGeometry( 1000, 1000, 127, 127);
-    this.waterMaterial = new THREE.MeshPhongMaterial({ color: 0x60c0ff, flatShading: true });
+    this.waterMaterial = new THREE.MeshPhongMaterial({ color: 0x33A7C3, flatShading: true}); //0x60c0ff
     this.waterVertices = [];
     this.waterGeometry.rotateX( - Math.PI / 2 );
     this.waterGeometry.mergeVertices();
@@ -150,38 +187,74 @@ class Game extends React.Component {
     this.water.position.y = -10
     this.water.receiveShadow = true;
     this.scene.add( this.water );
+    // TODO: Handle loading time
+    let waterTextureLoader = new THREE.TextureLoader().load(bgTexture, (texture) => {
+      this.water.material = new THREE.MeshPhongMaterial({ flatShading: true, map: texture });
+    });
     
     // island
     
-    this.islandGeometry = new THREE.CylinderGeometry( 25, 35, 20, 10, 10 );
-    this.islandMaterial = new THREE.MeshPhongMaterial({vertexColors: THREE.FaceColors, flatShading: true });
+    //this.islandGeometry = new THREE.CylinderGeometry( 30, 40, 20, 10, 10 );
+    this.islandGeometry = new THREE.SphereGeometry(40, 32, 32);
+    this.islandMaterial = new THREE.MeshPhongMaterial({color: 0x967C57, flatShading: true });
     this.islandGeometry.mergeVertices();
-    this.islandGeometry.vertices.forEach((v) => {
-      v.x += -1 + Math.random()*2;
-      v.y += -1 + Math.random()*2;
-      v.z += -1 + Math.random()*2;
-    });
-    let islandColors = [0x44cc44,0x44ee44];
-    this.islandGeometry.faces.forEach((f) => {
-      f.color.setHex(islandColors[Math.floor(Math.random()*islandColors.length)]);
-    });
+    this._randomizeVertices(this.islandGeometry.vertices, 3, 30, 0);
     this.island = new THREE.Mesh( this.islandGeometry, this.islandMaterial);
-    this.island.position.y = -11.1;
+    //this.island.position.y = -11.1;
+    this.island.position.y = -30;
     this.island.receiveShadow = true;
     this.scene.add( this.island );
     
+    let nrOfRocks = Math.floor(Math.random()*4+2);
+    for(let i = 0; i < nrOfRocks; i++) {
+      let rockSize = Math.floor(Math.random()*12+6);
+      let rockDiv = Math.max(rockSize/2,4)
+      let rockPosAng = Math.random()*Math.PI*2;
+      let rockPosX = 32*Math.cos(rockPosAng);
+      let rockPosZ = 32*Math.sin(rockPosAng);
+      let rockPosY = Math.floor(Math.random()*5-rockSize-5);
+      this.rockGeometry = new THREE.SphereGeometry(rockSize, rockDiv, rockDiv);
+      this.rockMaterial = new THREE.MeshPhongMaterial({color: 0x7F7F7F, flatShading: true });
+      this.rockGeometry.mergeVertices();
+      this._randomizeVertices(this.rockGeometry.vertices, 4);
+      this.rock = new THREE.Mesh( this.rockGeometry, this.rockMaterial);
+      this.rock.position.set(rockPosX,rockPosY,rockPosZ);
+      this.rock.receiveShadow = true;
+      this.scene.add( this.rock );
+    }
+    
     // board
+    
+    let boardColorArr = [0x555555,0x777777];
+    for(let i = 0; i < 25; i++) {
+      this.board = new THREE.Mesh( new THREE.BoxBufferGeometry(5, 5, 5), new THREE.MeshPhongMaterial({ color: boardColorArr[i%2], flatShading: true }) );
+      this.board.position.set((i%5)*5-10,-2.4,Math.floor(i/5)*5-10);
+      this.board.receiveShadow = true;
+      this.scene.add( this.board );
+    }
+    
+    let nrOfMarks = Math.floor(Math.random()*25+25);
+    for(let i = 0; i < nrOfMarks; i++) {
+      this.boardMark = new THREE.Mesh( new THREE.BoxBufferGeometry(6, 0.2, 0.2), new THREE.MeshPhongMaterial({ color: 0x888888, flatShading: true }) );
+      this.boardMark.position.y = 0.2;
+      if(Math.random() > 0.5) {
+        this.boardMark.rotation.y = Math.PI / 2;
+        this.boardMark.position.x = Math.floor(Math.random()*6)*5-12.5;
+        this.boardMark.position.z = Math.floor(Math.random()*5)*5-10;
+      } else {
+        this.boardMark.position.x = Math.floor(Math.random()*5)*5-10;
+        this.boardMark.position.z = Math.floor(Math.random()*6)*5-12.5;
+      }
+      this.boardMark.receiveShadow = true;
+      this.scene.add( this.boardMark );
+    }
 
-    this.board = new THREE.Mesh( new THREE.BoxBufferGeometry( 25, 10 , 25 ), new THREE.MeshPhongMaterial({ color: 0x679012, flatShading: true }) );
-    //this.board.rotation.x = - Math.PI / 2;
-    this.board.position.y = -5;
-    this.board.receiveShadow = true;
-    this.scene.add( this.board );
-
+    /*
     this.grid = new THREE.GridHelper( 25, 5, 0x000000, 0x000000 );
     this.grid.material.opacity = 0.2;
     this.grid.material.transparent = true;
     this.scene.add( this.grid );
+    */
     
     // block geometries
     
@@ -194,7 +267,7 @@ class Game extends React.Component {
     
     // block bag (a simple block for now)
     
-    this.blockBag = new THREE.Mesh( this.blockGeometries[0], this.blockMaterials[0]);
+    this.blockBag = new THREE.Mesh(this.blockGeometries[0], this.blockMaterials[0]);
     this.blockBag.position.copy(this.blockBagPos);
     this.blockBag.castShadow = true;
     this.blockBag.receiveShadow = true;
@@ -203,7 +276,7 @@ class Game extends React.Component {
     
     // dome bag (a simple dome for now)
     
-    this.domeBag = new THREE.Mesh( this.domeGeometry, this.domeMaterial);
+    this.domeBag = new THREE.Mesh(this.domeGeometry, this.domeMaterial);
     this.domeBag.position.copy(this.domeBagPos);
     this.domeBag.castShadow = true;
     this.domeBag.receiveShadow = true;
@@ -258,7 +331,6 @@ class Game extends React.Component {
     
     // Start animation loop
     this.animate();
-    
   }
   
   // Get larger screen size
@@ -298,6 +370,20 @@ class Game extends React.Component {
       action.setLoop(THREE.LoopOnce);
     }
     return action;
+  }
+  
+  _randomizeVertices = (vertices,amount,min=null,max=null) => {
+    vertices.forEach((v) => {
+      v.x += -(amount/2) + Math.random()*amount;
+      v.y += -(amount/2) + Math.random()*amount;
+      v.z += -(amount/2) + Math.random()*amount;
+      if(min != null) {
+        v.y = Math.min(v.y,min);
+      }
+      if(max != null) {
+        v.y = Math.max(v.y,max);
+      }
+    });
   }
   
   // Functions called by GamePage (and this)
@@ -361,9 +447,9 @@ class Game extends React.Component {
       let worker = new THREE.Mesh(this.workerGeometry, new THREE.MeshPhongMaterial({color: this.colorPreset[player.color], flatShading: true}));
       
       if (player.id == this.props.game.players[0].id) {
-        worker.position.set(this.initWorkerPos.x - 3 * i - 17 * 0, this.initWorkerPos.y, this.initWorkerPos.z);
+        worker.position.set(15, this.workerHeight/2, -2.5-5*i);
       } else {
-        worker.position.set(this.initWorkerPos.x - 3 * i - 17 * 1, this.initWorkerPos.y, this.initWorkerPos.z);
+        worker.position.set(-15, this.workerHeight/2, 2.5+5*i);
       }
       
       worker.castShadow = true;
@@ -464,6 +550,7 @@ class Game extends React.Component {
   
   setGraphics = (high) => {
     this.dirLight.castShadow = high;
+    this.animateWater = high;
   }
   
   _getUsername = (player) => {
@@ -1452,20 +1539,22 @@ class Game extends React.Component {
     }
     
     // Animate water
-    this.water.geometry.vertices.forEach((v,i) => {
-      v.x = this.waterVertices[i].x + Math.cos(this.waterVertices[i].a) * this.waterVertices[i].A
-      v.y = this.waterVertices[i].y + Math.sin(this.waterVertices[i].a) * this.waterVertices[i].A
-      this.waterVertices[i].a += this.waterVertices[i].v*delta;
-    });
-    this.water.geometry.verticesNeedUpdate = true;
-    this.water.position.z -= this.waterSpeed*delta;
-    
-    // Reverse water if off screen
-    if ( (this.water.position.z <= (-500 + this.cameraFar) && this.waterSpeed > 0) || (this.water.position.z >= (500 - this.cameraFar) && this.waterSpeed < 0) ) {
-      this.waterSpeed *= -1;
+    if (this.animateWater) {
       this.water.geometry.vertices.forEach((v,i) => {
-        this.waterVertices[i].v *= -1;
+        v.x = this.waterVertices[i].x + Math.cos(this.waterVertices[i].a) * this.waterVertices[i].A
+        v.y = this.waterVertices[i].y + Math.sin(this.waterVertices[i].a) * this.waterVertices[i].A
+        this.waterVertices[i].a += this.waterVertices[i].v*delta;
       });
+      this.water.geometry.verticesNeedUpdate = true;
+      this.water.position.z -= this.waterSpeed*delta;
+      
+      // Reverse water if off screen
+      if ( (this.water.position.z <= (-500 + this.skyScalar) && this.waterSpeed > 0) || (this.water.position.z >= (500 - this.skyScalar) && this.waterSpeed < 0) ) {
+        this.waterSpeed *= -1;
+        this.water.geometry.vertices.forEach((v,i) => {
+          this.waterVertices[i].v *= -1;
+        });
+      }
     }
     
     // Animate camera
