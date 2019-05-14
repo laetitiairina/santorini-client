@@ -169,7 +169,7 @@ class Game extends React.Component {
     // water
     
     this.waterGeometry = new THREE.PlaneGeometry( 1000, 1000, 127, 127);
-    this.waterMaterial = new THREE.MeshPhongMaterial({ color: 0x33A7C3, flatShading: true}); //0x60c0ff
+    this.waterMaterial = new THREE.MeshPhongMaterial({ color: 0x33A7C3, flatShading: true }); //0x60c0ff
     this.waterVertices = [];
     this.waterGeometry.rotateX( - Math.PI / 2 );
     this.waterGeometry.mergeVertices();
@@ -187,10 +187,13 @@ class Game extends React.Component {
     this.water.position.y = -10
     this.water.receiveShadow = true;
     this.scene.add( this.water );
-    // TODO: Handle loading time
-    let waterTextureLoader = new THREE.TextureLoader().load(bgTexture, (texture) => {
-      this.water.material = new THREE.MeshPhongMaterial({ flatShading: true, map: texture });
-    });
+    if (this.props.preload) {
+      this.water.material = new THREE.MeshPhongMaterial({ flatShading: true, map: this.props.preload.waterTexture});
+    } else {
+      let waterTextureLoader = new THREE.TextureLoader().load(bgTexture, (texture) => {
+        this.water.material = new THREE.MeshPhongMaterial({ flatShading: true, map: texture });
+      });
+    }
     
     // island
     

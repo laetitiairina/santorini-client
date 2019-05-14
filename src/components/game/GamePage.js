@@ -567,7 +567,7 @@ class GamePage extends React.Component {
         {this.state.finishInitGame ? (
           <HUD displayMsg={this.state.displayMsg} invalidMoveMsg={this.state.invalidMoveMsg} displayExit={this.displayExit} setCameraPos={this.setCameraPos} setGraphics={this.setGraphics} areCameraControlsEnabled={this.state.areCameraControlsEnabled} gameEnd={this.state.gameEnd} fastforwardGame={this.fastforwardGame.bind(this)}/>
         ) : (<div></div>)}
-        <Game game={this.state.game} initFinish={this.initFinish} cameraControlsEnabled={this.cameraControlsEnabled} inputHandler={this.inputHandler} ref={this.outputHandler}/>
+        <Game game={this.state.game} preload={this.props.preload} initFinish={this.initFinish} cameraControlsEnabled={this.cameraControlsEnabled} inputHandler={this.inputHandler} ref={this.outputHandler}/>
       </GameContainer>
     );
   }
