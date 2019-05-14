@@ -29,7 +29,7 @@ const Contents =  styled.div`
  * https://reactjs.org/docs/components-and-props.html
  * @FunctionalComponent
  * */
-const ExitPopUp =  ({appears, displayExit, deinitGame, props}) => {
+const ExitPopUp = ({appears, displayExit, props}) => {
   return (
       <Popup modal open={appears} closeOnDocumentClick={false} contentStyle={{background: "transparent", color: "#E4F5B2", border: "0px"}}>
             <Container>
@@ -39,7 +39,6 @@ const ExitPopUp =  ({appears, displayExit, deinitGame, props}) => {
               </Contents>
                 <Button style={{margin:"20px"}}
                     onClick={() => {
-                      deinitGame();
                       props.history.push("/home");
                     }}
                 >

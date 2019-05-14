@@ -561,7 +561,7 @@ class GamePage extends React.Component {
     return (
       <GameContainer>
         <PopupContainer>
-          <ExitPopUp appears={this.state.chooseExit} displayExit={this.displayExit} deinitGame={this.deinitGame.bind(this)} props={this.props}/>
+          <ExitPopUp appears={this.state.chooseExit} displayExit={this.displayExit} props={this.props}/>
           <EndPopUp appears={this.state.gameEnd} endState={this.state.endState} props={this.props}/>
         </PopupContainer>
         {this.state.finishInitGame ? (
