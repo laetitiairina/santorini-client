@@ -9,6 +9,7 @@ import Login from "../../login/Login";
 import StartPage from "../../game/StartPage";
 import GamePage from "../../game/GamePage";
 import ErrorPage from "../pages/ErrorPage";
+import Credits from "../pages/Credits";
 
 /**
  * Main router of your application.
@@ -59,6 +60,13 @@ class AppRouter extends React.Component {
             exact
             render={() => (
               <div style={{textAlign:"center"}}>Registration coming soon!</div>
+            )}
+          />
+          <Route
+            path="/credits"
+            exact
+            render={() => (
+              <Credits />
             )}
           />
           <Route

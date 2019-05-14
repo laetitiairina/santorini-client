@@ -7,6 +7,9 @@ import styled from "styled-components";
  * Happy coding!
  * React Template by Lucas Pelloni
  */
+/**
+ * Game by SoPra FS19 Group 10
+ */
 class App extends Component {
   render() {
     return (

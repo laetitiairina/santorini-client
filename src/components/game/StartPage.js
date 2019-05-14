@@ -3,7 +3,7 @@ import styled, {keyframes} from "styled-components";
 import {BaseContainer} from "../../helpers/layout";
 import {getDomain} from "../../helpers/getDomain";
 import Player from "../../views/Player";
-import {withRouter} from "react-router-dom";
+import {withRouter, Link} from "react-router-dom";
 import {Button} from "../../views/design/Button"
 import {Button2} from "../../views/design/Button2"
 import {Slot} from "../../views/design/Slot"
@@ -194,6 +194,22 @@ const RejoinButton = styled(Button2)`
   visibility: ${props => props.activeGame ? "visible" : "hidden"};
 
   animation: ${props => props.activeGameAnimation || null} 1.5s forwards;
+`;
+
+const CreditsContainer = styled.div`
+  width: 100%;
+`;
+
+const CreditsLink = styled(Link)`
+  margin: 20px;
+  color:white;
+
+  &:hover {
+    color:green;
+  }
+  &:active {
+    color:white;
+  }
 `;
 
 // TODO: Delete after M3
@@ -481,6 +497,9 @@ class StartPage extends React.Component {
             ) : (
               <Users />
             )}
+            <CreditsContainer>
+              <CreditsLink to="/credits">Credits</CreditsLink>
+            </CreditsContainer>
           </ContainerLeft>
           <ContainerRight>
             <ModesContainer>
