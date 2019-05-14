@@ -117,7 +117,7 @@ class Game extends React.Component {
     this.sky.material.uniforms["rayleigh"].value = 2;
     this.sky.material.uniforms["luminance"].value = 1.1;
     this.sky.material.uniforms["mieCoefficient"].value = 0.002;
-    this.sky.material.uniforms["mieDirectionalG"].value = 0.99;
+    this.sky.material.uniforms["mieDirectionalG"].value = 0.93;
     this.sky.material.uniforms["sunPosition"].value.copy(this.sunSkyPos);
     this.scene.add(this.sky);
     

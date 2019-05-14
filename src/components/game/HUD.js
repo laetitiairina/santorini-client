@@ -170,13 +170,11 @@ class HUD extends React.Component {
     super(props);
 
     this.state = {
-      graphicsSetting:false
+      graphicsSetting:true
     };
   }
 
-  componentDidMount() {
-
-  }
+  componentDidMount() {}
   
   render() {
     return (
@@ -223,10 +221,10 @@ class HUD extends React.Component {
             </td>
             <td>
               <ViewButton disabled={this.props.gameEnd} onClick={() => {
-                this.setState({graphicsSetting:!this.state.graphicsSetting})
-                this.props.setGraphics(this.state.graphicsSetting);
+                this.props.setGraphics(!this.state.graphicsSetting);
+                this.setState({graphicsSetting:!this.state.graphicsSetting});
               }}>
-                {this.state.graphicsSetting ? ("LOW") : ("HIGH")}
+                {this.state.graphicsSetting ? ("HIGH") : ("LOW")}
               </ViewButton>
             </td>
           </tr>
