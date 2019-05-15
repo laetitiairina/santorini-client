@@ -7,7 +7,7 @@ class GamePreloader {
 
   constructor() {
     //THREE.Cache.enabled = true;
-    this.preloadContent = {waterTexture:null,blockGeometry0:null,blockGeometry1:null,blockGeometry2:null};
+    this.preloadContent = {waterTexture:null,blockGeometry0:null,blockGeometry1:null,blockGeometry2:null,workerGeometry:null};
     this.checkPreloadInterval = null;
   }
   
@@ -30,11 +30,14 @@ class GamePreloader {
       loaderSTL.load("./content/models/Top_1.1.stl", (geometry) => {
         this.preloadContent.blockGeometry2 = geometry;
       });
+      loaderSTL.load("./content/models/ogreout.stl", (geometry) => {
+        this.preloadContent.workerGeometry = geometry;
+      });
     });
   }
   
   checkResolve = (resolve) => {
-    if (this.preloadContent.waterTexture != null && this.preloadContent.blockGeometry0 != null && this.preloadContent.blockGeometry1 != null && this.preloadContent.blockGeometry2 != null) {
+    if (this.preloadContent.waterTexture != null && this.preloadContent.blockGeometry0 != null && this.preloadContent.blockGeometry1 != null && this.preloadContent.blockGeometry2 != null && this.preloadContent.workerGeometry != null) {
       clearInterval(this.checkPreloadInterval);
       resolve(this.preloadContent);
     }

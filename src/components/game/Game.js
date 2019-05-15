@@ -335,6 +335,7 @@ class Game extends React.Component {
       this._updateBlockGeometry(0,this.props.preload.blockGeometry0.clone());
       this._updateBlockGeometry(1,this.props.preload.blockGeometry1.clone());
       this._updateBlockGeometry(2,this.props.preload.blockGeometry2.clone());
+      this._updateWorkerGeometry(this.props.preload.workerGeometry.clone());
     } else {
       // Was not preloaded
       // water
@@ -352,6 +353,11 @@ class Game extends React.Component {
       });
       loader.load("./content/models/Top_1.1.stl", (geometry) => {
         this._updateBlockGeometry(2,geometry);
+      });
+      
+      // worker
+      loader.load("./content/models/ogreout.stl", (geometry) => {
+        this._updateWorkerGeometry(geometry);
       });
     }
     
@@ -395,6 +401,21 @@ class Game extends React.Component {
     block.position.set(0,this.blockHeight/2+this.blockHeight*nr,0);
     this.scene.add(block);
     */
+  }
+  
+  _updateWorkerGeometry = (geometry) => {
+    geometry.center();
+    geometry.rotateX(-Math.PI/2);
+    geometry.translate(0,2,0);
+    geometry.scale(0.05,0.07,0.05);
+    geometry.rotateY(-Math.PI/2);
+    this.workerGeometry = geometry;
+    this.myWorkers.forEach((worker) => {
+      worker.geometry = this.workerGeometry;
+    });
+    this.oppoWorkers.forEach((worker) => {
+      worker.geometry = this.workerGeometry;
+    });
   }
   
   // Get larger screen size
@@ -512,8 +533,10 @@ class Game extends React.Component {
       
       if (player.id == this.props.game.players[0].id) {
         worker.position.set(15, this.workerHeight/2, -2.5-5*i);
+        worker.rotation.y = -Math.PI/2;
       } else {
         worker.position.set(-15, this.workerHeight/2, 2.5+5*i);
+        worker.rotation.y = Math.PI/2;
       }
       
       worker.castShadow = true;
