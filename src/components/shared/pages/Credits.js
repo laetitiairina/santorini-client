@@ -18,6 +18,12 @@ const CreditsLabel = styled.label`
   text-align: center;
 `;
 
+const AttributionLabel = styled.label`
+  margin: 0px;
+  font-size: 12px;
+  text-transform: none;
+`;
+
 class Credits extends React.Component {
   render() {
     return (
@@ -32,8 +38,10 @@ class Credits extends React.Component {
             <p>Text</p>
             <p>Text</p>
           <h3>External Assets</h3>
-            <h4>3D Models</h4>
-              <p>Text</p>
+          <h4>3D Models</h4>
+          <AttributionLabel>
+            BASE BLOCK, MIDDLE BLOCK, TOP BLOCK: <a href="https://www.thingiverse.com/thing:2591325">Santorini</a> by <a href="https://www.thingiverse.com/Cinderella">Cinderella</a> is licensed under the <a href="http://creativecommons.org/licenses/by-sa/3.0/">Creative Commons - Attribution - Share Alike</a> license.
+          </AttributionLabel>
         </CreditsLabel>
         <Button onClick={() => {
           this.props.history.push("/home");
