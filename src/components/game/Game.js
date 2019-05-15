@@ -100,11 +100,7 @@ class Game extends React.Component {
     
     let hours = (new Date()).getHours();
     if (hours < 8 || hours > 21) {
-      this.fogColor = 0x514141;
-      this.sunSkyPos.set(-50,10,-100);
-      this.sunLightPos.set(-50,150,-100);
-      this.ambiLightColor = 0xff4444;
-      this.hemiLightColor = 0x888888;
+      this.setTime(true,false); // isNight=true, update=false
     }
 
     // scene
@@ -619,6 +615,29 @@ class Game extends React.Component {
   setGraphics = (high) => {
     this.dirLight.castShadow = high;
     this.animateWater = high;
+  }
+  
+  setTime = (isNight,update=true) => {
+    if (isNight) {
+      this.fogColor = 0x514141;
+      this.sunSkyPos.set(-50,10,-100);
+      this.sunLightPos.set(-50,150,-100);
+      this.ambiLightColor = 0xff4444;
+      this.hemiLightColor = 0x888888;
+    } else {
+      this.fogColor = 0xF0F5F7;
+      this.sunSkyPos.set(50,200,100);
+      this.sunLightPos.set(50,200,100);
+      this.ambiLightColor = 0xffcccc;
+      this.hemiLightColor = 0xcccccc;
+    }
+    if (update) {
+      this.scene.fog.color.setHex(this.fogColor);
+      this.sky.material.uniforms["sunPosition"].value.copy(this.sunSkyPos);
+      this.dirLight.position.copy(this.sunLightPos);
+      this.ambiLight.color.setHex(this.ambiLightColor);
+      this.hemiLight.color.setHex(this.hemiLightColor);
+    }
   }
   
   _getUsername = (player) => {

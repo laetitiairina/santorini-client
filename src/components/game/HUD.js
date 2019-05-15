@@ -171,6 +171,7 @@ class HUD extends React.Component {
 
     this.state = {
       graphicsSetting:true,
+      isNight:false,
       minimizeControls:false
     };
   }
@@ -178,6 +179,10 @@ class HUD extends React.Component {
   componentDidMount() {
     if (window.matchMedia("only screen and (max-width: 760px)").matches) {
       this.setState({minimizeControls:true});
+    }
+    let hours = (new Date()).getHours();
+    if (hours < 8 || hours > 21) {
+      this.setState({isNight:true});
     }
   }
   
@@ -241,7 +246,7 @@ class HUD extends React.Component {
                   </ControlsLabel>
                 </td>
                 <td>
-                  <ViewButton disabled={this.props.gameEnd} onClick={() => {
+                  <ViewButton onClick={() => {
                     this.props.setGraphics(!this.state.graphicsSetting);
                     this.setState({graphicsSetting:!this.state.graphicsSetting});
                   }}>
@@ -294,7 +299,14 @@ class HUD extends React.Component {
                 </td>
               </tr>
                 <tr>
-                <td></td>
+                <td>
+                  <ViewButton style={{backgroundColor:this.state.isNight ? "#222222" : "#dddddd"}} onClick={() => {
+                    this.props.setTime(!this.state.isNight);
+                    this.setState({isNight:!this.state.isNight});
+                  }}>
+                    {this.state.isNight ? ("NIGHT") : ("DAY")}
+                  </ViewButton>
+                </td>
                 <td>
                   <ViewButton onClick={() => {
                     this.props.setCameraPos("back");
