@@ -1608,6 +1608,8 @@ class Game extends React.Component {
     worker.userData.posY = field.posY;
     worker.userData.field = field;
     worker.userData.worker = field.worker;
+    worker.userData.amountOfBlocksBuilt = 0;
+    worker.userData.fieldLastBuiltOn = null;
   }
   
   playCameraAnimation = (key) => {
