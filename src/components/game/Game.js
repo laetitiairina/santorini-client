@@ -977,6 +977,11 @@ class Game extends React.Component {
           this.fields[posX][posZ] === worker.userData.fieldLastBuiltOn){
           flag = false;
         }
+        // Hephaestus - check that second block is on same field
+        if(this.frontendGodCardsCheck(6, true, false) && worker.userData.amountOfBlocksBuilt === 2 &&
+          this.fields[posX][posZ] !== worker.userData.fieldLastBuiltOn) {
+          flag = false;
+        }
       }
     });
     return flag;
@@ -1283,7 +1288,7 @@ class Game extends React.Component {
             blockField.push(myWorker.userData.fieldLastBuiltOn);
           }
           myWorker.userData.fieldLastBuiltOn = blockField[0];
-          if (this.frontendGodCardsCheck(5, true, false) && myWorker.userData.amountOfBlocksBuilt < 2) {
+          if (this.frontendGodCardsCheck(5, true, false || this.frontendGodCardsCheck(6, true, false)) && myWorker.userData.amountOfBlocksBuilt < 2) {
               break;
             }
           
