@@ -79,7 +79,7 @@ class Game extends React.Component {
     this.playStartAnimation = -1;
     this.playInitAnimation = true;
     this.waterSpeed = 1.2;
-    this.animateWater = true;
+    this.shouldAnimateWater = true;
     this.inputEnabled = false;
     
     this.ghostWorker = null;
@@ -361,6 +361,14 @@ class Game extends React.Component {
       });
     }
     
+    // Get stored graphics setting
+    if(localStorage.getItem('graphicsLevel') != null) {
+      this.setGraphics(Number(localStorage.getItem('graphicsLevel')));
+    }
+    
+    // Init water animation
+    this.animateWater(true,0.017);
+    
     // Start animation loop
     this.animate();
   }
@@ -635,9 +643,21 @@ class Game extends React.Component {
     }
   }
   
-  setGraphics = (high) => {
-    this.dirLight.castShadow = high;
-    this.animateWater = high;
+  setGraphics = (level) => {
+    switch (level) {
+      case 0:
+        this.dirLight.castShadow = false;
+        this.shouldAnimateWater = false;
+        break;
+      case 1:
+        this.dirLight.castShadow = true;
+        this.shouldAnimateWater = false;
+        break;
+      case 2:
+        this.dirLight.castShadow = true;
+        this.shouldAnimateWater = true;
+        break;
+    }
   }
   
   setTime = (isNight,update=true) => {
@@ -1638,18 +1658,8 @@ class Game extends React.Component {
     }
   }
   
-  animate = () => {
-    // animate
-    window.requestAnimationFrame(this.animate);
-    this.renderer.render(this.scene, this.camera);
-    
-    let delta = this.clock.getDelta()
-    if (delta > 1) {
-      delta = 1;
-    }
-    
-    // Animate water
-    if (this.animateWater) {
+  animateWater = (bool,delta) => {
+    if (bool) {
       this.water.geometry.vertices.forEach((v,i) => {
         v.x = this.waterVertices[i].x + Math.cos(this.waterVertices[i].a) * this.waterVertices[i].A
         v.y = this.waterVertices[i].y + Math.sin(this.waterVertices[i].a) * this.waterVertices[i].A
@@ -1666,6 +1676,20 @@ class Game extends React.Component {
         });
       }
     }
+  }
+  
+  animate = () => {
+    // animate
+    window.requestAnimationFrame(this.animate);
+    this.renderer.render(this.scene, this.camera);
+    
+    let delta = this.clock.getDelta()
+    if (delta > 1) {
+      delta = 1;
+    }
+    
+    // Animate water
+    this.animateWater(this.shouldAnimateWater,delta);
     
     // Animate camera
     // Update camera animation mixer

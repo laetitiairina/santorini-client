@@ -514,8 +514,9 @@ class GamePage extends React.Component {
   }
   
   // Change graphics setting
-  setGraphics = (high) => {
-    this.outputHandler.current.setGraphics(high);
+  setGraphics = (level) => {
+    this.outputHandler.current.setGraphics(level);
+    localStorage.setItem('graphicsLevel',level);
   }
   
   // Change time
