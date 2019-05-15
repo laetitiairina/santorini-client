@@ -7,6 +7,9 @@ import GodCardsData from "../../views/design/GodCardsData";
 import godCardsEnum from "../../helpers/godCardsEnum";
 import bgTexture from "../../views/design/background-gradient.png";
 
+//import STLLoader from 'three-stl-loader';
+const STLLoader = require('three-stl-loader')(THREE);
+
 class Game extends React.Component {
 
   constructor(props) {
@@ -19,8 +22,8 @@ class Game extends React.Component {
     
     this.fogColor = 0xF0F5F7;
     this.skyScalar = 400;
-    this.sunSkyPos = new THREE.Vector3(-50,200,-100);
-    this.sunLightPos = new THREE.Vector3(-50,200,-100);
+    this.sunSkyPos = new THREE.Vector3(50,200,100);
+    this.sunLightPos = new THREE.Vector3(50,200,100);
     this.ambiLightColor = 0xffcccc;
     this.hemiLightColor = 0xcccccc;
     this.cameraNear = 0.25;
@@ -43,9 +46,12 @@ class Game extends React.Component {
     this.blockBagPos = new THREE.Vector3(-3, this.blockHeight / 2, 17);
     this.blockGeometries = [];
     this.blockMaterials = new Array(3).fill(new THREE.MeshPhongMaterial({ color: 0xaaaaaa, flatShading: true }));
+    //this.blockMaterials = [new THREE.MeshPhongMaterial({ color: 0xaaaaaa, flatShading: true }),new THREE.MeshPhongMaterial({ color: 0xbbbbbb, flatShading: true }),new THREE.MeshPhongMaterial({ color: 0xcccccc, flatShading: true })]
     this.domeBagPos = new THREE.Vector3(3, this.blockHeight / 2, 17);
-    this.domeGeometry = new THREE.ConeBufferGeometry((this.blockSize-0.5*3)/2, this.blockHeight, 10);
-    //this.domeGeometry = new THREE.SphereBufferGeometry((this.blockSize-0.5*3)/2, 10, 5, 0, Math.PI*2, 0, Math.PI/2);
+    //this.domeGeometry = new THREE.ConeBufferGeometry((this.blockSize-0.5*3)/2, this.blockHeight, 10);
+    this.domeGeometry = new THREE.SphereBufferGeometry((this.blockSize-0.5*3)/2, 8, 5, 0, Math.PI*2, 0, Math.PI/2);
+    this.domeGeometry.rotateY(Math.PI/8);
+    this.domeGeometry.translate(0.1,-1.5,-0.4);
     this.domeMaterial = new THREE.MeshPhongMaterial({ color: 0x2222ff, flatShading: true });
     this.blocks = [];
     //this.colorPreset = {"BLUE":"#4444ff","GREY":"#888888","WHITE":"#ffffff"};
@@ -187,13 +193,6 @@ class Game extends React.Component {
     this.water.position.y = -10
     this.water.receiveShadow = true;
     this.scene.add( this.water );
-    if (this.props.preload) {
-      this.water.material = new THREE.MeshPhongMaterial({ flatShading: true, map: this.props.preload.waterTexture});
-    } else {
-      let waterTextureLoader = new THREE.TextureLoader().load(bgTexture, (texture) => {
-        this.water.material = new THREE.MeshPhongMaterial({ flatShading: true, map: texture });
-      });
-    }
     
     // island
     
@@ -332,8 +331,74 @@ class Game extends React.Component {
     this.dragControlsBlock.enabled = false;
     this.dragControlsBlock.deactivate();
     
+    // preload
+    
+    if (this.props.preload) {
+      // Was preloaded
+      this.water.material = new THREE.MeshPhongMaterial({ flatShading: true, map: this.props.preload.waterTexture});
+      this._updateBlockGeometry(0,this.props.preload.blockGeometry0.clone());
+      this._updateBlockGeometry(1,this.props.preload.blockGeometry1.clone());
+      this._updateBlockGeometry(2,this.props.preload.blockGeometry2.clone());
+    } else {
+      // Was not preloaded
+      // water
+      let waterTextureLoader = new THREE.TextureLoader().load(bgTexture, (texture) => {
+        this.water.material = new THREE.MeshPhongMaterial({ flatShading: true, map: texture });
+      });
+      
+      // blocks
+      let loader = new STLLoader();
+      loader.load("./content/models/Base_1.1.stl", (geometry) => {
+        this._updateBlockGeometry(0,geometry);
+      });
+      loader.load("./content/models/Middle_1.1.stl", (geometry) => {
+        this._updateBlockGeometry(1,geometry);
+      });
+      loader.load("./content/models/Top_1.1.stl", (geometry) => {
+        this._updateBlockGeometry(2,geometry);
+      });
+    }
+    
     // Start animation loop
     this.animate();
+  }
+  
+  _updateBlockGeometry = (nr,geometry) => {
+    switch (nr) {
+      case 0:
+        geometry.center();
+        geometry.rotateX(-Math.PI/2);
+        geometry.rotateZ(Math.PI/6);
+        geometry.scale(0.075,0.075,0.075);
+        geometry.rotateY(Math.PI);
+        this.blockBag.geometry = geometry;
+        break;
+      case 1:
+        geometry.center();
+        geometry.rotateX(-Math.PI/2);
+        geometry.translate(3.7,1,0);
+        geometry.scale(0.075,0.075,0.075);
+        geometry.rotateY(Math.PI);
+        break;
+      case 2:
+        geometry.center();
+        geometry.rotateX(-Math.PI/2);
+        geometry.translate(-1.3,0.7,5);
+        geometry.scale(0.075,0.095,0.075);
+        geometry.rotateY(Math.PI);
+        break;
+    }
+    this.blockGeometries[nr] = geometry;
+    this.blocks.forEach((block) => {
+      if(block.position.y == this.blockHeight / 2 + this.blockHeight * nr) {
+        block.geometry = this.blockGeometries[nr];
+      }
+    });
+    /*
+    let block = new THREE.Mesh(this.blockGeometries[nr], this.blockMaterials[nr]);
+    block.position.set(0,this.blockHeight/2+this.blockHeight*nr,0);
+    this.scene.add(block);
+    */
   }
   
   // Get larger screen size
