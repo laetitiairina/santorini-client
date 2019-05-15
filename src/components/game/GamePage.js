@@ -518,6 +518,11 @@ class GamePage extends React.Component {
     this.outputHandler.current.setGraphics(high);
   }
   
+  // Change time
+  setTime = (isNight) => {
+    this.outputHandler.current.setTime(isNight);
+  }
+  
   // M3: Fast-forward
   // TODO: Delete after M3
   // Fast-forward current game
@@ -561,13 +566,13 @@ class GamePage extends React.Component {
     return (
       <GameContainer>
         <PopupContainer>
-          <ExitPopUp appears={this.state.chooseExit} displayExit={this.displayExit} deinitGame={this.deinitGame.bind(this)} props={this.props}/>
+          <ExitPopUp appears={this.state.chooseExit} displayExit={this.displayExit} props={this.props}/>
           <EndPopUp appears={this.state.gameEnd} endState={this.state.endState} props={this.props}/>
         </PopupContainer>
         {this.state.finishInitGame ? (
-          <HUD displayMsg={this.state.displayMsg} invalidMoveMsg={this.state.invalidMoveMsg} displayExit={this.displayExit} setCameraPos={this.setCameraPos} setGraphics={this.setGraphics} areCameraControlsEnabled={this.state.areCameraControlsEnabled} gameEnd={this.state.gameEnd} fastforwardGame={this.fastforwardGame.bind(this)}/>
+          <HUD displayMsg={this.state.displayMsg} invalidMoveMsg={this.state.invalidMoveMsg} displayExit={this.displayExit} setCameraPos={this.setCameraPos} setGraphics={this.setGraphics} setTime={this.setTime} areCameraControlsEnabled={this.state.areCameraControlsEnabled} gameEnd={this.state.gameEnd} fastforwardGame={this.fastforwardGame.bind(this)}/>
         ) : (<div></div>)}
-        <Game game={this.state.game} initFinish={this.initFinish} cameraControlsEnabled={this.cameraControlsEnabled} inputHandler={this.inputHandler} ref={this.outputHandler}/>
+        <Game game={this.state.game} preload={this.props.preload} initFinish={this.initFinish} cameraControlsEnabled={this.cameraControlsEnabled} inputHandler={this.inputHandler} ref={this.outputHandler}/>
       </GameContainer>
     );
   }

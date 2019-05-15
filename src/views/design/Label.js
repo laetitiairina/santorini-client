@@ -13,7 +13,7 @@ export const Label = styled.div`
   border-radius: 10px;
   cursor: ${props => (props.disabled ? "default" : "pointer")};
   opacity: ${props => (props.disabled ? 0.4 : 1)};
-  background: #1059ff;
+  background: #2CA1C2; /* #1059ff */
   background-image: url(${backgroundGradient});
   background-position: center;
   animation: move 1s ease-in infinite alternate;

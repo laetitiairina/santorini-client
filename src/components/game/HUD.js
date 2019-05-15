@@ -170,12 +170,20 @@ class HUD extends React.Component {
     super(props);
 
     this.state = {
-      graphicsSetting:false
+      graphicsSetting:true,
+      isNight:false,
+      minimizeControls:false
     };
   }
 
   componentDidMount() {
-
+    if (window.matchMedia("only screen and (max-width: 760px)").matches) {
+      this.setState({minimizeControls:true});
+    }
+    let hours = (new Date()).getHours();
+    if (hours < 8 || hours > 21) {
+      this.setState({isNight:true});
+    }
   }
   
   render() {
@@ -214,78 +222,109 @@ class HUD extends React.Component {
           <ContainerBottomRight>
           </ContainerBottomRight>
         </Container>
-        <ViewButtonTable areCameraControlsEnabled={this.props.areCameraControlsEnabled && !this.props.gameEnd}>
-          <tr>
-            <td colspan="2">
-              <ControlsLabel>
-                GRAPHICS:
-              </ControlsLabel>
-            </td>
-            <td>
-              <ViewButton disabled={this.props.gameEnd} onClick={() => {
-                this.setState({graphicsSetting:!this.state.graphicsSetting})
-                this.props.setGraphics(this.state.graphicsSetting);
-              }}>
-                {this.state.graphicsSetting ? ("LOW") : ("HIGH")}
-              </ViewButton>
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <ViewButton onClick={() => {
-                this.props.setCameraPos("side");
-              }}>
-                SIDE
-              </ViewButton>
-            </td>
-            <td>
-              <ViewButton onClick={() => {
-                this.props.setCameraPos("front");
-              }}>
-                FRONT
-              </ViewButton>
-            </td>
-            <td>
-              <ControlsLabel style={{width:"50px",paddingLeft:"0px",paddingRight:"0px"}}>
-                CAM
-              </ControlsLabel>
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <ViewButton onClick={() => {
-                this.props.setCameraPos("left");
-              }}>
-                LEFT
-              </ViewButton>
-            </td>
-            <td>
-              <ViewButton onClick={() => {
-                this.props.setCameraPos("top");
-              }}>
-                TOP
-              </ViewButton>
-            </td>
-            <td>
-              <ViewButton onClick={() => {
-                this.props.setCameraPos("right");
-              }}>
-                RIGHT
-              </ViewButton>
-            </td>
-          </tr>
-            <tr>
-            <td></td>
-            <td>
-              <ViewButton onClick={() => {
-                this.props.setCameraPos("back");
-              }}>
-                BACK
-              </ViewButton>
-            </td>
-            <td></td>
-          </tr>
-        </ViewButtonTable>
+        {this.state.minimizeControls ? (
+          <ViewButtonTable areCameraControlsEnabled={this.props.areCameraControlsEnabled && !this.props.gameEnd}>
+            <tbody>
+              <tr>
+                <td>
+                  <ViewButton onClick={() => {
+                    this.setState({minimizeControls:false});
+                  }}>
+                    &#9881;
+                  </ViewButton>
+                </td>
+              </tr>
+            </tbody>
+          </ViewButtonTable>
+        ) :(
+          <ViewButtonTable areCameraControlsEnabled={this.props.areCameraControlsEnabled && !this.props.gameEnd}>
+            <tbody>
+              <tr>
+                <td colSpan="2">
+                  <ControlsLabel>
+                    GRAPHICS:
+                  </ControlsLabel>
+                </td>
+                <td>
+                  <ViewButton onClick={() => {
+                    this.props.setGraphics(!this.state.graphicsSetting);
+                    this.setState({graphicsSetting:!this.state.graphicsSetting});
+                  }}>
+                    {this.state.graphicsSetting ? ("HIGH") : ("LOW")}
+                  </ViewButton>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <ViewButton onClick={() => {
+                    this.props.setCameraPos("side");
+                  }}>
+                    SIDE
+                  </ViewButton>
+                </td>
+                <td>
+                  <ViewButton onClick={() => {
+                    this.props.setCameraPos("front");
+                  }}>
+                    FRONT
+                  </ViewButton>
+                </td>
+                <td>
+                  <ControlsLabel style={{width:"50px",paddingLeft:"0px",paddingRight:"0px"}}>
+                    CAM
+                  </ControlsLabel>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <ViewButton onClick={() => {
+                    this.props.setCameraPos("left");
+                  }}>
+                    LEFT
+                  </ViewButton>
+                </td>
+                <td>
+                  <ViewButton onClick={() => {
+                    this.props.setCameraPos("top");
+                  }}>
+                    TOP
+                  </ViewButton>
+                </td>
+                <td>
+                  <ViewButton onClick={() => {
+                    this.props.setCameraPos("right");
+                  }}>
+                    RIGHT
+                  </ViewButton>
+                </td>
+              </tr>
+                <tr>
+                <td>
+                  <ViewButton style={{backgroundColor:this.state.isNight ? "#222222" : "#dddddd"}} onClick={() => {
+                    this.props.setTime(!this.state.isNight);
+                    this.setState({isNight:!this.state.isNight});
+                  }}>
+                    {this.state.isNight ? ("NIGHT") : ("DAY")}
+                  </ViewButton>
+                </td>
+                <td>
+                  <ViewButton onClick={() => {
+                    this.props.setCameraPos("back");
+                  }}>
+                    BACK
+                  </ViewButton>
+                </td>
+                <td>
+                  <ViewButton style={{backgroundColor:"#777777"}} onClick={() => {
+                    this.setState({minimizeControls:true});
+                  }}>
+                    Close
+                  </ViewButton>
+                </td>
+              </tr>
+            </tbody>
+          </ViewButtonTable>
+        )}
       </HUDOverlay>
     );
   }

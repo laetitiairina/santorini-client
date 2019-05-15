@@ -14,7 +14,9 @@
     "styled-components": "^4.1.2",
     "three": "^0.103.0",
     "three-dragcontrols": "^0.88.2",
-    "three-orbitcontrols": "^2.102.1"
+    "three-orbitcontrols": "^2.102.1",
+    "three-sky": "^1.1.1",
+    "three-stl-loader": "^1.0.6"
   },
   "scripts": {
     "dev": "react-scripts start",

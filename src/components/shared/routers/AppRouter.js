@@ -9,6 +9,7 @@ import Login from "../../login/Login";
 import StartPage from "../../game/StartPage";
 import GamePage from "../../game/GamePage";
 import ErrorPage from "../pages/ErrorPage";
+import Credits from "../pages/Credits";
 
 /**
  * Main router of your application.
@@ -20,6 +21,18 @@ import ErrorPage from "../pages/ErrorPage";
  * Documentation about routing in React: https://reacttraining.com/react-router/web/guides/quick-start
  */
 class AppRouter extends React.Component {
+  constructor(props) {
+    super(props);
+    
+    this.state = {
+      preload: null
+    }
+  }
+  
+  updatePreload = (content) => {
+    this.setState({preload:content});
+  }
+
   render() {
     return (
       <BrowserRouter>
@@ -29,7 +42,7 @@ class AppRouter extends React.Component {
             render={() => (
               <GameGuard>
                 {/*<GameRouter base={"/game"} />*/}
-                <GamePage />
+                <GamePage preload={this.state.preload} />
               </GameGuard>
             )}
           />
@@ -50,12 +63,19 @@ class AppRouter extends React.Component {
             )}
           />
           <Route
+            path="/credits"
+            exact
+            render={() => (
+              <Credits />
+            )}
+          />
+          <Route
             path="/home"
             exact
             render={() => (
               <div>
                 <Header height={"100"} />
-                <StartPage />
+                <StartPage preload={this.state.preload} updatePreload={this.updatePreload.bind(this)} />
               </div>
             )} />
           <Route path="/" exact render={() => <Redirect to={"/home"} />} />

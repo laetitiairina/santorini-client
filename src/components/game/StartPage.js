@@ -3,7 +3,7 @@ import styled, {keyframes} from "styled-components";
 import {BaseContainer} from "../../helpers/layout";
 import {getDomain} from "../../helpers/getDomain";
 import Player from "../../views/Player";
-import {withRouter} from "react-router-dom";
+import {withRouter, Link} from "react-router-dom";
 import {Button} from "../../views/design/Button"
 import {Button2} from "../../views/design/Button2"
 import {Slot} from "../../views/design/Slot"
@@ -11,6 +11,7 @@ import {Spinner} from "../../views/design/Spinner"
 import {init, animate} from '../../components/game/Prototype'
 import Login from "../login/Login";
 import Users from "../login/Users";
+import GamePreloader from "./GamePreloader";
 
 const Container = styled(BaseContainer)`
   color: white;
@@ -195,6 +196,22 @@ const RejoinButton = styled(Button2)`
   animation: ${props => props.activeGameAnimation || null} 1.5s forwards;
 `;
 
+const CreditsContainer = styled.div`
+  width: 100%;
+`;
+
+const CreditsLink = styled(Link)`
+  margin: 20px;
+  color:white;
+
+  &:hover {
+    color:green;
+  }
+  &:active {
+    color:white;
+  }
+`;
+
 // TODO: Delete after M3
 const TestWarningContainer = styled.div`
   position:absolute;
@@ -243,7 +260,8 @@ class StartPage extends React.Component {
       animationText: "normal",
       loaderStrip: "#2167AC",
       activeGame: false,
-      activeGameAnimation: null
+      activeGameAnimation: null,
+      isRejoining: false
     };
   }
   
@@ -339,7 +357,6 @@ class StartPage extends React.Component {
     })
     // Handle resolved or rejected Promise form startPolling
     .then(result => {
-    
       // Game was found
       // Stop polling
       clearInterval(this.poller);
@@ -356,8 +373,7 @@ class StartPage extends React.Component {
         loaderStrip: "#2167AC"
       });
       
-      // Redirect to game page
-      setTimeout(() => this.props.history.push("/game"), 2000);
+      this.startGame();
       
       },
       rejected => {
@@ -451,6 +467,21 @@ class StartPage extends React.Component {
   componentWillUnmount() {
     clearInterval(this.poller);
   }
+  
+  startGame = (delay=2000) => {
+    // Start game
+    if (this.props.preload) {
+      // Redirect to game page
+      setTimeout(() => this.props.history.push("/game"), delay);
+    } else {
+      // Preload textures and models then redirect to game page
+      let gamePreloader = new GamePreloader();
+      gamePreloader.preload().then((content) => {
+        this.props.updatePreload(content);
+        setTimeout(() => this.props.history.push("/game"), delay/2);
+      });
+    }
+  }
 
   render() {
     return (
@@ -466,6 +497,9 @@ class StartPage extends React.Component {
             ) : (
               <Users />
             )}
+            <CreditsContainer>
+              <CreditsLink to="/credits">Credits</CreditsLink>
+            </CreditsContainer>
           </ContainerLeft>
           <ContainerRight>
             <ModesContainer>
@@ -536,10 +570,11 @@ class StartPage extends React.Component {
               {this.state.activeGame ? (
                 <RejoinButton activeGame={this.state.activeGame} activeGameAnimation={this.state.activeGameAnimation}
                   onClick={() => {
-                    this.props.history.push("/game");
+                    this.setState({isRejoining:true});
+                    this.startGame(0);
                   }}
                 >
-                  Rejoin Game
+                  {this.state.isRejoining ? (<div style={{textAlign:"center",justifyContent:"center",display:"flex",position:"absolute",margin:"auto",width:"100px",height:"100px",left:"-15px",top:"3px"}}><Spinner /></div>) : (<div>Rejoin Game</div>)}
                 </RejoinButton>
               ) : (<div></div>)}
             </RejoinContainer>
