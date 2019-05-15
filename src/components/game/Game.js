@@ -1252,8 +1252,6 @@ class Game extends React.Component {
               }
             });
 
-            console.log(myWorker.userData);
-
             if (event.object.name == "domeBag") {
               
               // Create dome
@@ -1288,8 +1286,7 @@ class Game extends React.Component {
           if (this.frontendGodCardsCheck(5, true, false) && myWorker.userData.amountOfBlocksBuilt < 2) {
               break;
             }
-            else
-
+          
             // Send input to GamePage
             this.props.inputHandler("board",blockField);
             break;
