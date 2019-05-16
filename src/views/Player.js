@@ -1,5 +1,4 @@
 import React from "react";
-import circle from "./design/circle.png";
 import styled from "styled-components";
 
 const Container = styled.div`
@@ -39,7 +38,7 @@ const Player = ({ user }) => {
     <Container>
       <UserName>{user.username}</UserName>
       <Symbol>
-        <img src={circle} alt={"Online"} width={"20px"} height={"auto"}/>
+        {/*<img src={circle} alt={"Online"} width={"20px"} height={"auto"}/>*/}
       </Symbol>
     </Container>
   );

@@ -5,7 +5,7 @@ import OrbitControls from 'three-orbitcontrols';
 import Sky from 'three-sky';
 import GodCardsData from "../../views/design/GodCardsData";
 import godCardsEnum from "../../helpers/godCardsEnum";
-import bgTexture from "../../views/design/background-gradient.png";
+import bgTexture from "../../views/design/background-gradient.jpeg";
 
 //import STLLoader from 'three-stl-loader';
 const STLLoader = require('three-stl-loader')(THREE);

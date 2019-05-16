@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import bgTexture from "../../views/design/background-gradient.png";
+import bgTexture from "../../views/design/background-gradient.jpeg";
 import GodCardsData from "../../views/design/GodCardsData";
 
 const STLLoader = require('three-stl-loader')(THREE);

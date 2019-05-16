@@ -5,7 +5,6 @@ import {Button} from "../../views/design/Button";
 import {withRouter} from "react-router-dom";
 import {getDomain} from "../../helpers/getDomain";
 import ExitPopUp from "./ExitPopUp";
-import ChooseColorPopUp from "./ChooseColorPopUp";
 import EndPopUp from "./EndPopUp";
 import {Spinner} from "../../views/design/Spinner";
 import Game from "./Game";
