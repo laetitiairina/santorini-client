@@ -205,7 +205,7 @@ class HUD extends React.Component {
           </ContainerTopLeft>
           <ContainerTopMiddleRight>
           <QuestionMarkButton disabled={this.props.gameEnd} onClick={() => {
-              // TODO: Display game manual
+              window.open("https://roxley.com/wp-content/uploads/2016/08/Santorini-Rulebook-Web-2016.08.14.pdf");
             }}>
               ?
             </QuestionMarkButton>
