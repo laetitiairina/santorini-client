@@ -168,9 +168,11 @@ const FastForwardButton = styled(Button)`
 class HUD extends React.Component {
   constructor(props) {
     super(props);
+    
+    this.graphicsTextEnum = {0:["LOW","#44aaff"],1:["MID","#4488ff"],2:["HIGH","#4455ff"]};
 
     this.state = {
-      graphicsSetting:true,
+      graphicsLevel:2,
       isNight:false,
       minimizeControls:false
     };
@@ -183,6 +185,9 @@ class HUD extends React.Component {
     let hours = (new Date()).getHours();
     if (hours < 8 || hours > 21) {
       this.setState({isNight:true});
+    }
+    if(localStorage.getItem('graphicsLevel') != null) {
+      this.setState({graphicsLevel:Number(localStorage.getItem('graphicsLevel'))});
     }
   }
   
@@ -200,7 +205,7 @@ class HUD extends React.Component {
           </ContainerTopLeft>
           <ContainerTopMiddleRight>
           <QuestionMarkButton disabled={this.props.gameEnd} onClick={() => {
-              // TODO: Display game manual
+              window.open("https://roxley.com/wp-content/uploads/2016/08/Santorini-Rulebook-Web-2016.08.14.pdf");
             }}>
               ?
             </QuestionMarkButton>
@@ -246,11 +251,11 @@ class HUD extends React.Component {
                   </ControlsLabel>
                 </td>
                 <td>
-                  <ViewButton onClick={() => {
-                    this.props.setGraphics(!this.state.graphicsSetting);
-                    this.setState({graphicsSetting:!this.state.graphicsSetting});
+                  <ViewButton style={{backgroundColor:this.graphicsTextEnum[this.state.graphicsLevel][1]}} onClick={() => {
+                    this.props.setGraphics((this.state.graphicsLevel+1)%3);
+                    this.setState({graphicsLevel:(this.state.graphicsLevel+1)%3});
                   }}>
-                    {this.state.graphicsSetting ? ("HIGH") : ("LOW")}
+                    {this.graphicsTextEnum[this.state.graphicsLevel][0]}
                   </ViewButton>
                 </td>
               </tr>
