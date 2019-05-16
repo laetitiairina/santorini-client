@@ -41,6 +41,7 @@ class Game extends React.Component {
     this.selectCardDelta = 5; // Has to be bigger than 0
     this.cards = [];
     this.cardsHorizontal = true;
+    this.nameTags = [];
     this.blockHeight = 3;
     this.blockSize = 4.5;
     this.blockBagPos = new THREE.Vector3(-3, this.blockHeight / 2, 17);
@@ -63,8 +64,14 @@ class Game extends React.Component {
     this.oppoWorkers = [];
     this.indicators = [];
     this.indicatorGeometry = new THREE.CylinderBufferGeometry(0,1,4,10);
-    this.indicatorMaterialAction = new THREE.MeshPhongMaterial({color: 0x00ff00, flatShading: true});
-    this.indicatorMaterialShow = new THREE.MeshPhongMaterial({color: 0xffff00, flatShading: true});
+    this.indicatorMaterialAction = new THREE.MeshPhongMaterial({ color: 0x00ff00, flatShading: true });
+    this.indicatorMaterialShow = new THREE.MeshPhongMaterial({ color: 0xffff00, flatShading: true });
+    this.cardGeometry = new THREE.BoxBufferGeometry(5,0.1,10);
+    this.cardMaterial = new THREE.MeshPhongMaterial({ color: 0x888888, flatShading: true });
+    this.nameTagGeometry = new THREE.CylinderBufferGeometry(2,2,1,10);
+    this.nameTagMaterial = new THREE.MeshPhongMaterial({ color: 0x888888, flatShading: true });
+    this.confirmButtonGeometry = new THREE.BoxBufferGeometry( 4, 0.5, 2 );
+    this.confirmButtonMaterial = new THREE.MeshPhongMaterial({ color: 0x888888, flatShading: true });
     this.mouse = new THREE.Vector2();
     this.blockDraged = false;
     this.fields = {};
@@ -281,6 +288,23 @@ class Game extends React.Component {
     this.domeBag.name = "domeBag";
     this.scene.add( this.domeBag );
     
+    // card geometry
+    
+    this.cardGeometry = new THREE.SphereGeometry(5,10,10);
+    this.cardGeometry.mergeVertices();
+    this._randomizeVertices(this.cardGeometry.vertices, 2, 0.5, -0.5);
+    this.cardGeometry.scale(0.6,1,1);
+    
+    // confirm button geometry
+    
+    this.confirmButtonGeometry = this.cardGeometry.clone();
+    this.confirmButtonGeometry.scale(0.7,1,0.2);
+    
+    // name tag geometry
+    
+    this.nameTagGeometry = this.cardGeometry.clone();
+    this.nameTagGeometry.scale(0.8,1,0.5);
+    
     // renderer
 
     this.renderer = new THREE.WebGLRenderer({ antialias: false, alpha:true });
@@ -492,71 +516,95 @@ class Game extends React.Component {
         return;
       }
     
-      // Display name tag
-      let textureNameTag = new THREE.CanvasTexture(this._canvasTextTexture(this._getUsername(player),10,100,40));
-      let nameTag = new THREE.Mesh( new THREE.BoxBufferGeometry( 5, 0.1, 2 ), new THREE.MeshPhongMaterial({ color: 0xffffff, flatShading: true, map: textureNameTag }) );
-      nameTag.position.set( 20 - 40 * i, 0, -5 + 10 * i );
-      nameTag.rotation.y = Math.PI / 2 - Math.PI*i;
-      this.scene.add( nameTag );
-    
       // Display card of players
-      let textureCard = new THREE.CanvasTexture(this._canvasCardTexture(godCardsEnum[player.card]));
-      let card = new THREE.Mesh( new THREE.BoxBufferGeometry( 5, 0.1, 10 ), new THREE.MeshPhongMaterial({ color: 0xccaa11, flatShading: true, map: textureCard }) );
+      //let textureCard = new THREE.CanvasTexture(this._canvasCardTexture(godCardsEnum[player.card]));
+      //let card = new THREE.Mesh( this.cardGeometry, new THREE.MeshPhongMaterial({ color: 0xccaa11, flatShading: true, map: textureCard }) );
+      let card = new THREE.Mesh( this.cardGeometry, this.cardMaterial );
       card.position.set( 20 - 40 * i, 0, 5 - 10 * i );
       card.rotation.y = Math.PI / 2 - Math.PI*i;
       card.castShadow = true;
       card.receiveShadow = true;
       card.name = godCardsEnum[player.card];
-      this.scene.add( card );
-      this.cards.push( card );
+      this.scene.add(card);
+      this.cards.push(card);
+      // Add text
+      this._addCardText(card, godCardsEnum[player.card]);
     });
   }
   
-  // Initialize workers of one player next to board
-  // (call once for each player after color was selected)
-  // nr represents the order ( so if COLOR1 was selected -> nr=1)
+  // Initialize workers of one player next to board (including name tag)
   initWorkers = () => {
     if (this.myWorkers.length > 0 && this.oppoWorkers.length > 0) {
       return;
     }
     
-    this.props.game.players.forEach((player) => {
+    this.props.game.players.forEach((player,i) => {
       if (player.color) {
         if (player.id == localStorage.getItem('player_id')){
           if (this.myWorkers.length == 0) {
-            this._initWorkers(player,this.myWorkers);
+            this._initWorkers(player,i,this.myWorkers);
+            this._initNameTag(player,i);
           }
         } else {
           if (this.oppoWorkers.length == 0) {
-            this._initWorkers(player,this.oppoWorkers);
+            this._initWorkers(player,i,this.oppoWorkers);
+            this._initNameTag(player,i);
           }
         }
       }
     });
   }
   
-  _initWorkers = (player,arr) => {
-    for ( let i = 0; i < 2; i++ ) {
+  _initWorkers = (player,i,arr) => {
+    for ( let j = 0; j < 2; j++ ) {
       let worker = new THREE.Mesh(this.workerGeometry, new THREE.MeshPhongMaterial({color: this.colorPreset[player.color], flatShading: true}));
       
-      if (player.id == this.props.game.players[0].id) {
-        worker.position.set(15, this.workerHeight/2, -2.5-5*i);
-        worker.rotation.y = -Math.PI/2;
-      } else {
-        worker.position.set(-15, this.workerHeight/2, 2.5+5*i);
-        worker.rotation.y = Math.PI/2;
-      }
+      worker.position.set(15-30*i, this.workerHeight/2, (-2.5+5*i)+(-5+10*i)*j);
+      worker.rotation.y = -Math.PI/2 + Math.PI*i;
       
       worker.castShadow = true;
       worker.receiveShadow = true;
       this.scene.add( worker );
-      worker.userData = {"worker":player.workers[i],"field":null,"onBoard":false,"posX":null,"posY":null};
+      worker.userData = {"worker":player.workers[j],"field":null,"onBoard":false,"posX":null,"posY":null};
       
       arr.push( worker );
     }
   }
   
-  showIndicators = (move, build, bags=true) => {
+  _initNameTag = (player,i) => {
+    //let textureNameTag = new THREE.CanvasTexture(this._canvasTextTexture(this._getUsername(player),10,100,40));
+    //let nameTag = new THREE.Mesh( new THREE.BoxBufferGeometry( 5, 0.1, 2 ), new THREE.MeshPhongMaterial({ color: 0xffffff, flatShading: true, map: textureNameTag }) );
+    let nameTag = new THREE.Mesh( this.nameTagGeometry, new THREE.MeshPhongMaterial({color: this.colorPreset[player.color], flatShading: true}));
+    
+    nameTag.position.set( 20 - 40 * i, 0, -5 + 10 * i );
+    nameTag.rotation.y = Math.PI / 2 - Math.PI*i;
+    
+    nameTag.castShadow = true;
+    nameTag.receiveShadow = true;
+    this.scene.add(nameTag);
+    this.nameTags.push(nameTag);
+    this._addText(nameTag,this._getUsername(player),0xdddddd,-0.3);
+  }
+  
+  _getUsername = (player) => {
+    let username = [];
+  
+    if(player.id == localStorage.getItem('player_id')) {
+      username.push("YOU");
+    } else {
+      username.push("ENEMY");
+    }
+    
+    if(player.username != null) {
+      username.push("("+player.username+")");
+    } else {
+      username.push("(GUEST)");
+    }
+    
+    return username;
+  }
+  
+  _showIndicators = (move, build, bags=true) => {
     this.indicators.forEach((indicator) => {
       indicator.userData = null;
       this.scene.remove(indicator);
@@ -683,20 +731,7 @@ class Game extends React.Component {
     }
   }
   
-  _getUsername = (player) => {
-    let username = "GUEST";
-    
-    if(player.username != null) {
-      username = player.username;
-    }
-  
-    if(player.id == localStorage.getItem('player_id')) {
-      username = "YOU";
-    }
-    
-    return username;
-  }
-  
+  /*
   _setupCanvas = (width,height) => {
     let canvas = document.createElement("canvas");
     let ctx = canvas.getContext('2d');
@@ -745,31 +780,70 @@ class Game extends React.Component {
     }
     return draw["canvas"];
   }
+  */
+  
+  _addLine = (obj,font,line,i,color,size=3,offsetZ=-2) => {
+    let geometry = new THREE.TextBufferGeometry(line, {
+      font: font,
+      size: size,
+      height: 2,
+      curveSegments:1
+    });
+    geometry.center();
+    geometry.rotateX(-Math.PI/2);
+    geometry.scale(0.1,0.1,0.1);
+    let text = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ color: color, flatShading: true}));
+    text.position.y = 0.5;
+    text.position.z = i*0.7+offsetZ;
+    obj.add(text);
+  }
+  
+  _addText = (obj,text,color,offsetZ=0) => {
+    let textLoader = new THREE.FontLoader();
+    textLoader.load("./content/fonts/helvetiker_bold.typeface.json", (font) => {
+      text.forEach((line,i) => {
+        this._addLine(obj,font,line,i,color,5-2*i,offsetZ);
+      });
+    });
+  }
+  
+  _addCardText = (card, nr) => {
+    let textLoader = new THREE.FontLoader();
+    textLoader.load("./content/fonts/helvetiker_bold.typeface.json", (font) => {
+      this._addLine(card,font,GodCardsData[nr].name,-2,0x333333,5);
+      GodCardsData[nr].text.forEach((line,i) => {
+        this._addLine(card,font,line,i,0x333333);
+      });
+    });
+  }
   
   _displayCard = (posX,posY,posZ, nr) => {
-    // Display card
-    let texture = new THREE.CanvasTexture(this._canvasCardTexture(nr));
-    let card = new THREE.Mesh( new THREE.BoxBufferGeometry( 5, 0.1, 10 ), new THREE.MeshPhongMaterial({ color: 0xccaa11, flatShading: true, map: texture }) );
-    card.rotation.x = - Math.PI / 2;
+    //let texture = new THREE.CanvasTexture(this._canvasCardTexture(nr));
+    //let card = new THREE.Mesh( this.cardGeometry, new THREE.MeshPhongMaterial({ color: 0xccaa11, flatShading: true, map: texture }) );
+    let card = new THREE.Mesh( this.cardGeometry, this.cardMaterial );
+    card.rotation.x = Math.PI / 2;
     card.position.set(posX,posY,posZ);
     card.name = nr;
-    this.camera.add( card );
-    this.cards.push( card );
+    this.camera.add(card);
+    this.cards.push(card);
+    // Add text
+    this._addCardText(card, nr);
   }
   
   _displayConfirmButton = (posX,posY,posZ) => {
-    // Display confirm button
-    let texture = new THREE.CanvasTexture(this._canvasTextTexture("Confirm",15,128,64));
+    //let texture = new THREE.CanvasTexture(this._canvasTextTexture("Confirm",15,128,64));
     
-    let confirmMaterials = new Array(6).fill(new THREE.MeshPhongMaterial({ flatShading: true}));
-    confirmMaterials[3] = new THREE.MeshPhongMaterial({ flatShading: true, map: texture });
+    //let confirmMaterials = new Array(6).fill(new THREE.MeshPhongMaterial({ flatShading: true}));
+    //confirmMaterials[3] = new THREE.MeshPhongMaterial({ flatShading: true, map: texture });
     
-    let confirmButton = new THREE.Mesh(new THREE.BoxBufferGeometry( 4, 2, 2 ), confirmMaterials);
-    confirmButton.rotation.x = - Math.PI / 2;
+    //let confirmButton = new THREE.Mesh(new THREE.BoxBufferGeometry( 4, 2, 2 ), confirmMaterials);
+    let confirmButton = new THREE.Mesh(this.confirmButtonGeometry, this.confirmButtonMaterial);
+    confirmButton.rotation.x = Math.PI / 2;
     confirmButton.position.set(posX,posY,posZ);
     confirmButton.name = "confirm";
     confirmButton.visible = false;
-    this.camera.add( confirmButton );
+    this.camera.add(confirmButton);
+    this._addText(confirmButton,["Confirm"],0x333333);
   }
   
   _displayIndicator = (pos, material) => {
@@ -788,19 +862,20 @@ class Game extends React.Component {
     this.indicators.push(indicator);
   }
   
-  _displayUsernames = (posX,posY,posZ, username) => {
-    // Display card
-    let texture = new THREE.CanvasTexture(this._canvasTextTexture(username,15,128,64));
-    let usernameTag = new THREE.Mesh( new THREE.BoxBufferGeometry( 8, 0.1, 4 ), new THREE.MeshPhongMaterial({ color: 0xffffff, flatShading: true, map: texture }) );
-    usernameTag.position.set(posX,posY,posZ);
-    usernameTag.rotation.x = - Math.PI / 2;
-    usernameTag.name = "select";
-    if(username == "YOU") {
-      usernameTag.userData = {"level":"player","data":{isCurrentPlayer:true}};
+  _displayStartPlayers = (posX,posY,posZ, username) => {
+    //let texture = new THREE.CanvasTexture(this._canvasTextTexture(username,15,128,64));
+    //let usernameTag = new THREE.Mesh( new THREE.BoxBufferGeometry( 8, 0.1, 4 ), new THREE.MeshPhongMaterial({ color: 0xffffff, flatShading: true, map: texture }) );
+    let nameTag = new THREE.Mesh(this.nameTagGeometry, this.nameTagMaterial);
+    nameTag.position.set(posX,posY,posZ);
+    nameTag.rotation.x = Math.PI / 2;
+    nameTag.name = "select";
+    if(username[0] == "YOU") {
+      nameTag.userData = {"level":"player","data":{isCurrentPlayer:true}};
     } else {
-      usernameTag.userData = {"level":"opponent","data":{isCurrentPlayer:true}};
+      nameTag.userData = {"level":"opponent","data":{isCurrentPlayer:true}};
     }
-    this.camera.add( usernameTag );
+    this.camera.add(nameTag);
+    this._addText(nameTag,username,0xdddddd,-0.3);
   }
   
   _displayColors = (posX,posY,posZ, color) => {
@@ -883,7 +958,7 @@ class Game extends React.Component {
     
     // Display both usernames
     this.props.game.players.forEach((player,i) => {
-      this._displayUsernames(-5+10*i, 0, this.selectDis, this._getUsername(player));
+      this._displayStartPlayers(-5+10*i, 0, this.selectDis, this._getUsername(player));
     });
     
     // Make sure everything fits on the screen
@@ -1029,7 +1104,7 @@ class Game extends React.Component {
     this.controls.enabled = false;
     this.inputEnabled = false;
     
-    this.showIndicators(false,false);
+    this._showIndicators(false,false);
     
     this.draged = true;
     
@@ -1084,7 +1159,7 @@ class Game extends React.Component {
     //if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
       // Reset position of worker
       event.object.position.copy(this.dragedWorkerInitPos);
-      this.showIndicators(true,false);
+      this._showIndicators(true,false);
     } else {
       // Worker was placed on board
       event.object.position.x = posX;
@@ -1121,7 +1196,7 @@ class Game extends React.Component {
             // Send input to GamePage
             this.props.inputHandler("board",workerFields);
           } else {
-            this.showIndicators(true,false);
+            this._showIndicators(true,false);
           }
           
           break;
@@ -1166,7 +1241,7 @@ class Game extends React.Component {
     this.controls.enabled = false;
     this.inputEnabled = false;
     
-    this.showIndicators(false,true,false);
+    this._showIndicators(false,true,false);
     
     this.draged = true;
     
@@ -1245,7 +1320,7 @@ class Game extends React.Component {
     // Worker outside field
     //if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
       // Invalid action
-      this.showIndicators(false,true);
+      this._showIndicators(false,true);
     } else {
       switch(this.props.game.status) {
           case "BUILD":
@@ -1330,12 +1405,47 @@ class Game extends React.Component {
         case "CARDS2":
         case "STARTPLAYER":
         case "COLOR1":
+          // Check if obj was clicked, then move it back
+          if (obj.position.z == this.selectCardDis && obj.name && (obj.name == "confirm" || !isNaN(obj.name))) {
+            obj.position.z = obj.position.z-this.selectDelta;
+          } else if (obj.name == "select") {
+            obj.position.z = this.selectDis-this.selectDelta;
+          }
+          break;
         case "COLOR2":
           // Check if obj was clicked, then move it back
           if (obj.position.z == this.selectCardDis && obj.name && (obj.name == "confirm" || !isNaN(obj.name))) {
             obj.position.z = obj.position.z-this.selectDelta;
           } else if (obj.name == "select") {
             obj.position.z = this.selectDis-this.selectDelta;
+          }
+          this.props.game.players.forEach((player) => {
+            if (player.id == localStorage.getItem('player_id') && player.isCurrentPlayer) {
+              return;
+            }
+          });
+        case "POSITION1":
+        case "POSITION2":
+        case "MOVE":
+        case "BUILD":
+          // Remove card or name tag in front of camera
+          if (this.camera.getObjectByName("displayCard") != null) {
+              this.camera.remove(this.camera.getObjectByName("displayCard"));
+              this.cards.forEach((card) => {
+                card.visible = true;
+              });
+              this.nameTags.forEach((nameTag) => {
+                nameTag.visible = true;
+              });
+          }
+          // Display card or name tag in front of camera if clicked
+          if ((this.cards.includes(obj) || this.nameTags.includes(obj)) && obj.visible && this.camera.getObjectByName("displayCard") == null) {
+              let displayCard = obj.clone();
+              displayCard.name = "displayCard";
+              displayCard.position.set(0,0,-20);
+              displayCard.rotation.set(Math.PI/2,0,0);
+              this.camera.add(displayCard);
+              obj.visible = false;
           }
           break;
       }
@@ -1439,34 +1549,8 @@ class Game extends React.Component {
           break;
         case "STARTPLAYER":
         case "COLOR1":
-          this.handleSelect(obj);
-          break;
         case "COLOR2":
           this.handleSelect(obj);
-          this.props.game.players.forEach((player) => {
-            if (player.id == localStorage.getItem('player_id') && player.isCurrentPlayer) {
-              return;
-            }
-          });
-        case "POSITION1":
-        case "POSITION2":
-        case "MOVE":
-        case "BUILD":
-          // Display card in front of camera if clicked
-          if (this.cards.includes(obj) && obj.visible && this.scene.getObjectByName("displayCard") == null) {
-              let displayCard = obj.clone();
-              displayCard.name = "displayCard";
-              displayCard.position.set(0,0,-20);
-              displayCard.rotation.set(- Math.PI / 2,0,0);
-              this.camera.add(displayCard);
-              obj.visible = false;
-          }
-          if (obj.name == "displayCard") {
-              this.camera.remove(obj);
-              this.cards.forEach((card) => {
-                card.visible = true;
-              });
-          }
           break;
       }
     }
@@ -1523,7 +1607,7 @@ class Game extends React.Component {
     }
     
     // Show indicators
-    this.showIndicators(this.dragControlsWorker.enabled,this.dragControlsBlock.enabled);
+    this._showIndicators(this.dragControlsWorker.enabled,this.dragControlsBlock.enabled);
   }
   
   updateFields = (field) => {
@@ -1654,7 +1738,7 @@ class Game extends React.Component {
       // Enable controls after camera animation
       this.setControls(true,true,true); // lookAround=true,select=true,move=true
       // Show indicators
-      this.showIndicators(this.dragControlsWorker.enabled,this.dragControlsBlock.enabled);
+      this._showIndicators(this.dragControlsWorker.enabled,this.dragControlsBlock.enabled);
     }
   }
   
