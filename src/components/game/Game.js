@@ -17,8 +17,6 @@ class Game extends React.Component {
     
     // Have move and build validity check in frontend (this)
     this.frontendCheck = true;
-    // TODO: update this
-    this.implementedCards = [1,2,4];
     
     this.fogColor = 0xF0F5F7;
     this.skyScalar = 400;
@@ -40,6 +38,7 @@ class Game extends React.Component {
     this.selectDelta = 1;
     this.selectCardDelta = 5; // Has to be bigger than 0
     this.cards = [];
+    this.cardsText = [new THREE.Group(),new THREE.Group(),new THREE.Group(),new THREE.Group(),new THREE.Group(),new THREE.Group(),new THREE.Group(),new THREE.Group(),new THREE.Group(),new THREE.Group()] //new Array(10).fill(new THREE.Group());
     this.cardsHorizontal = true;
     this.nameTags = [];
     this.blockHeight = 3;
@@ -47,7 +46,7 @@ class Game extends React.Component {
     this.blockBagPos = new THREE.Vector3(-3, this.blockHeight / 2, 17);
     this.blockGeometries = [];
     this.blockMaterials = new Array(3).fill(new THREE.MeshPhongMaterial({ color: 0xaaaaaa, flatShading: true }));
-    //this.blockMaterials = [new THREE.MeshPhongMaterial({ color: 0xaaaaaa, flatShading: true }),new THREE.MeshPhongMaterial({ color: 0xbbbbbb, flatShading: true }),new THREE.MeshPhongMaterial({ color: 0xcccccc, flatShading: true })]
+    //[new THREE.MeshPhongMaterial({ color: 0xaaaaaa, flatShading: true }),new THREE.MeshPhongMaterial({ color: 0xbbbbbb, flatShading: true }),new THREE.MeshPhongMaterial({ color: 0xcccccc, flatShading: true })]
     this.domeBagPos = new THREE.Vector3(3, this.blockHeight / 2, 17);
     //this.domeGeometry = new THREE.ConeBufferGeometry((this.blockSize-0.5*3)/2, this.blockHeight, 10);
     this.domeGeometry = new THREE.SphereBufferGeometry((this.blockSize-0.5*3)/2, 8, 5, 0, Math.PI*2, 0, Math.PI/2);
@@ -72,6 +71,7 @@ class Game extends React.Component {
     this.nameTagMaterial = new THREE.MeshPhongMaterial({ color: 0x888888, flatShading: true });
     this.confirmButtonGeometry = new THREE.BoxBufferGeometry( 4, 0.5, 2 );
     this.confirmButtonMaterial = new THREE.MeshPhongMaterial({ color: 0x888888, flatShading: true });
+    this.font = null;
     this.mouse = new THREE.Vector2();
     this.blockDraged = false;
     this.fields = {};
@@ -360,6 +360,10 @@ class Game extends React.Component {
       this._updateBlockGeometry(1,this.props.preload.blockGeometry1.clone());
       this._updateBlockGeometry(2,this.props.preload.blockGeometry2.clone());
       this._updateWorkerGeometry(this.props.preload.workerGeometry.clone());
+      for ( let i = 1; i <= 10; i++ ) {
+        this.cardsText[i-1].add(this.props.preload.cardsText[i]);
+      }
+      this.font = this.props.preload.font;
     } else {
       // Was not preloaded
       // water
@@ -382,6 +386,20 @@ class Game extends React.Component {
       // worker
       loader.load("./content/models/ogreout.stl", (geometry) => {
         this._updateWorkerGeometry(geometry);
+      });
+      
+      // cards
+      let textLoader = new THREE.FontLoader();
+      textLoader.load("./content/fonts/helvetiker_bold.typeface.json", (font) => {
+        this.font = font;
+        for ( let nr = 1; nr <= 10; nr++ ) {
+          let cardText = new THREE.Group();
+          this._addLine(cardText,font,GodCardsData[nr].name,-2,0x333333,5);
+          GodCardsData[nr].text.forEach((line,i) => {
+            this._addLine(cardText,font,line,i,0x333333);
+          });
+          this.cardsText[nr-1].add(cardText);
+        }
       });
     }
     
@@ -522,13 +540,14 @@ class Game extends React.Component {
       let card = new THREE.Mesh( this.cardGeometry, this.cardMaterial );
       card.position.set( 20 - 40 * i, 0, 5 - 10 * i );
       card.rotation.y = Math.PI / 2 - Math.PI*i;
-      card.castShadow = true;
-      card.receiveShadow = true;
       card.name = godCardsEnum[player.card];
       this.scene.add(card);
       this.cards.push(card);
       // Add text
-      this._addCardText(card, godCardsEnum[player.card]);
+      //this._addCardText(card, godCardsEnum[player.card]);
+      card.add(this.cardsText[godCardsEnum[player.card]-1]);
+      card.castShadow = true;
+      card.receiveShadow = true;
     });
   }
   
@@ -800,13 +819,20 @@ class Game extends React.Component {
   
   _addText = (obj,text,color,offsetZ=0) => {
     let textLoader = new THREE.FontLoader();
-    textLoader.load("./content/fonts/helvetiker_bold.typeface.json", (font) => {
+    if (this.font != null) {
       text.forEach((line,i) => {
-        this._addLine(obj,font,line,i,color,5-2*i,offsetZ);
+        this._addLine(obj,this.font,line,i,color,5-2*i,offsetZ);
       });
-    });
+    } else {
+      textLoader.load("./content/fonts/helvetiker_bold.typeface.json", (font) => {
+        text.forEach((line,i) => {
+          this._addLine(obj,font,line,i,color,5-2*i,offsetZ);
+        });
+      });
+    }
   }
   
+  /*
   _addCardText = (card, nr) => {
     let textLoader = new THREE.FontLoader();
     textLoader.load("./content/fonts/helvetiker_bold.typeface.json", (font) => {
@@ -816,6 +842,7 @@ class Game extends React.Component {
       });
     });
   }
+  */
   
   _displayCard = (posX,posY,posZ, nr) => {
     //let texture = new THREE.CanvasTexture(this._canvasCardTexture(nr));
@@ -827,7 +854,8 @@ class Game extends React.Component {
     this.camera.add(card);
     this.cards.push(card);
     // Add text
-    this._addCardText(card, nr);
+    //this._addCardText(card, nr);
+    card.add(this.cardsText[nr-1]);
   }
   
   _displayConfirmButton = (posX,posY,posZ) => {
@@ -947,6 +975,9 @@ class Game extends React.Component {
     let con = this.camera.getObjectByName("confirm");
     this.camera.remove(con);
     this.cards.forEach((card) => {
+      while(card.children.length) {
+        card.remove(card.children[0]);
+      }
       this.camera.remove(card);
     })
     this.cards = [];
