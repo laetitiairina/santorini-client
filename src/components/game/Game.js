@@ -1288,7 +1288,7 @@ class Game extends React.Component {
             blockField.push(myWorker.userData.fieldLastBuiltOn);
           }
           myWorker.userData.fieldLastBuiltOn = blockField[0];
-          if (this.frontendGodCardsCheck(5, true, false || this.frontendGodCardsCheck(6, true, false)) && myWorker.userData.amountOfBlocksBuilt < 2) {
+          if ((this.frontendGodCardsCheck(5, true, false) || this.frontendGodCardsCheck(6, true, false)) && myWorker.userData.amountOfBlocksBuilt < 2) {
               break;
             }
           
