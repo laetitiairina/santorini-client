@@ -584,7 +584,7 @@ class Game extends React.Component {
       worker.castShadow = true;
       worker.receiveShadow = true;
       this.scene.add( worker );
-      worker.userData = {"worker":player.workers[j],"field":null,"onBoard":false,"posX":null,"posY":null};
+      worker.userData = {"worker":player.workers[i],"field":null,"onBoard":false,"posX":null,"posY":null, "fieldLastBuiltOn":null, "amountOfBlocksBuilt":0};
       
       arr.push( worker );
     }
@@ -1098,6 +1098,16 @@ class Game extends React.Component {
         if (Math.abs((posZ+10)-(Math.floor(worker.position.z)+10)) > 6) {
           flag = false;
         }
+        //Demeter - check that second block not on same level
+        if (this.frontendGodCardsCheck(5, true, false) && worker.userData.amountOfBlocksBuilt === 2 &&
+          this.fields[posX][posZ] === worker.userData.fieldLastBuiltOn){
+          flag = false;
+        }
+        // Hephaestus - check that second block is on same field
+        if(this.frontendGodCardsCheck(6, true, false) && worker.userData.amountOfBlocksBuilt === 2 &&
+          this.fields[posX][posZ] !== worker.userData.fieldLastBuiltOn) {
+          flag = false;
+        }
       }
     });
     return flag;
@@ -1354,18 +1364,25 @@ class Game extends React.Component {
       this._showIndicators(false,true);
     } else {
       switch(this.props.game.status) {
-          case "BUILD":
+        case "BUILD":
             // Get number of blocks on field before
             let blockNr = this.fields[posX][posZ].blocks;
             let blockField = [];
-          
-            // Get new field of worker
+            let myWorker = null;
+
+            // Get new field of worker <-- ?? block ??
             this.props.game.board.fields.forEach((field) => {
               if(field.posX == this.posEnum[posX] && field.posY == this.posEnum[posZ]) {
                 blockField.push(field);
+                this.myWorkers.forEach((worker) => {
+                  if (worker.userData.worker.isCurrentWorker) {
+                    myWorker = worker;
+                    worker.userData.amountOfBlocksBuilt++;
+                  }
+                });
               }
             });
-          
+
             if (event.object.name == "domeBag") {
               
               // Create dome
@@ -1392,6 +1409,15 @@ class Game extends React.Component {
               }
             }
 
+            //Demeter can place two blocks TODO: add button to skip building second block
+          if(this.frontendGodCardsCheck(5, true, false) && myWorker.userData.amountOfBlocksBuilt === 2){
+            blockField.push(myWorker.userData.fieldLastBuiltOn);
+          }
+          myWorker.userData.fieldLastBuiltOn = blockField[0];
+          if ((this.frontendGodCardsCheck(5, true, false) || this.frontendGodCardsCheck(6, true, false)) && myWorker.userData.amountOfBlocksBuilt < 2) {
+              break;
+            }
+          
             // Send input to GamePage
             this.props.inputHandler("board",blockField);
             break;
@@ -1719,6 +1745,8 @@ class Game extends React.Component {
     worker.userData.posY = field.posY;
     worker.userData.field = field;
     worker.userData.worker = field.worker;
+    worker.userData.amountOfBlocksBuilt = 0;
+    worker.userData.fieldLastBuiltOn = null;
   }
   
   playCameraAnimation = (key) => {
