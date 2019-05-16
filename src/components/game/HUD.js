@@ -3,7 +3,6 @@ import styled from "styled-components";
 import {BaseContainer} from "../../helpers/layout";
 import {Button} from "../../views/design/Button";
 import {Label} from "../../views/design/Label";
-import {Spinner} from "../../views/design/Spinner";
 
 const Container = styled(BaseContainer)`
   color: white;
@@ -98,19 +97,6 @@ const InvalidMoveLabel= styled(Label)`
     10% {transform: translateY(-100px);}
     100% {transform: translateY(-100px);}
   }
-`;
-
-const ErrorContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-`;
-
-const ErrorLabel = styled.label`
-  color: #FF0000;
-  margin: 50px;
-  text-transform: uppercase;
 `;
 
 const ViewButtonTable = styled.table`

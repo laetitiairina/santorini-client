@@ -6,37 +6,15 @@ import {withRouter} from "react-router-dom";
 import {getDomain} from "../../helpers/getDomain";
 import ExitPopUp from "./ExitPopUp";
 import EndPopUp from "./EndPopUp";
-import {Spinner} from "../../views/design/Spinner";
 import Game from "./Game";
 import statusEnum from "../../helpers/statusEnum";
 import HUD from "./HUD";
-
-const Container = styled(BaseContainer)`
-  color: white;
-  text-align: center;
-  justify-content: left;
-`;
-
-const ButtonContainer = styled(BaseContainer)`
-  position: absolute;
-  right: 100px;
-  overflow: hidden;
-  color: #3E5774;
-`;
 
 const PopupContainer = styled.div`
 
 `;
 
 const GameContainer = styled.div`
-
-`;
-
-const ExitButton = styled(Button)`
-
-`;
-
-const QuestionMarkButton = styled(Button)`
 
 `;
 
@@ -84,7 +62,7 @@ class GamePage extends React.Component {
   
   startPolling(url, fields) {
     return new Promise((resolve, reject) => {
-      this.poller = setInterval(() => this.poll(url, fields, resolve, reject), 100)
+      this.poller = setInterval(() => this.poll(url, fields, resolve, reject), 1000)
     });
   }
 

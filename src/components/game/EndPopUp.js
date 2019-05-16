@@ -53,16 +53,12 @@ function result (state) {
   switch (state) {
     case "WON":
       return "CONGRATULATIONS, YOU WON!";
-      break;
     case "LOST":
       return "WHAT A BUMMER, YOU LOST!";
-      break;
     case "ABORT":
       return "GAME WAS ABORTED!";
-      break;
     default:
       return "";
-      break;
   }
 }
 

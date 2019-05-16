@@ -2,13 +2,11 @@ import React from "react";
 import styled, {keyframes} from "styled-components";
 import {BaseContainer} from "../../helpers/layout";
 import {getDomain} from "../../helpers/getDomain";
-import Player from "../../views/Player";
 import {withRouter, Link} from "react-router-dom";
 import {Button} from "../../views/design/Button"
 import {Button2} from "../../views/design/Button2"
 import {Slot} from "../../views/design/Slot"
 import {Spinner} from "../../views/design/Spinner"
-import {init, animate} from '../../components/game/Prototype'
 import Login from "../login/Login";
 import Users from "../login/Users";
 import GamePreloader from "./GamePreloader";
