@@ -18,6 +18,10 @@ const CreditsLabel = styled.label`
   text-align: center;
 `;
 
+const NameLabel = styled.p`
+  text-transform: none;
+`;
+
 const AttributionLabel = styled.p`
   margin: 10px;
   font-size: 12px;
@@ -31,12 +35,12 @@ class Credits extends React.Component {
         <CreditsLabel>
           <h1>Credits</h1>
           <h3>Lead Developers</h3>
-            <p>Andreas Holgersson</p>
-            <p>Laetitia Britschgi</p>
+            <NameLabel>Andreas Holgersson</NameLabel>
+            <NameLabel>Laetitia Britschgi</NameLabel>
           <h3>Assistent Developers</h3>
-            <p>Elliott Wallace</p>
-            <p>Can Inan</p>
-            <p>Florian Imami</p>
+            <NameLabel>Elliott Wallace</NameLabel>
+            <NameLabel>Can Inan</NameLabel>
+            <NameLabel>Florian Imami</NameLabel>
           <h3>External Assets</h3>
           <h4>3D Models</h4>
           <AttributionLabel>
