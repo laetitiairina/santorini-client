@@ -1100,10 +1100,15 @@ class Game extends React.Component {
     if (this.frontendGodCardsCheck(2,true)) {
       maxMoveDis = 11;
     }
-    if (Math.abs((posX+10)-(Math.floor(initPos.x)+10)) > maxMoveDis) {
+    if (Math.abs((posX+10)-(Math.round(initPos.x)+10)) > maxMoveDis) {
       return false;
     }
-    if (Math.abs((posZ+10)-(Math.floor(initPos.z)+10)) > maxMoveDis) {
+    if (Math.abs((posZ+10)-(Math.round(initPos.z)+10)) > maxMoveDis) {
+      return false;
+    }
+    
+    // Check move height difference
+    if ((this.fields[posX][posZ].blocks - this.fields[Math.round(initPos.x)][Math.round(initPos.z)].blocks) > 1) {
       return false;
     }
     
@@ -1134,10 +1139,10 @@ class Game extends React.Component {
     let flag = true;
     this.myWorkers.forEach((worker) => {
       if (worker.userData.worker.isCurrentWorker) {
-        if (Math.abs((posX+10)-(Math.floor(worker.position.x)+10)) > 6) {
+        if (Math.abs((posX+10)-(Math.round(worker.position.x)+10)) > 6) {
           flag = false;
         }
-        if (Math.abs((posZ+10)-(Math.floor(worker.position.z)+10)) > 6) {
+        if (Math.abs((posZ+10)-(Math.round(worker.position.z)+10)) > 6) {
           flag = false;
         }
         // Demeter - check that second block not on same field
