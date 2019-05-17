@@ -584,7 +584,7 @@ class Game extends React.Component {
       worker.castShadow = true;
       worker.receiveShadow = true;
       this.scene.add( worker );
-      worker.userData = {"worker":player.workers[i],"field":null,"onBoard":false,"posX":null,"posY":null, "fieldLastBuiltOn":null, "amountOfBlocksBuilt":0};
+      worker.userData = {"worker":player.workers[j],"field":null,"onBoard":false,"posX":null,"posY":null, "fieldLastBuiltOn":null, "amountOfBlocksBuilt":0};
       
       arr.push( worker );
     }
