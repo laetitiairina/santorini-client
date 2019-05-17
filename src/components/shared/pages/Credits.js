@@ -31,12 +31,12 @@ class Credits extends React.Component {
         <CreditsLabel>
           <h1>Credits</h1>
           <h3>Lead Developers</h3>
-            <p>Text</p>
-            <p>Text</p>
+            <p>Andreas Holgersson</p>
+            <p>Laetitia Britschgi</p>
           <h3>Assistent Developers</h3>
-            <p>Text</p>
-            <p>Text</p>
-            <p>Text</p>
+            <p>Elliott Wallace</p>
+            <p>Can Inan</p>
+            <p>Florian Imami</p>
           <h3>External Assets</h3>
           <h4>3D Models</h4>
           <AttributionLabel>
