@@ -511,7 +511,7 @@ class GamePage extends React.Component {
       if (!response.ok) {
         // Handle invalid request
         // Display message
-        this.setState({invalidMoveMsg:"Invalid Move!"});
+        this.setState({invalidMoveMsg:"Bad Move!"});
         setTimeout(() => this.setState({invalidMoveMsg:null}), 2000);
         
         this.fetchGame();

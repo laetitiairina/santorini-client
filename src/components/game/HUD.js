@@ -129,15 +129,17 @@ const ViewButton = styled(Button)`
 
 const ExitButton = styled(Button)`
   pointer-events: all;
-  display: fixed;
-  right: 20px;
-  margin: 10px;
+  display:fixed;
+  right:20px;
+  margin:10px;
+  margin-left:0px;
   margin-top: 20px;
 `;
 
 const QuestionMarkButton = styled(Button)`
   pointer-events: all;
-  margin: 10px;
+  margin:10px;
+  margin-right:0px;
   margin-top:20px;
 `;
 
