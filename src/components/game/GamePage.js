@@ -374,6 +374,9 @@ class GamePage extends React.Component {
           // Display winning msg
           this.outputHandler.current.setControls(true,true); // lookAround=true,select=true,move=false,build=true
           this.setState({displayMsg:"You Won! Congratulations!"});
+          if (this.state.game.message) {
+            this.setState({displayMsg:"You Won! Congratulations! " + this.state.game.message});
+          }
           this.setState({endState : "WON"});
         } else if (this.getOpponentPlayer().isCurrentPlayer) {
           // Display losing msg
