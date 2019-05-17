@@ -6,37 +6,15 @@ import {withRouter} from "react-router-dom";
 import {getDomain} from "../../helpers/getDomain";
 import ExitPopUp from "./ExitPopUp";
 import EndPopUp from "./EndPopUp";
-import {Spinner} from "../../views/design/Spinner";
 import Game from "./Game";
 import statusEnum from "../../helpers/statusEnum";
 import HUD from "./HUD";
-
-const Container = styled(BaseContainer)`
-  color: white;
-  text-align: center;
-  justify-content: left;
-`;
-
-const ButtonContainer = styled(BaseContainer)`
-  position: absolute;
-  right: 100px;
-  overflow: hidden;
-  color: #3E5774;
-`;
 
 const PopupContainer = styled.div`
 
 `;
 
 const GameContainer = styled.div`
-
-`;
-
-const ExitButton = styled(Button)`
-
-`;
-
-const QuestionMarkButton = styled(Button)`
 
 `;
 
@@ -66,6 +44,7 @@ class GamePage extends React.Component {
       chooseExit: false,
       finishInitGame: false,
       areCameraControlsEnabled: false,
+      skipButtonCardNr: null, // Demeter & Hephaestus & Hermes
       game: null // game object, ex. {"status":"MOVE", "board": ...}
     };
   }
@@ -84,7 +63,7 @@ class GamePage extends React.Component {
   
   startPolling(url, fields) {
     return new Promise((resolve, reject) => {
-      this.poller = setInterval(() => this.poll(url, fields, resolve, reject), 100)
+      this.poller = setInterval(() => this.poll(url, fields, resolve, reject), 1000)
     });
   }
 
@@ -218,6 +197,9 @@ class GamePage extends React.Component {
     
     this.setState({displayMsg:null});
     
+    // Demeter & Hephaestus & Hermes
+    this.setState({skipButtonCardNr:null});
+    
     // TODO: Maybe delete this
     let diffBetweenStatus = 1;
     if (this.state.prevStatus != null) {
@@ -349,6 +331,19 @@ class GamePage extends React.Component {
           // Set controls so workers can be moved
           this.outputHandler.current.setControls(true,true,true); // lookAround=true,select=true,move=true
           this.setState({displayMsg:"Move a worker!"});
+          
+          // Athena - if opponent has card
+          if (this.outputHandler.current.frontendGodCardsCheck(3,false)) {
+            if (this.state.game.message) {
+              this.setState({displayMsg:"Move a worker! " + this.state.game.message});
+            }
+          }
+          
+          // Hermes
+          if (this.outputHandler.current.frontendGodCardsCheck(7,true)) {
+            this.setState({skipButtonCardNr:7});
+          }
+          
         } else {
           // Display waiting msg
           this.outputHandler.current.setControls(true,true); // lookAround=true,select=true
@@ -379,6 +374,9 @@ class GamePage extends React.Component {
           // Display winning msg
           this.outputHandler.current.setControls(true,true); // lookAround=true,select=true,move=false,build=true
           this.setState({displayMsg:"You Won! Congratulations!"});
+          if (this.state.game.message) {
+            this.setState({displayMsg:"You Won! Congratulations! " + this.state.game.message});
+          }
           this.setState({endState : "WON"});
         } else if (this.getOpponentPlayer().isCurrentPlayer) {
           // Display losing msg
@@ -415,6 +413,24 @@ class GamePage extends React.Component {
     localStorage.removeItem('player_id');
     localStorage.removeItem('playerToken');
   }
+  
+  // God cards skip button
+  
+  skipGodCard = () => {
+    if (!this.state.skipButtonCardNr) {
+      return;
+    }
+    switch (this.state.skipButtonCardNr) {
+      case 5:
+      case 6:
+        this.outputHandler.current.DemeterHephaestusSkip();
+        break;
+      case 7:
+        this.outputHandler.current.HermesSkip();
+        break;
+    }
+  }
+  
 
   // Pop-Up helper functions
 
@@ -430,6 +446,10 @@ class GamePage extends React.Component {
   
   cameraControlsEnabled = (bool) => {
     this.setState({areCameraControlsEnabled: bool});
+  }
+  
+  skipButtonSet = (cardNr) => {
+    this.setState({skipButtonCardNr:cardNr});
   }
 
   // Input handler from player (this function gets called from Game component (ex.: Player moves a worker on the board))
@@ -570,9 +590,9 @@ class GamePage extends React.Component {
           <EndPopUp appears={this.state.gameEnd} endState={this.state.endState} props={this.props}/>
         </PopupContainer>
         {this.state.finishInitGame ? (
-          <HUD displayMsg={this.state.displayMsg} invalidMoveMsg={this.state.invalidMoveMsg} displayExit={this.displayExit} setCameraPos={this.setCameraPos} setGraphics={this.setGraphics} setTime={this.setTime} areCameraControlsEnabled={this.state.areCameraControlsEnabled} gameEnd={this.state.gameEnd} fastforwardGame={this.fastforwardGame.bind(this)}/>
+          <HUD displayMsg={this.state.displayMsg} invalidMoveMsg={this.state.invalidMoveMsg} displayExit={this.displayExit} setCameraPos={this.setCameraPos} setGraphics={this.setGraphics} setTime={this.setTime} areCameraControlsEnabled={this.state.areCameraControlsEnabled} gameEnd={this.state.gameEnd} skipButtonCardNr={this.state.skipButtonCardNr} skipGodCard={this.skipGodCard.bind(this)} fastforwardGame={this.fastforwardGame.bind(this)}/>
         ) : (<div></div>)}
-        <Game game={this.state.game} preload={this.props.preload} initFinish={this.initFinish} cameraControlsEnabled={this.cameraControlsEnabled} inputHandler={this.inputHandler} ref={this.outputHandler}/>
+        <Game game={this.state.game} preload={this.props.preload} initFinish={this.initFinish} cameraControlsEnabled={this.cameraControlsEnabled} inputHandler={this.inputHandler} skipButtonSet={this.skipButtonSet} ref={this.outputHandler}/>
       </GameContainer>
     );
   }

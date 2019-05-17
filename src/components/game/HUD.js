@@ -3,7 +3,6 @@ import styled from "styled-components";
 import {BaseContainer} from "../../helpers/layout";
 import {Button} from "../../views/design/Button";
 import {Label} from "../../views/design/Label";
-import {Spinner} from "../../views/design/Spinner";
 
 const Container = styled(BaseContainer)`
   color: white;
@@ -82,11 +81,11 @@ const HUDOverlay = styled.div`
   user-select: none;
 `;
 
-const MessageLabel= styled(Label)`
+const MessageLabel = styled(Label)`
   margin-top:20px;
 `;
 
-const InvalidMoveLabel= styled(Label)`
+const InvalidMoveLabel = styled(Label)`
   margin-top: 20px;
   color: #ff0000;
   animation: show 20s;
@@ -100,17 +99,16 @@ const InvalidMoveLabel= styled(Label)`
   }
 `;
 
-const ErrorContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-`;
+const SkipButton = styled(Button)`
+  pointer-events: all;
+  margin-top: 25px;
+  margin-bottom: 10px;
+  animation: slide 1s;
 
-const ErrorLabel = styled.label`
-  color: #FF0000;
-  margin: 50px;
-  text-transform: uppercase;
+  @keyframes slide {
+    0% {transform: translateY(-100px);}
+    100% {transform: translateY(0px);}
+  }
 `;
 
 const ViewButtonTable = styled.table`
@@ -130,9 +128,9 @@ const ViewButton = styled(Button)`
 `;
 
 const ExitButton = styled(Button)`
+  pointer-events: all;
   display: fixed;
   right: 20px;
-  pointer-events: all;
   margin: 10px;
   margin-top: 20px;
 `;
@@ -195,8 +193,17 @@ class HUD extends React.Component {
     return (
       <HUDOverlay>
         {this.props.invalidMoveMsg ? (
-              <div style={{width:"100%",position:"absolute",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",zIndex:"10"}}><InvalidMoveLabel>{this.props.invalidMoveMsg}</InvalidMoveLabel></div>
-            ) : (<div></div>)}
+            <div style={{width:"100%",position:"absolute",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",zIndex:"10"}}><InvalidMoveLabel>{this.props.invalidMoveMsg}</InvalidMoveLabel></div>
+          ) : (<div></div>)}
+        {this.props.skipButtonCardNr ? (
+            <div style={{width:"100%",position:"absolute",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",zIndex:"10"}}>
+              <SkipButton onClick={() => {
+                this.props.skipGodCard();
+              }}>
+                {(this.props.skipButtonCardNr == 7) ? ("Skip Move") : ("Skip Build")}
+              </SkipButton>
+            </div>
+          ) : (<div></div>)}
         <Container>
           <ContainerTopLeft>
             {this.props.displayMsg ? (
