@@ -1053,20 +1053,36 @@ class Game extends React.Component {
     if(!this.frontendCheck) {
       return true;
     }
+    
+    // See if initial positon of worker was outside field -> player is positioning workers
     let initMove = false;
     if (initPos.x > 10 || initPos.x < -10 || initPos.z > 10 || initPos.z < -10) {
       initMove = true;
     }
+    
+    // Check if field has dome
     if (this.fields[posX][posZ].blocks > 3 || this.fields[posX][posZ].hasDome) {
       return false;
     }
-    if (this.fields[posX][posZ].worker != null && !this.frontendGodCardsCheck(1,true,initMove)) {
+    
+    // Check if field has worker, Apollo & Minotaur - allow for move on top of worker
+    if (this.fields[posX][posZ].worker != null && !this.frontendGodCardsCheck(1,true,initMove) && !this.frontendGodCardsCheck(8,true,initMove)) {
       return false;
     }
+    
+    // Allow for placement of worker more than 1 block away from initial position when first positioning workers
     if (initMove) {
       return true;
     }
+    
+    // Hermes - extend allowed move distance to anywhere on board
+    if (this.frontendGodCardsCheck(7,true)) {
+      return true;
+    }
+    
+    // Check move distance
     let maxMoveDis = 6;
+    // Artemis - extend allowed move distance to 2 fields
     if (this.frontendGodCardsCheck(2,true)) {
       maxMoveDis = 11;
     }
@@ -1076,19 +1092,31 @@ class Game extends React.Component {
     if (Math.abs((posZ+10)-(Math.floor(initPos.z)+10)) > maxMoveDis) {
       return false;
     }
+    
     return true;
   }
   
-  frontendBuildCheck = (posX,posZ) => {
+  frontendBuildCheck = (posX,posZ,name) => {
     if(!this.frontendCheck) {
       return true;
     }
+    
+    // Check if field has dome
     if (this.fields[posX][posZ].blocks > 3 || this.fields[posX][posZ].hasDome) {
       return false;
     }
+    
+    // Check if field has worker
     if (this.fields[posX][posZ].worker != null) {
       return false;
     }
+    
+    // Check if dome can be build, Atlas - dome can be build at any level
+    if (name == "domeBag" && this.fields[posX][posZ].blocks < 3 && !this.frontendGodCardsCheck(4,true)) {
+      return false;
+    }
+    
+    // Check build distance from current worker
     let flag = true;
     this.myWorkers.forEach((worker) => {
       if (worker.userData.worker.isCurrentWorker) {
@@ -1098,13 +1126,13 @@ class Game extends React.Component {
         if (Math.abs((posZ+10)-(Math.floor(worker.position.z)+10)) > 6) {
           flag = false;
         }
-        //Demeter - check that second block not on same level
-        if (this.frontendGodCardsCheck(5, true, false) && worker.userData.amountOfBlocksBuilt === 2 &&
+        // Demeter - check that second block not on same level
+        if (this.frontendGodCardsCheck(5, true) && worker.userData.amountOfBlocksBuilt === 2 &&
           this.fields[posX][posZ] === worker.userData.fieldLastBuiltOn){
           flag = false;
         }
         // Hephaestus - check that second block is on same field
-        if(this.frontendGodCardsCheck(6, true, false) && worker.userData.amountOfBlocksBuilt === 2 &&
+        if(this.frontendGodCardsCheck(6, true) && worker.userData.amountOfBlocksBuilt === 2 &&
           this.fields[posX][posZ] !== worker.userData.fieldLastBuiltOn) {
           flag = false;
         }
@@ -1123,6 +1151,8 @@ class Game extends React.Component {
     if (initMove) {
       return false;
     }
+    
+    // Get own and opponent card
     let ownCardNr = null;
     let oppoCardNr = null;
     this.props.game.players.forEach((player) => {
@@ -1132,12 +1162,17 @@ class Game extends React.Component {
         oppoCardNr = godCardsEnum[player.card];
       }
     });
+    
+    // Check if own card
     if (own && ownCardNr == cardNr) {
           return true;
     }
+    
+    // Check if opponent card
     if (!own && oppoCardNr == cardNr) {
           return true;
     }
+    
     return false;
   }
   
@@ -1316,7 +1351,7 @@ class Game extends React.Component {
     if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
       this.ghostBlock.position.y = -500;
     } else {
-      if (!this.frontendBuildCheck(posX,posZ)) {
+      if (!this.frontendBuildCheck(posX,posZ,event.object.name)) {
         this.ghostBlock.material.color.setHex(0xff0000);
       } else {
         this.ghostBlock.material.color.setHex(0x00ff00);
@@ -1357,7 +1392,7 @@ class Game extends React.Component {
     this.scene.remove(this.placeholderBlock);
     
     // Uncomment to let frontend prevent invalid move
-    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10 || !this.frontendBuildCheck(posX,posZ)) {
+    if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10 || !this.frontendBuildCheck(posX,posZ,event.object.name)) {
     // Worker outside field
     //if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
       // Invalid action
@@ -1410,11 +1445,11 @@ class Game extends React.Component {
             }
 
             //Demeter can place two blocks TODO: add button to skip building second block
-          if(this.frontendGodCardsCheck(5, true, false) && myWorker.userData.amountOfBlocksBuilt === 2){
+          if(this.frontendGodCardsCheck(5, true) && myWorker.userData.amountOfBlocksBuilt === 2){
             blockField.push(myWorker.userData.fieldLastBuiltOn);
           }
           myWorker.userData.fieldLastBuiltOn = blockField[0];
-          if ((this.frontendGodCardsCheck(5, true, false) || this.frontendGodCardsCheck(6, true, false)) && myWorker.userData.amountOfBlocksBuilt < 2) {
+          if ((this.frontendGodCardsCheck(5, true) || this.frontendGodCardsCheck(6, true)) && myWorker.userData.amountOfBlocksBuilt < 2) {
               break;
             }
           
