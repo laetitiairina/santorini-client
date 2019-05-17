@@ -213,21 +213,22 @@ class HUD extends React.Component {
             ) : (<div></div>)}
           </ContainerTopLeft>
           <ContainerTopMiddleRight>
-          <QuestionMarkButton disabled={this.props.gameEnd} onClick={() => {
-              window.open("https://roxley.com/wp-content/uploads/2016/08/Santorini-Rulebook-Web-2016.08.14.pdf");
+          <QuestionMarkButton disabled={this.props.gameEnd || this.props.chooseExit} onClick={() => {
+              //window.open("https://roxley.com/wp-content/uploads/2016/08/Santorini-Rulebook-Web-2016.08.14.pdf");
+              this.props.showInstructions(!this.props.instructions);
             }}>
               ?
             </QuestionMarkButton>
           </ContainerTopMiddleRight>
           <ContainerTopRight>
-            <ExitButton disabled={this.props.gameEnd} onClick={() => {
+            <ExitButton disabled={this.props.gameEnd || this.props.instructions} onClick={() => {
               this.props.displayExit(true);
             }}>
               EXIT
             </ExitButton>
           </ContainerTopRight>
           <ContainerBottomLeft>
-            <FastForwardButton disabled={this.props.gameEnd} onClick={() => {
+            <FastForwardButton disabled={this.props.gameEnd || this.props.chooseExit || this.props.instructions} onClick={() => {
               this.props.fastforwardGame();
             }}>
               FAST-FORWARD
@@ -237,7 +238,7 @@ class HUD extends React.Component {
           </ContainerBottomRight>
         </Container>
         {this.state.minimizeControls ? (
-          <ViewButtonTable areCameraControlsEnabled={this.props.areCameraControlsEnabled && !this.props.gameEnd}>
+          <ViewButtonTable areCameraControlsEnabled={this.props.areCameraControlsEnabled && !this.props.gameEnd && !this.props.instructions && !this.props.chooseExit}>
             <tbody>
               <tr>
                 <td>
@@ -251,7 +252,7 @@ class HUD extends React.Component {
             </tbody>
           </ViewButtonTable>
         ) :(
-          <ViewButtonTable areCameraControlsEnabled={this.props.areCameraControlsEnabled && !this.props.gameEnd}>
+          <ViewButtonTable areCameraControlsEnabled={this.props.areCameraControlsEnabled && !this.props.gameEnd && !this.props.instructions && !this.props.chooseExit}>
             <tbody>
               <tr>
                 <td colSpan="2">

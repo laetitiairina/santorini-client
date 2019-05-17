@@ -4,6 +4,7 @@ import {BaseContainer} from "../../helpers/layout";
 import {Button} from "../../views/design/Button";
 import {withRouter} from "react-router-dom";
 import {getDomain} from "../../helpers/getDomain";
+import InstructionsPopUp from "./InstructionsPopUp";
 import ExitPopUp from "./ExitPopUp";
 import EndPopUp from "./EndPopUp";
 import Game from "./Game";
@@ -42,6 +43,7 @@ class GamePage extends React.Component {
       displayMsg: null,
       invalidMoveMsg: null,
       chooseExit: false,
+      instructions: false,
       finishInitGame: false,
       areCameraControlsEnabled: false,
       skipButtonCardNr: null, // Demeter & Hephaestus & Hermes
@@ -434,6 +436,10 @@ class GamePage extends React.Component {
 
   // Pop-Up helper functions
 
+  showInstructions = (bool) => {
+    this.setState({instructions:bool});
+  }
+
   displayExit = (bool) => {
     this.setState({chooseExit:bool});
   }
@@ -586,11 +592,12 @@ class GamePage extends React.Component {
     return (
       <GameContainer>
         <PopupContainer>
+          <InstructionsPopUp appears={this.state.instructions} showInstructions={this.showInstructions}/>
           <ExitPopUp appears={this.state.chooseExit} displayExit={this.displayExit} props={this.props}/>
           <EndPopUp appears={this.state.gameEnd} endState={this.state.endState} props={this.props}/>
         </PopupContainer>
         {this.state.finishInitGame ? (
-          <HUD displayMsg={this.state.displayMsg} invalidMoveMsg={this.state.invalidMoveMsg} displayExit={this.displayExit} setCameraPos={this.setCameraPos} setGraphics={this.setGraphics} setTime={this.setTime} areCameraControlsEnabled={this.state.areCameraControlsEnabled} gameEnd={this.state.gameEnd} skipButtonCardNr={this.state.skipButtonCardNr} skipGodCard={this.skipGodCard.bind(this)} fastforwardGame={this.fastforwardGame.bind(this)}/>
+          <HUD displayMsg={this.state.displayMsg} invalidMoveMsg={this.state.invalidMoveMsg} chooseExit={this.state.chooseExit} displayExit={this.displayExit} setCameraPos={this.setCameraPos} setGraphics={this.setGraphics} setTime={this.setTime} areCameraControlsEnabled={this.state.areCameraControlsEnabled} gameEnd={this.state.gameEnd} skipButtonCardNr={this.state.skipButtonCardNr} skipGodCard={this.skipGodCard.bind(this)} instructions={this.state.instructions} showInstructions={this.showInstructions} fastforwardGame={this.fastforwardGame.bind(this)}/>
         ) : (<div></div>)}
         <Game game={this.state.game} preload={this.props.preload} initFinish={this.initFinish} cameraControlsEnabled={this.cameraControlsEnabled} inputHandler={this.inputHandler} skipButtonSet={this.skipButtonSet} ref={this.outputHandler}/>
       </GameContainer>
