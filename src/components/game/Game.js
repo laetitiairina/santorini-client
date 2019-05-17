@@ -93,6 +93,12 @@ class Game extends React.Component {
     this.dragedWorkerInitPos = null;
     this.draged = false;
     
+    // Demeter & Hephaestus & Prometheus
+    this.lastBuiltBlockField = null;
+    
+    // Hermes
+    this.movedWorkerFields = [null,null,null,null];
+    
     // Access via this.props.game instead
     /*
     this.state = {
@@ -584,7 +590,7 @@ class Game extends React.Component {
       worker.castShadow = true;
       worker.receiveShadow = true;
       this.scene.add( worker );
-      worker.userData = {"worker":player.workers[j],"field":null,"onBoard":false,"posX":null,"posY":null, "fieldLastBuiltOn":null, "amountOfBlocksBuilt":0};
+      worker.userData = {"worker":player.workers[j],"field":null,"onBoard":false,"posX":null,"posY":null};
       
       arr.push( worker );
     }
@@ -634,7 +640,8 @@ class Game extends React.Component {
       this.myWorkers.forEach((worker) => {
         this._displayIndicator(worker.position, this.indicatorMaterialAction);
       })
-    } else if (build) {
+    }
+    if (build) {
       if (bags) {
         this._displayIndicator(this.blockBag.position, this.indicatorMaterialAction);
         this._displayIndicator(this.domeBag.position, this.indicatorMaterialAction);
@@ -657,6 +664,12 @@ class Game extends React.Component {
     if (move) {
       this.dragControlsWorker.enabled = true;
       this.dragControlsWorker.activate();
+      
+      // Prometheus - allow building in move phase
+      if (this.frontendGodCardsCheck(10,true)) {
+        build = true;
+      }
+      
     } else {
       this.dragControlsWorker.enabled = false;
       this.dragControlsWorker.deactivate();
@@ -1126,14 +1139,12 @@ class Game extends React.Component {
         if (Math.abs((posZ+10)-(Math.floor(worker.position.z)+10)) > 6) {
           flag = false;
         }
-        // Demeter - check that second block not on same level
-        if (this.frontendGodCardsCheck(5, true) && worker.userData.amountOfBlocksBuilt === 2 &&
-          this.fields[posX][posZ] === worker.userData.fieldLastBuiltOn){
+        // Demeter - check that second block not on same field
+        if (this.frontendGodCardsCheck(5, true) && this.lastBuiltBlockField != null && this.posEnum[posX] == this.lastBuiltBlockField.posX && this.posEnum[posZ] == this.lastBuiltBlockField.posY){
           flag = false;
         }
         // Hephaestus - check that second block is on same field
-        if(this.frontendGodCardsCheck(6, true) && worker.userData.amountOfBlocksBuilt === 2 &&
-          this.fields[posX][posZ] !== worker.userData.fieldLastBuiltOn) {
+        if(this.frontendGodCardsCheck(6, true) && this.lastBuiltBlockField != null && (!(this.posEnum[posX] == this.lastBuiltBlockField.posX && this.posEnum[posZ] == this.lastBuiltBlockField.posY) || this.fields[posX][posZ].blocks >= 3)) {
           flag = false;
         }
       }
@@ -1142,9 +1153,6 @@ class Game extends React.Component {
   }
   
   frontendGodCardsCheck = (cardNr,own,initMove=false) => {
-    if(!this.frontendCheck) {
-      return false;
-    }
     if(!this.props.game.isGodMode) {
       return false;
     }
@@ -1235,7 +1243,7 @@ class Game extends React.Component {
     //if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
       // Reset position of worker
       event.object.position.copy(this.dragedWorkerInitPos);
-      this._showIndicators(true,false);
+      this._showIndicators(this.dragControlsWorker.enabled,this.dragControlsBlock.enabled);
     } else {
       // Worker was placed on board
       event.object.position.x = posX;
@@ -1272,11 +1280,16 @@ class Game extends React.Component {
             // Send input to GamePage
             this.props.inputHandler("board",workerFields);
           } else {
-            this._showIndicators(true,false);
+            this._showIndicators(this.dragControlsWorker.enabled,this.dragControlsBlock.enabled);
           }
           
           break;
         case "MOVE":
+          // Prometheus, add block to front of array if built before move
+          if (this.frontendGodCardsCheck(10,true) && this.lastBuiltBlockField != null) {
+            workerFields.push(this.lastBuiltBlockField);
+          }
+        
           // Get old field of worker
           this.props.game.board.fields.forEach((field) => {
             if (field.id == event.object.userData.field.id) {
@@ -1300,10 +1313,21 @@ class Game extends React.Component {
             }
           });
           
-          // Remove and set worker
-          /*workerFields[0].worker = null;
-          workerFields[1].worker = event.object.userData.worker;
-          event.object.userData.field = workerFields[1];*/
+          // Hermes
+          if (this.frontendGodCardsCheck(7,true)) {
+            this.myWorkers.forEach((worker,i) => {
+              if (workerFields[1].worker.id == worker.userData.worker.id) {
+                this.movedWorkerFields[i*2] = workerFields[0];
+                this.movedWorkerFields[i*2+1] = workerFields[1];
+              }
+            });
+            if (this.movedWorkerFields[0] == null || this.movedWorkerFields[2] == null) {
+              this._showIndicators(this.dragControlsWorker.enabled,this.dragControlsBlock.enabled);
+              break;
+            } else {
+              workerFields = this.movedWorkerFields;
+            }
+          }
 
           // Send input to GamePage
           this.props.inputHandler("board",workerFields);
@@ -1396,66 +1420,82 @@ class Game extends React.Component {
     // Worker outside field
     //if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10) {
       // Invalid action
-      this._showIndicators(false,true);
+      this._showIndicators(this.dragControlsWorker.enabled,this.dragControlsBlock.enabled);
     } else {
       switch(this.props.game.status) {
-        case "BUILD":
-            // Get number of blocks on field before
-            let blockNr = this.fields[posX][posZ].blocks;
-            let blockField = [];
-            let myWorker = null;
-
-            // Get new field of worker <-- ?? block ??
-            this.props.game.board.fields.forEach((field) => {
-              if(field.posX == this.posEnum[posX] && field.posY == this.posEnum[posZ]) {
-                blockField.push(field);
-                this.myWorkers.forEach((worker) => {
-                  if (worker.userData.worker.isCurrentWorker) {
-                    myWorker = worker;
-                    worker.userData.amountOfBlocksBuilt++;
-                  }
-                });
-              }
-            });
-
-            if (event.object.name == "domeBag") {
-              
-              // Create dome
-              this.createDome(posX,posZ,blockNr);
-              
-              // Update field frontend and backend
-              this.fields[posX][posZ].hasDome = true;
-              blockField[0].hasDome = true;
-              
-            } else {
-            
-              // Create block
-              this.createBlock(posX,posZ,blockNr);
-              
-              // Update field frontend and backend
-              if (this.fields[posX][posZ].blocks >= 3) {
-                // Has dome to field
-                this.fields[posX][posZ].hasDome = true;
-                blockField[0].hasDome = true;
-              } else {
-                // Add block to field
-                this.fields[posX][posZ].blocks += 1;
-                blockField[0].blocks += 1;
-              }
-            }
-
-            //Demeter can place two blocks TODO: add button to skip building second block
-          if(this.frontendGodCardsCheck(5, true) && myWorker.userData.amountOfBlocksBuilt === 2){
-            blockField.push(myWorker.userData.fieldLastBuiltOn);
-          }
-          myWorker.userData.fieldLastBuiltOn = blockField[0];
-          if ((this.frontendGodCardsCheck(5, true) || this.frontendGodCardsCheck(6, true)) && myWorker.userData.amountOfBlocksBuilt < 2) {
-              break;
-            }
-          
-            // Send input to GamePage
-            this.props.inputHandler("board",blockField);
+        case "MOVE":
+          if (!this.frontendGodCardsCheck(10,true) || this.lastBuiltBlockField != null) {
+            // Invalid action
+            this._showIndicators(this.dragControlsWorker.enabled,this.dragControlsBlock.enabled);
             break;
+          }
+        case "BUILD":
+          // Get number of blocks on field before
+          let blockNr = this.fields[posX][posZ].blocks;
+          let blockFields = [];
+          let myWorker = null;
+
+          // Get new field of block
+          this.props.game.board.fields.forEach((field) => {
+            if(field.posX == this.posEnum[posX] && field.posY == this.posEnum[posZ]) {
+              blockFields.push(field);
+            }
+          });
+
+          if (event.object.name == "domeBag") {
+            
+            // Create dome
+            this.createDome(posX,posZ,blockNr);
+            
+            // Update field frontend and backend
+            this.fields[posX][posZ].hasDome = true;
+            blockFields[0].hasDome = true;
+            
+          } else {
+          
+            // Create block
+            this.createBlock(posX,posZ,blockNr);
+            
+            // Update field frontend and backend
+            if (this.fields[posX][posZ].blocks >= 3) {
+              // Has dome to field
+              this.fields[posX][posZ].hasDome = true;
+              blockFields[0].hasDome = true;
+            } else {
+              // Add block to field
+              this.fields[posX][posZ].blocks += 1;
+              blockFields[0].blocks += 1;
+            }
+          }
+          
+          // Demeter & Hephaestus, can place two blocks
+          if((this.frontendGodCardsCheck(5, true) || this.frontendGodCardsCheck(6, true)) && this.lastBuiltBlockField != null){
+            blockFields.unshift(this.lastBuiltBlockField);
+          }
+          
+          // Demeter & Hephaestus, if only built one block, don't send input yet
+          if ((this.frontendGodCardsCheck(5, true) || this.frontendGodCardsCheck(6, true)) && blockFields.length == 1) {
+            this.lastBuiltBlockField = blockFields[0];
+            this._showIndicators(this.dragControlsWorker.enabled,this.dragControlsBlock.enabled);
+            
+            // Tell GamePage to display button to skip building second block
+            this.props.skipButtonSet(5);
+            break;
+          }
+          
+          // Prometheus, don't send input if build before move
+          if (this.props.game.status == "MOVE" && this.frontendGodCardsCheck(10,true) && blockFields.length == 1) {
+            this.lastBuiltBlockField = blockFields[0];
+            
+            this.dragControlsBlock.enabled = false;
+            this.dragControlsBlock.deactivate();
+            this._showIndicators(this.dragControlsWorker.enabled,this.dragControlsBlock.enabled);
+            break;
+          }
+        
+          // Send input to GamePage
+          this.props.inputHandler("board",blockFields);
+          break;
       }
     }
   }
@@ -1673,6 +1713,28 @@ class Game extends React.Component {
     }
   }
   
+  // God cards skip functions
+  
+  DemeterHephaestusSkip = () => {
+    // Send input to GamePage
+    this.props.inputHandler("board",[this.lastBuiltBlockField]);
+  }
+  
+  HermesSkip = () => {
+    for(let i = 0; i < 4; i++) {
+      if(this.movedWorkerFields[i] == null) {
+        this.props.game.board.fields.forEach((field) => {
+          let j = (i > 1) ? 1 : 0;
+          if (field.id == this.myWorkers[j].userData.field.id) {
+            this.movedWorkerFields[i] = field;
+          }
+        });
+      }
+    }
+    // Send input to GamePage
+    this.props.inputHandler("board",this.movedWorkerFields);
+  }
+  
   // Output
   
   // Display game state
@@ -1697,6 +1759,12 @@ class Game extends React.Component {
       // Update frontend fields
       this.updateFields(field);
     }
+    
+    // Demeter & Hephaestus & Prometheus
+    this.lastBuiltBlockField = null;
+    
+    // Hermes
+    this.movedWorkerFields = [null,null,null,null];
     
     // Show indicators
     this._showIndicators(this.dragControlsWorker.enabled,this.dragControlsBlock.enabled);
@@ -1780,8 +1848,6 @@ class Game extends React.Component {
     worker.userData.posY = field.posY;
     worker.userData.field = field;
     worker.userData.worker = field.worker;
-    worker.userData.amountOfBlocksBuilt = 0;
-    worker.userData.fieldLastBuiltOn = null;
   }
   
   playCameraAnimation = (key) => {

@@ -81,11 +81,11 @@ const HUDOverlay = styled.div`
   user-select: none;
 `;
 
-const MessageLabel= styled(Label)`
+const MessageLabel = styled(Label)`
   margin-top:20px;
 `;
 
-const InvalidMoveLabel= styled(Label)`
+const InvalidMoveLabel = styled(Label)`
   margin-top: 20px;
   color: #ff0000;
   animation: show 20s;
@@ -96,6 +96,18 @@ const InvalidMoveLabel= styled(Label)`
     9% {transform: translateY(0px);}
     10% {transform: translateY(-100px);}
     100% {transform: translateY(-100px);}
+  }
+`;
+
+const SkipButton = styled(Button)`
+  pointer-events: all;
+  margin-top: 25px;
+  margin-bottom: 10px;
+  animation: slide 1s;
+
+  @keyframes slide {
+    0% {transform: translateY(-100px);}
+    100% {transform: translateY(0px);}
   }
 `;
 
@@ -116,9 +128,9 @@ const ViewButton = styled(Button)`
 `;
 
 const ExitButton = styled(Button)`
+  pointer-events: all;
   display: fixed;
   right: 20px;
-  pointer-events: all;
   margin: 10px;
   margin-top: 20px;
 `;
@@ -181,8 +193,17 @@ class HUD extends React.Component {
     return (
       <HUDOverlay>
         {this.props.invalidMoveMsg ? (
-              <div style={{width:"100%",position:"absolute",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",zIndex:"10"}}><InvalidMoveLabel>{this.props.invalidMoveMsg}</InvalidMoveLabel></div>
-            ) : (<div></div>)}
+            <div style={{width:"100%",position:"absolute",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",zIndex:"10"}}><InvalidMoveLabel>{this.props.invalidMoveMsg}</InvalidMoveLabel></div>
+          ) : (<div></div>)}
+        {this.props.skipButtonCardNr ? (
+            <div style={{width:"100%",position:"absolute",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",zIndex:"10"}}>
+              <SkipButton onClick={() => {
+                this.props.skipGodCard();
+              }}>
+                {(this.props.skipButtonCardNr == 7) ? ("Skip Move") : ("Skip Build")}
+              </SkipButton>
+            </div>
+          ) : (<div></div>)}
         <Container>
           <ContainerTopLeft>
             {this.props.displayMsg ? (
