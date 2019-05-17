@@ -339,6 +339,7 @@ class Game extends React.Component {
     this.controls.enablePan = false;
     this.controls.minDistance = 10;
     this.controls.maxDistance = 100;
+    this.controls.maxPolarAngle = Math.PI/2;
     this.controls.enabled = false;
     
     // drag controls
