@@ -332,6 +332,13 @@ class GamePage extends React.Component {
           this.outputHandler.current.setControls(true,true,true); // lookAround=true,select=true,move=true
           this.setState({displayMsg:"Move a worker!"});
           
+          // Athena - if opponent has card
+          if (this.outputHandler.current.frontendGodCardsCheck(3,false)) {
+            if (this.state.game.message) {
+              this.setState({displayMsg:"Move a worker! " + this.state.game.message});
+            }
+          }
+          
           // Hermes
           if (this.outputHandler.current.frontendGodCardsCheck(7,true)) {
             this.setState({skipButtonCardNr:7});
