@@ -18,8 +18,20 @@ const Header = styled.div`
 
 const Contents =  styled.div`
   width: 100%;
+  height: 50vh;
   padding: 20px 5px;
   font-size: 15px;
+  overflow-y:auto;
+
+  ::-webkit-scrollbar {
+    width: 5px;
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(44,161,194,0.7);
+    border-radius: 10px;
+  }
 `
 
 /**
