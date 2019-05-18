@@ -86,7 +86,7 @@ class Game extends React.Component {
     this.playStartAnimation = -1;
     this.playInitAnimation = true;
     this.waterSpeed = 1.2;
-    this.shouldAnimateWater = true;
+    this.shouldAnimateWater = false;
     this.inputEnabled = false;
     
     this.ghostWorker = null;

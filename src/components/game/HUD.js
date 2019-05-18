@@ -172,7 +172,7 @@ class HUD extends React.Component {
     this.graphicsTextEnum = {0:["LOW","#44aaff"],1:["MID","#4488ff"],2:["HIGH","#4455ff"]};
 
     this.state = {
-      graphicsLevel:2,
+      graphicsLevel:1,
       isNight:false,
       minimizeControls:false
     };
