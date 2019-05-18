@@ -31,20 +31,20 @@ const Contents =  styled.div`
  * */
 const ExitPopUp = ({appears, displayExit, props}) => {
   return (
-      <Popup modal open={appears} closeOnDocumentClick={false} contentStyle={{background: "transparent", color: "#E4F5B2", border: "0px"}}>
+      <Popup modal open={appears} closeOnDocumentClick={false} contentStyle={{background: "transparent", color: "#E4F5B2", border: "0px", overflow: "hidden", pointerEvents: "none"}}>
             <Container>
               <Header> EXIT GAME </Header>
               <Contents>
                 Do you want to quit the current Game?
               </Contents>
-                <Button style={{margin:"20px"}}
+                <Button style={{pointerEvents:"all",margin:"20px"}}
                     onClick={() => {
                       props.history.push("/home");
                     }}
                 >
                   Exit
                 </Button>
-                <Button style={{margin:"20px"}}
+                <Button style={{pointerEvents:"all",margin:"20px"}}
                     onClick={() => {
                       displayExit(false);
                     }}
