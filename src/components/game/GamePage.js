@@ -11,11 +11,11 @@ import Game from "./Game";
 import statusEnum from "../../helpers/statusEnum";
 import HUD from "./HUD";
 
-const PopupContainer = styled.div`
-
+const GameContainer = styled.div`
+  overflow:hidden;
 `;
 
-const GameContainer = styled.div`
+const PopupContainer = styled.div`
 
 `;
 
@@ -98,8 +98,13 @@ class GamePage extends React.Component {
       console.log(err);
     });
   }
+  
+  componentWillMount() {
+    document.body.style.overflow = "hidden";
+  }
 
   componentWillUnmount() {
+    document.body.style.overflow = "visible";
      if (this.poller) {
       clearInterval(this.poller);
     }

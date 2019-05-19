@@ -31,13 +31,13 @@ const Contents =  styled.div`
  * */
 const EndPopUp =  ({appears, endState, props}) => {
   return (
-      <Popup modal open={appears} closeOnDocumentClick={false} contentStyle={{background: "transparent", color: "#E4F5B2", border: "0px", overflow: "hidden", pointerEvents: "none"}}>
+      <Popup modal open={appears} closeOnDocumentClick={false} contentStyle={{background: "transparent", color: "#E4F5B2", border: "0px", overflow: "hidden"}}>
             <Container>
               <Header> GAME </Header>
               <Contents>
                 {result(endState)}
               </Contents>
-                <Button style={{pointerEvents:"all"}}
+                <Button
                     onClick={() => {
                       props.history.push("/home")
                     }}

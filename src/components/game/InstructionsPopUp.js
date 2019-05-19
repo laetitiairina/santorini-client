@@ -44,7 +44,7 @@ const Contents =  styled.div`
  * */
 const InstructionsPopUp = ({appears, showInstructions}) => {
   return (
-      <Popup modal open={appears} closeOnDocumentClick={false} contentStyle={{background: "transparent", color: "#E4F5B2", border: "0px", overflow: "hidden", pointerEvents: "none"}}>
+      <Popup modal open={appears} closeOnDocumentClick={false} contentStyle={{background: "transparent", color: "#E4F5B2", border: "0px", overflow: "hidden"}}>
             <Container>
               <Header> Instructions </Header>
               <Contents>
@@ -54,7 +54,7 @@ const InstructionsPopUp = ({appears, showInstructions}) => {
                 <p>You <b>WIN</b> if one of your Workers moves up on top of 3 Blocks during your turn.</p>
                 <p>You <b>LOSE</b> if you are unable to perform a move then build on your turn.</p>
               </Contents>
-                <Button style={{pointerEvents:"all",margin:"20px"}}
+                <Button style={{margin:"20px"}}
                     onClick={() => {
                       showInstructions(false);
                     }}

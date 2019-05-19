@@ -9,6 +9,7 @@ body {
   font-family: "American Typewriter","Arial",sans-serif;
   background-image: url("views/design/background-gradient.png");
   /*background-color: #5872B5;*/
+  width: 100%;
 }
 
 input,
