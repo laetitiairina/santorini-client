@@ -1237,6 +1237,7 @@ class Game extends React.Component {
     // Create ghost worker
     if(this.isTouchControls) {
       this.ghostWorker = event.object.getObjectByName("workerModel").clone();
+      this.ghostWorker.position.copy(event.object.position);
     } else {
       this.ghostWorker = event.object.clone();
     }

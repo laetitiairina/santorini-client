@@ -1,70 +1,7 @@
 import React from "react";
 import styled from "styled-components";
-import {BaseContainer} from "../../helpers/layout";
 import {Button} from "../../views/design/Button";
 import {Label} from "../../views/design/Label";
-
-const Container = styled(BaseContainer)`
-  color: white;
-  text-align: center;
-  justify-items: center;
-  align-items: center;
-  display: grid;
-  grid-template-columns: 3fr 7fr 1fr 1fr;
-  grid-template-rows: 1fr 10fr 1fr;
-  grid-auto-rows: 1fr;
-  grid-gap: 10px;
-  height:100%;
-
-  @media only screen and (max-width: 700px){
-    
-  }
-`;
-
-const ContainerTopLeft = styled.div`
-  grid-column: 1;
-  grid-row: 1;
-
-  @media only screen and (max-width: 700px){
-    
-  }
-`;
-
-const ContainerTopMiddleRight = styled.div`
-  grid-column: 3;
-  grid-row: 1;
-
-  @media only screen and (max-width: 700px){
-    
-  }
-`;
-
-const ContainerTopRight = styled.div`
-  grid-column: 4;
-  grid-row: 1;
-
-  @media only screen and (max-width: 700px){
-    
-  }
-`;
-
-const ContainerBottomLeft = styled.div`
-  grid-column: 1;
-  grid-row: 3;
-
-  @media only screen and (max-width: 700px){
-    
-  }
-`;
-
-const ContainerBottomRight = styled.div`
-  grid-column: 4;
-  grid-row: 3;
-
-  @media only screen and (max-width: 700px){
-    
-  }
-`;
 
 const HUDOverlay = styled.div`
   opacity:0.8;
@@ -81,12 +18,25 @@ const HUDOverlay = styled.div`
   user-select: none;
 `;
 
+const TopLeftContainer = styled.div`
+  position:absolute;
+  left:10px;
+  top:10px;
+  width: 20vw;
+  min-width:150px;
+`;
+
+const BottomLeftContainer = styled.div`
+  position:absolute;
+  left:10px;
+  bottom:10px;
+`;
+
 const MessageLabel = styled(Label)`
-  margin-top:20px;
 `;
 
 const InvalidMoveLabel = styled(Label)`
-  margin-top: 20px;
+  margin-top: 10px;
   color: #ff0000;
   animation: show 20s;
 
@@ -101,7 +51,7 @@ const InvalidMoveLabel = styled(Label)`
 
 const SkipButton = styled(Button)`
   pointer-events: all;
-  margin-top: 25px;
+  margin-top: 15px;
   margin-bottom: 10px;
   animation: slide 1s;
 
@@ -127,20 +77,19 @@ const ViewButton = styled(Button)`
   padding-right:0px;
 `;
 
+const TopRightButtonTable = styled.table`
+  position:absolute;
+  right:10px;
+  top:10px;
+`;
+
 const ExitButton = styled(Button)`
   pointer-events: all;
-  display:fixed;
-  right:20px;
-  margin:10px;
-  margin-left:0px;
-  margin-top: 20px;
+  margin-left:5px;
 `;
 
 const QuestionMarkButton = styled(Button)`
   pointer-events: all;
-  margin:10px;
-  margin-right:0px;
-  margin-top:20px;
 `;
 
 const ControlsLabel = styled.button`
@@ -162,7 +111,6 @@ const ControlsLabel = styled.button`
 // TODO: Delete this after M3
 const FastForwardButton = styled(Button)`
   pointer-events: all;
-  margin-bottom: 10px;
 `;
 
 class HUD extends React.Component {
@@ -206,37 +154,39 @@ class HUD extends React.Component {
               </SkipButton>
             </div>
           ) : (<div></div>)}
-        <Container>
-          <ContainerTopLeft>
-            {this.props.displayMsg ? (
+        <TopLeftContainer>
+          {this.props.displayMsg ? (
               <MessageLabel><div>{this.props.displayMsg}</div></MessageLabel>
             ) : (<div></div>)}
-          </ContainerTopLeft>
-          <ContainerTopMiddleRight>
-          <QuestionMarkButton disabled={this.props.gameEnd || this.props.chooseExit} onClick={() => {
-              //window.open("https://roxley.com/wp-content/uploads/2016/08/Santorini-Rulebook-Web-2016.08.14.pdf");
-              this.props.showInstructions(!this.props.instructions);
-            }}>
-              ?
-            </QuestionMarkButton>
-          </ContainerTopMiddleRight>
-          <ContainerTopRight>
-            <ExitButton disabled={this.props.gameEnd || this.props.instructions} onClick={() => {
-              this.props.displayExit(true);
-            }}>
-              EXIT
-            </ExitButton>
-          </ContainerTopRight>
-          <ContainerBottomLeft>
-            <FastForwardButton disabled={this.props.gameEnd || this.props.chooseExit || this.props.instructions} onClick={() => {
-              this.props.fastforwardGame();
-            }}>
-              FAST-FORWARD
-            </FastForwardButton>
-          </ContainerBottomLeft>
-          <ContainerBottomRight>
-          </ContainerBottomRight>
-        </Container>
+        </TopLeftContainer>
+        <BottomLeftContainer>
+          <FastForwardButton disabled={this.props.gameEnd || this.props.chooseExit || this.props.instructions} onClick={() => {
+            this.props.fastforwardGame();
+          }}>
+            FAST-FORWARD
+          </FastForwardButton>
+        </BottomLeftContainer>
+        <TopRightButtonTable>
+          <tbody>
+            <tr>
+              <td>
+                <QuestionMarkButton disabled={this.props.gameEnd || this.props.chooseExit} onClick={() => {
+                  //window.open("https://roxley.com/wp-content/uploads/2016/08/Santorini-Rulebook-Web-2016.08.14.pdf");
+                  this.props.showInstructions(!this.props.instructions);
+                }}>
+                  ?
+                </QuestionMarkButton>
+              </td>
+              <td>
+                  <ExitButton disabled={this.props.gameEnd || this.props.instructions} onClick={() => {
+                    this.props.displayExit(true);
+                  }}>
+                    EXIT
+                  </ExitButton>
+              </td>
+            </tr>
+          </tbody>
+        </TopRightButtonTable>
         {this.state.minimizeControls ? (
           <ViewButtonTable areCameraControlsEnabled={this.props.areCameraControlsEnabled && !this.props.gameEnd && !this.props.instructions && !this.props.chooseExit}>
             <tbody>
