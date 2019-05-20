@@ -179,7 +179,7 @@ class HUD extends React.Component {
               </td>
               <td>
                   <ExitButton disabled={this.props.gameEnd || this.props.instructions} onClick={() => {
-                    this.props.displayExit(true);
+                    this.props.displayExit(!this.props.chooseExit);
                   }}>
                     EXIT
                   </ExitButton>
