@@ -1141,8 +1141,8 @@ class Game extends React.Component {
       return false;
     }
     
-    // Check move height difference
-    if ((this.fields[posX][posZ].blocks - this.fields[Math.round(initPos.x)][Math.round(initPos.z)].blocks) > 1) {
+    // Check move height difference, except Artemis
+    if ((this.fields[posX][posZ].blocks - this.fields[Math.round(initPos.x)][Math.round(initPos.z)].blocks) > 1 && !this.frontendGodCardsCheck(2,true)) {
       return false;
     }
     
