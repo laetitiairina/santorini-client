@@ -319,7 +319,7 @@ class GamePage extends React.Component {
         if (this.getPlayer().isCurrentPlayer) {
           // Init position
           this.outputHandler.current.Position(); // Controls get set inside here
-          this.setState({displayMsg:"Position your workers!"});
+          this.setState({displayMsg:"Position your workers! (Drag & Drop)"});
         } else {
           // Display waiting msg
           if (this.state.game.status == "POSITION1") {
@@ -337,7 +337,7 @@ class GamePage extends React.Component {
         if (this.getPlayer().isCurrentPlayer) {
           // Set controls so workers can be moved
           this.outputHandler.current.setControls(true,true,true); // lookAround=true,select=true,move=true
-          this.setState({displayMsg:"Move a worker!"});
+          this.setState({displayMsg:"Move a worker! (Drag & Drop)"});
           
           // Athena - if opponent has card
           if (this.outputHandler.current.frontendGodCardsCheck(3,false)) {
@@ -364,7 +364,7 @@ class GamePage extends React.Component {
         if (this.getPlayer().isCurrentPlayer) {
           // Set controls so player can build
           this.outputHandler.current.setControls(true,true,false,true); // lookAround=true,select=true,move=false,build=true
-          this.setState({displayMsg:"Build!"});
+          this.setState({displayMsg:"Build! (Drag & Drop)"});
         } else {
           // Display waiting msg
           this.outputHandler.current.setControls(true,true); // lookAround=true,select=true
@@ -420,9 +420,20 @@ class GamePage extends React.Component {
     localStorage.removeItem('player_id');
     localStorage.removeItem('playerToken');
   }
+
+  // Pop-Up helper functions
+
+  showInstructions = (bool) => {
+    this.setState({instructions:bool});
+  }
+
+  displayExit = (bool) => {
+    this.setState({chooseExit:bool});
+  }
+  
+  // Pop-Up functions
   
   // God cards skip button
-  
   skipGodCard = () => {
     if (!this.state.skipButtonCardNr) {
       return;
@@ -438,15 +449,57 @@ class GamePage extends React.Component {
     }
   }
   
-
-  // Pop-Up helper functions
-
-  showInstructions = (bool) => {
-    this.setState({instructions:bool});
+  // Tell Game to set camera position
+  setCameraPos = (pos) => {
+    this.outputHandler.current.setCameraPos(pos);
   }
-
-  displayExit = (bool) => {
-    this.setState({chooseExit:bool});
+  
+  // Change graphics setting
+  setGraphics = (level) => {
+    this.outputHandler.current.setGraphics(level);
+    localStorage.setItem('graphicsLevel',level);
+  }
+  
+  // Change time
+  setTime = (isNight) => {
+    this.outputHandler.current.setTime(isNight);
+  }
+  
+  // M3: Fast-forward
+  // TODO: Delete after M3
+  // Fast-forward current game
+  fastforwardGame = () => {
+    if(!this.getPlayer().isCurrentPlayer) {
+      alert("You are not the current Player! Wait for your turn!");
+      return;
+    }
+    
+    if (!window.confirm("FAST-FORWARD\n\nThe current game state will be discarded!\nYour opponent might not like that!\nAre you sure you want to fast-forward the game?\n")) {
+      return;
+    }
+  
+    const url = `${getDomain()}/games/${localStorage.getItem('game_id')}/fastforward`;
+    
+    fetch(`${url}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Token": localStorage.getItem('playerToken')
+      },
+      body: JSON.stringify(this.state.game)
+    })
+    .then(response => {
+      if (!response.ok) {
+        // If response not ok get response text and throw error
+        return response.text().then( err => { throw Error(err); } );
+      } else {
+        this.outputHandler.current._cleanUpSelection();
+      }
+    })
+    .catch(err => {
+      console.log(err);
+      alert("Something went wrong: " + err);
+    });
   }
   
   // Game functions (these function gets called from Game component)
@@ -535,63 +588,6 @@ class GamePage extends React.Component {
       console.log(err);
     });
   }
-  
-  // Camera functions
-  
-  // Tell Game to set camera position
-  setCameraPos = (pos) => {
-    this.outputHandler.current.setCameraPos(pos);
-  }
-  
-  // Change graphics setting
-  setGraphics = (level) => {
-    this.outputHandler.current.setGraphics(level);
-    localStorage.setItem('graphicsLevel',level);
-  }
-  
-  // Change time
-  setTime = (isNight) => {
-    this.outputHandler.current.setTime(isNight);
-  }
-  
-  // M3: Fast-forward
-  // TODO: Delete after M3
-  // Fast-forward current game
-  fastforwardGame = () => {
-    if(!this.getPlayer().isCurrentPlayer) {
-      alert("You are not the current Player! Wait for your turn!");
-      return;
-    }
-    
-    if (!window.confirm("FAST-FORWARD\n\nThe current game state will be discarded!\nYour opponent might not like that!\nAre you sure you want to fast-forward the game?\n")) {
-      return;
-    }
-  
-    const url = `${getDomain()}/games/${localStorage.getItem('game_id')}/fastforward`;
-    
-    fetch(`${url}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "Token": localStorage.getItem('playerToken')
-      },
-      body: JSON.stringify(this.state.game)
-    })
-    .then(response => {
-      if (!response.ok) {
-        // If response not ok get response text and throw error
-        return response.text().then( err => { throw Error(err); } );
-      } else {
-        this.outputHandler.current._cleanUpSelection();
-      }
-    })
-    .catch(err => {
-      console.log(err);
-      alert("Something went wrong: " + err);
-    });
-  }
-  
-  //
 
   render() {
     return (

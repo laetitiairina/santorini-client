@@ -57,14 +57,16 @@ class Game extends React.Component {
     //this.colorPreset = {"BLUE":"#4444ff","GREY":"#888888","WHITE":"#ffffff"};
     this.colorPreset = {"BLUE":"#207AB6","GREY":"#8E68A3","WHITE":"#65CBA6"};
     //this.initWorkerPos = new THREE.Vector3(0, 2, 0);
-    this.workerHeight = 4;
+    this.workerHeight = 4.5;
     this.workerGeometry = new THREE.CylinderBufferGeometry(0,1,4,10);
+    this.workerBoundingGeometry = new THREE.BoxBufferGeometry(5,this.workerHeight,5);
+    this.workerBoundingMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff, flatShading: true, transparent:true, opacity:0.0 });
     this.myWorkers = [];
     this.oppoWorkers = [];
     this.indicators = [];
     this.indicatorGeometry = new THREE.CylinderBufferGeometry(0,1,4,10);
-    this.indicatorMaterialAction = new THREE.MeshPhongMaterial({ color: 0x00ff00, flatShading: true });
-    this.indicatorMaterialShow = new THREE.MeshPhongMaterial({ color: 0xffff00, flatShading: true });
+    this.indicatorMaterialAction = new THREE.MeshPhongMaterial({ color: 0x00ff00, flatShading: true, transparent:true, opacity:0.8 });
+    this.indicatorMaterialShow = new THREE.MeshPhongMaterial({ color: 0xffff00, flatShading: true, transparent:true, opacity:0.8 });
     this.cardGeometry = new THREE.BoxBufferGeometry(5,0.1,10);
     this.cardMaterial = new THREE.MeshPhongMaterial({ color: 0x888888, flatShading: true });
     this.nameTagGeometry = new THREE.CylinderBufferGeometry(2,2,1,10);
@@ -92,6 +94,7 @@ class Game extends React.Component {
     this.ghostWorker = null;
     this.dragedWorkerInitPos = null;
     this.draged = false;
+    this.isTouchControls = false; // When true, bounding box of worker will increase to make it easier to position worker
     
     // Demeter & Hephaestus & Prometheus
     this.lastBuiltBlockField = null;
@@ -106,15 +109,20 @@ class Game extends React.Component {
     };
     */
   }
-
-  componentDidMount() {
   
-    // day / night
-    
+  componentWillMount() {
+  
+    // Day / Night
     let hours = (new Date()).getHours();
     if (hours < 8 || hours > 21) {
       this.setTime(true,false); // isNight=true, update=false
     }
+    
+    // Check if touch controls
+    this.isTouchControls = 'ontouchstart' in window || navigator.maxTouchPoints;
+  }
+
+  componentDidMount() {
 
     // scene
 
@@ -468,10 +476,18 @@ class Game extends React.Component {
     geometry.rotateY(-Math.PI/2);
     this.workerGeometry = geometry;
     this.myWorkers.forEach((worker) => {
-      worker.geometry = this.workerGeometry;
+      if (this.isTouchControls) {
+        worker.getObjectByName("workerModel").geometry = this.workerGeometry;
+      } else {
+        worker.geometry = this.workerGeometry;
+      }
     });
     this.oppoWorkers.forEach((worker) => {
-      worker.geometry = this.workerGeometry;
+      if (this.isTouchControls) {
+        worker.getObjectByName("workerModel").geometry = this.workerGeometry;
+      } else {
+        worker.geometry = this.workerGeometry;
+      }
     });
   }
   
@@ -583,16 +599,25 @@ class Game extends React.Component {
   
   _initWorkers = (player,i,arr) => {
     for ( let j = 0; j < 2; j++ ) {
-      let worker = new THREE.Mesh(this.workerGeometry, new THREE.MeshPhongMaterial({color: this.colorPreset[player.color], flatShading: true}));
+      let workerModel = new THREE.Mesh(this.workerGeometry, new THREE.MeshPhongMaterial({color: this.colorPreset[player.color], flatShading: true}));
+      workerModel.rotation.y = -Math.PI/2 + Math.PI*i;
+      workerModel.castShadow = true;
+      workerModel.receiveShadow = true;
+      
+      let worker = null;
+      
+      if (this.isTouchControls) {
+        workerModel.name = "workerModel";
+        worker = new THREE.Mesh(this.workerBoundingGeometry, this.workerBoundingMaterial);
+        worker.renderOrder = 1;
+        worker.add(workerModel);
+      } else {
+        worker = workerModel;
+      }
       
       worker.position.set(15-30*i, this.workerHeight/2, (-2.5+5*i)+(-5+10*i)*j);
-      worker.rotation.y = -Math.PI/2 + Math.PI*i;
-      
-      worker.castShadow = true;
-      worker.receiveShadow = true;
       this.scene.add( worker );
       worker.userData = {"worker":player.workers[j],"field":null,"onBoard":false,"posX":null,"posY":null};
-      
       arr.push( worker );
     }
   }
@@ -633,23 +658,23 @@ class Game extends React.Component {
   _showIndicators = (move, build, bags=true) => {
     this.indicators.forEach((indicator) => {
       indicator.userData = null;
-      this.scene.remove(indicator);
+      indicator.parent.remove(indicator);
     })
     this.indicators = [];
     
     if (move) {
       this.myWorkers.forEach((worker) => {
-        this._displayIndicator(worker.position, this.indicatorMaterialAction);
+        this._displayIndicator(worker, this.indicatorMaterialAction);
       })
     }
     if (build) {
       if (bags) {
-        this._displayIndicator(this.blockBag.position, this.indicatorMaterialAction);
-        this._displayIndicator(this.domeBag.position, this.indicatorMaterialAction);
+        this._displayIndicator(this.blockBag, this.indicatorMaterialAction);
+        this._displayIndicator(this.domeBag, this.indicatorMaterialAction);
       }
       this.myWorkers.forEach((worker) => {
         if (worker.userData.worker.isCurrentWorker) {
-          this._displayIndicator(worker.position, this.indicatorMaterialShow);
+          this._displayIndicator(worker, this.indicatorMaterialShow);
         }
       });
     }
@@ -888,19 +913,18 @@ class Game extends React.Component {
     this._addText(confirmButton,["Confirm"],0x333333);
   }
   
-  _displayIndicator = (pos, material) => {
+  _displayIndicator = (obj, material) => {
     let indicator = new THREE.Mesh(this.indicatorGeometry, material);
     indicator.rotation.x = -Math.PI;
     indicator.scale.set(0.4,0.4,0.4);
-    indicator.opacity = 0.5;
-    indicator.position.copy(pos);
+    //indicator.position.copy(pos);
     indicator.position.y += this.blockHeight+1;
     
     indicator.userData.mixer = new THREE.AnimationMixer(indicator);
     indicator.userData.action = this.createAction(indicator.userData.mixer,"indicate",1,indicator.position,indicator.position,new THREE.Vector3(indicator.position.x,indicator.position.y+1,indicator.position.z),true);
     indicator.userData.action.play();
     
-    this.scene.add(indicator);
+    obj.add(indicator);
     this.indicators.push(indicator);
   }
   
@@ -1201,7 +1225,11 @@ class Game extends React.Component {
     this.dragedWorkerInitPos = event.object.position.clone();
     
     // Create ghost worker
-    this.ghostWorker = event.object.clone();
+    if(this.isTouchControls) {
+      this.ghostWorker = event.object.getObjectByName("workerModel").clone();
+    } else {
+      this.ghostWorker = event.object.clone();
+    }
     this.ghostWorker.material = event.object.material.clone();
     this.ghostWorker.material.transparent = true;
     this.ghostWorker.material.opacity = 0.4;
@@ -1227,8 +1255,10 @@ class Game extends React.Component {
       this.ghostWorker.position.x = posX;
       this.ghostWorker.position.z = posZ;
       this.ghostWorker.position.y = 2 + this.blockHeight * this.fields[posX][posZ].blocks;
-      if(this.fields[posX][posZ].worker != null || this.fields[posX][posZ].hasDome) {
-        this.ghostWorker.position.y += this.blockHeight;
+      if(this.fields[posX][posZ].worker != null) {
+        this.ghostWorker.position.y += this.workerHeight;
+      } else if(this.fields[posX][posZ].hasDome) {
+        this.ghostWorker.position.y += this.blockHeight/2;
       }
     }
   }
@@ -1239,6 +1269,7 @@ class Game extends React.Component {
     
     // Remove ghost worker
     this.scene.remove(this.ghostWorker);
+    //this.ghostWorker.material.dispose();
     
     let posX = Math.floor( ( event.object.position.x + 2.5 ) / 5 ) * 5;
     let posZ = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
@@ -1400,8 +1431,10 @@ class Game extends React.Component {
       this.ghostBlock.position.x = posX;
       this.ghostBlock.position.z = posZ;
       this.ghostBlock.position.y = this.blockHeight/2 + this.blockHeight * this.fields[posX][posZ].blocks;
-      if(this.fields[posX][posZ].worker != null || this.fields[posX][posZ].hasDome) {
-        this.ghostBlock.position.y += this.blockHeight;
+      if(this.fields[posX][posZ].worker != null) {
+        this.ghostBlock.position.y += this.workerHeight;
+      } else if(this.fields[posX][posZ].hasDome) {
+        this.ghostBlock.position.y += this.blockHeight/2;
       }
     }
   }
@@ -1412,6 +1445,7 @@ class Game extends React.Component {
   
     // Remove ghost block
     this.scene.remove(this.ghostBlock);
+    //this.ghostBlock.material.dispose();
     
     let posX = Math.floor( ( event.object.position.x + 2.5 ) / 5 ) * 5;
     let posZ = Math.floor( ( event.object.position.z + 2.5 ) / 5 ) * 5;
@@ -1420,6 +1454,8 @@ class Game extends React.Component {
     event.object.geometry = this.placeholderBlock.geometry.clone();
     event.object.material = this.placeholderBlock.material.clone();
     this.scene.remove(this.placeholderBlock);
+    //this.placeholderBlock.geometry.dispose();
+    //this.placeholderBlock.material.dispose();
     
     // Uncomment to let frontend prevent invalid move
     if (posX > 10 || posX < -10 || posZ > 10 || posZ < -10 || !this.frontendBuildCheck(posX,posZ,event.object.name)) {
