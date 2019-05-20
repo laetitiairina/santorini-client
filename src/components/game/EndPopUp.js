@@ -19,6 +19,7 @@ const Header = styled.div`
 const Contents =  styled.div`
   width: 100%;
   padding: 20px 5px;
+  text-transform: uppercase;
 `
 
 /**
@@ -35,7 +36,7 @@ const EndPopUp =  ({appears, endState, props}) => {
             <Container>
               <Header> GAME </Header>
               <Contents>
-                {result(endState)}
+                {endState}
               </Contents>
                 <Button
                     onClick={() => {
@@ -48,18 +49,5 @@ const EndPopUp =  ({appears, endState, props}) => {
       </Popup>
   );
 };
-
-function result (state) {
-  switch (state) {
-    case "WON":
-      return "CONGRATULATIONS, YOU WON!";
-    case "LOST":
-      return "WHAT A BUMMER, YOU LOST!";
-    case "ABORT":
-      return "GAME WAS ABORTED!";
-    default:
-      return "";
-  }
-}
 
 export default EndPopUp;

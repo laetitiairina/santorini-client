@@ -377,24 +377,28 @@ class GamePage extends React.Component {
         
         this.setState({gameEnd : true});
         
-        if (this.getPlayer().isCurrentPlayer) {
+        this.outputHandler.current.setControls(false,false); // lookAround=false,select=false
+        
+        if (this.getPlayer().isCurrentPlayer != null && this.getOpponentPlayer().isCurrentPlayer != null && this.getPlayer().isCurrentPlayer == this.getOpponentPlayer().isCurrentPlayer) {
+          // Game was aborted
+          this.setState({displayMsg:"Game was aborted!"});
+          this.setState({endState : "GAME WAS ABORTED!"});
+        } else if (this.getPlayer().isCurrentPlayer) {
           // Display winning msg
-          this.outputHandler.current.setControls(true,true); // lookAround=true,select=true,move=false,build=true
           this.setState({displayMsg:"You Won! Congratulations!"});
+          this.setState({endState : "CONGRATULATIONS, YOU WON!"});
           if (this.state.game.message) {
             this.setState({displayMsg:"You Won! Congratulations! " + this.state.game.message});
+            this.setState({endState : "CONGRATULATIONS, YOU WON! " + this.state.game.message});
           }
-          this.setState({endState : "WON"});
         } else if (this.getOpponentPlayer().isCurrentPlayer) {
           // Display losing msg
-          this.outputHandler.current.setControls(true,true); // lookAround=true,select=true
           this.setState({displayMsg:"You Lost!"});
-          this.setState({endState : "LOST"});
+          this.setState({endState : "WHAT A BUMMER, YOU LOST!"});
         } else {
           // Game was aborted
-          this.outputHandler.current.setControls(false,false); // lookAround=false,select=false
           this.setState({displayMsg:"Game was aborted!"});
-          this.setState({endState : "ABORT"});
+          this.setState({endState : "GAME WAS ABORTED!"});
         }
         
         // Game was finished
