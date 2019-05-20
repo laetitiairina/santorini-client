@@ -466,7 +466,7 @@ class StartPage extends React.Component {
     clearInterval(this.poller);
   }
   
-  startGame = (delay=2000) => {
+  startGame = (delay=1000) => {
     // Start game
     if (this.props.preload) {
       // Redirect to game page
