@@ -389,7 +389,7 @@ class StartPage extends React.Component {
   startPolling(url, fields){
     return new Promise((resolve, reject) => {
       this.setState({inQueue: true, amountOfPolls: 0});
-      this.poller = setInterval(() => this.poll(url, fields, 60, resolve, reject), 1000)
+      this.poller = setInterval(() => this.poll(url, fields, 60, resolve, reject), 100)
       }
     );
   }
