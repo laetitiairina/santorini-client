@@ -42,7 +42,7 @@ class AppRouter extends React.Component {
             render={() => (
               <GameGuard>
                 {/*<GameRouter base={"/game"} />*/}
-                <GamePage preload={this.state.preload} />
+                <GamePage preload={this.state.preload} updatePreload={this.updatePreload.bind(this)} />
               </GameGuard>
             )}
           />

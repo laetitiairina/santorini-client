@@ -96,6 +96,8 @@ class Game extends React.Component {
     this.draged = false;
     this.isTouchControls = false; // When true, bounding box of worker will increase to make it easier to position worker
     
+    this.frame = null;
+    
     // Demeter & Hephaestus & Prometheus
     this.lastBuiltBlockField = null;
     
@@ -376,7 +378,7 @@ class Game extends React.Component {
       this._updateBlockGeometry(2,this.props.preload.blockGeometry2.clone());
       this._updateWorkerGeometry(this.props.preload.workerGeometry.clone());
       for ( let i = 1; i <= 10; i++ ) {
-        this.cardsText[i-1].add(this.props.preload.cardsText[i]);
+        this.cardsText[i-1].add(this.props.preload.cardsText[i].clone());
       }
       this.font = this.props.preload.font;
     } else {
@@ -428,6 +430,14 @@ class Game extends React.Component {
     
     // Start animation loop
     this.animate();
+  }
+  
+  componentWillUnmount() {
+    // Stop animation loop
+    window.cancelAnimationFrame(this.frame);
+    this.container.removeChild(this.renderer.domElement);
+    // Delete preload
+    this.props.updatePreload(null);
   }
   
   _updateBlockGeometry = (nr,geometry) => {
@@ -1966,7 +1976,7 @@ class Game extends React.Component {
   
   animate = () => {
     // animate
-    window.requestAnimationFrame(this.animate);
+    this.frame = window.requestAnimationFrame(this.animate);
     this.renderer.render(this.scene, this.camera);
     
     let delta = this.clock.getDelta()
