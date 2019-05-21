@@ -6,6 +6,7 @@ import { GameGuard } from "../routeProtectors/GameGuard";
 import GameRouter from "./GameRouter";
 import { LoginGuard } from "../routeProtectors/LoginGuard";
 import Login from "../../login/Login";
+import Register from "../../login/Register";
 import StartPage from "../../game/StartPage";
 import GamePage from "../../game/GamePage";
 import ErrorPage from "../pages/ErrorPage";
@@ -59,7 +60,10 @@ class AppRouter extends React.Component {
             path="/register"
             exact
             render={() => (
-              <div style={{textAlign:"center"}}>Registration coming soon!</div>
+              <div>
+                <Header height={"100"} />
+                <Register />
+              </div>
             )}
           />
           <Route
@@ -82,7 +86,10 @@ class AppRouter extends React.Component {
           <Route
             path="*"
             render={() => (
-              <ErrorPage error="Page Not Found!" />
+              <div>
+                <Header height={"100"} />
+                <ErrorPage error="Page Not Found!" />
+              </div>
             )}
           />
         </Switch>

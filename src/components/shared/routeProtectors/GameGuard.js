@@ -1,5 +1,6 @@
 import React from "react";
 import { Redirect } from "react-router-dom";
+import Header from "../../../views/Header";
 import ErrorPage from "../pages/ErrorPage";
 
 /**
@@ -16,6 +17,6 @@ export const GameGuard = props => {
     return props.children;
   } else {
     // Game page was accessed without proper initialization of the game -> redirect to error page
-    return <ErrorPage error="Game not Initialized!" />;
+    return (<div><Header height={"100"} /><ErrorPage error="Game not Initialized!" /></div>);
   }
 };

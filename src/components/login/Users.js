@@ -12,19 +12,31 @@ const Container = styled(BaseContainer)`
   color: white;
   text-align: center;
   justify-content: left;
+  margin-bottom: 20px;
+  padding: 0px;
+  width: 60%;
 `;
 
 const UsersContainer = styled(BaseContainer)`
   color: white;
-  position: absolute;
-  left: 100px;
+  padding: 0px;
 `;
 
 const UsersStyle = styled.ul`
   list-style: none;
-  padding-left: 0;
-  max-height: 580px;
+  padding: 0px;
+  max-height: 40vh;
   overflow: auto;
+
+  ::-webkit-scrollbar {
+    width: 5px;
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(44,161,194,0.7);
+    border-radius: 10px;
+  }
 `;
 
 const PlayerContainer = styled.li`
@@ -32,6 +44,28 @@ const PlayerContainer = styled.li`
   flex-direction: column;
   align-items: center;
   justify-content: center;
+`;
+
+const NameContainer = styled(BaseContainer)`
+  display: flex;
+  justify-content: center;
+  margin: 20px;
+  color: #3E5774;
+`;
+
+const NameInfoLabel = styled.label`
+  color: #3E5774;
+  font-weight: 1;
+  padding-top: 14px;
+  margin-bottom: 10px;
+`;
+
+const NameLabel = styled.label`
+  font-size: 20px;
+  padding-top: 10px;
+  padding-left: 20px;
+  color: #3E5774;
+  margin-bottom: 10px;
 `;
 
 /**
@@ -53,8 +87,41 @@ class Users extends React.Component {
   constructor() {
     super();
     this.state = {
-      users: null
+      users: null,
+      username: null
     };
+  }
+  
+  // Logout user
+  logout() {
+    fetch(`${getDomain()}/users/logout`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Token": localStorage.getItem('userToken')
+      },
+      body: JSON.stringify({})
+    })
+    .then(response => {
+      if (!response.ok) {
+        // If response not ok get response text and throw error
+        return response.text().then( err => { throw Error(err); } );
+      } else {
+        // Get response
+        return response.text();
+      }
+    })
+    .then(response => {
+      // Logout user
+      this.props.logout();
+    })
+    .catch(err => {
+      console.log(err);
+      alert("Something went wrong fetching: " + err);
+      
+      // logout user even if logout on serverside was unsuccessful
+      this.props.logout();
+    });
   }
 
   /**
@@ -84,6 +151,21 @@ class Users extends React.Component {
   render() {
     return (
       <Container>
+        <NameContainer>
+          <NameInfoLabel>Playing as</NameInfoLabel>
+          <NameLabel>
+            {this.state.users ? (
+              <div>
+                {this.state.users.map(user => {
+                  if (user.id == localStorage.getItem('user_id')){
+                    return (user.username);
+                  }
+                })}
+              </div>
+            ) :(<div></div>)}
+          </NameLabel>
+        </NameContainer>
+        <h2 style={{color:"#3E5774"}}>Users</h2>
         {!this.state.users ? (
               <Spinner/>
           ) : (
@@ -92,13 +174,26 @@ class Users extends React.Component {
                   {this.state.users.map(user => {
                     if (user.status === "ONLINE") {
                       return (
-                          <PlayerContainer>
+                          <PlayerContainer
+                            key={user.id}
+                            onClick={() => {
+                              this.props.history.push("/profile/"+user.id);
+                            }}
+                          >
                             <Player user={user}/>
                           </PlayerContainer>
                       );
                     }
                   })}
                 </UsersStyle>
+                <Button
+                  width="50%"
+                  onClick={() => {
+                    this.logout();
+                  }}
+                >
+                  Logout
+                </Button>
               </UsersContainer>
           )}
       </Container>

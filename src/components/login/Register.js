@@ -28,6 +28,7 @@ const Form = styled.div`
   border-radius: 5px;
   //background: linear-gradient(rgb(27, 124, 186), rgb(2, 46, 101));
   transition: opacity 0.5s ease, transform 0.5s ease;
+  max-width: 400px;
 `;
 
 const InputField = styled.input`
@@ -59,7 +60,7 @@ const ButtonContainer = styled.div`
 const NameContainer = styled(BaseContainer)`
   display: flex;
   justify-content: center;
-  margin-top: 20px;
+  margin: 20px;
   color: #3E5774;
 `;
 
@@ -67,6 +68,7 @@ const NameInfoLabel = styled.label`
   color: #3E5774;
   font-weight: 1;
   padding-top: 14px;
+  margin-bottom: 10px;
 `;
 
 const NameLabel = styled.label`
@@ -74,13 +76,14 @@ const NameLabel = styled.label`
   padding-top: 10px;
   padding-left: 20px;
   color: #3E5774;
+  margin-bottom: 10px;
 `;
 
-const LoginButton = styled(Button)`
+const RegisterButton = styled(Button)`
   border-radius: 40px;
 `;
 
-const RegisterLink = styled(Link)`
+const BackLink = styled(Link)`
   margin: 20px;
   &:hover {
     color:green;
@@ -99,7 +102,7 @@ const RegisterLink = styled(Link)`
  * https://reactjs.org/docs/react-component.html
  * @Class
  */
-class Login extends React.Component {
+class Register extends React.Component {
   /**
    * If you don’t initialize the state and you don’t bind methods, you don’t need to implement a constructor for your React component.
    * The constructor for a React component is called before it is mounted (rendered).
@@ -110,15 +113,15 @@ class Login extends React.Component {
     super();
     this.state = {
       password: null,
-      username: "GUEST"
+      username: null
     };
   }
   /**
    * HTTP POST request is sent to the backend.
    * If the request is successful, a new user is returned to the front-end and its token is stored in the localStorage.
    */
-  login() {
-    fetch(`${getDomain()}/users/login`, {
+  register() {
+    fetch(`${getDomain()}/users`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -133,24 +136,29 @@ class Login extends React.Component {
           // If response not ok get response text and throw error
           return response.text().then( err => { throw Error(err); } );
         } else {
-          // Get returned status
-          return response.json();
+          // Get response text
+          return response.text();
         }
       })
-      .then(returnedUser => {
+      .then(response => {
         //const user = new User(returnedUser);
-        // user login successfully worked
-        this.props.login(returnedUser);
+        // store the token into the local storage
+        //localStorage.setItem("token", user.token);
+        
+        console.log(response);
+        // Inform user that registration was successful
+        alert("User registered successfully!");
+        // User registration successfully worked --> navigate to the route /login
+        this.props.history.push(`/login`);
       })
       .catch(err => {
         if (err.message.match(/Failed to fetch/)) {
           alert("The server cannot be reached. Did you start it?");
         } else {
-          alert(`Something went wrong during the login: ${err.message}`);
+          alert(`Something went wrong during the registration: ${err.message}`);
         }
       });
   }
-
   /**
    *  Every time the user enters something in the input field, the state gets updated.
    * @param key (the key of the state for identifying the field that needs to be updated)
@@ -174,10 +182,6 @@ class Login extends React.Component {
   render() {
     return (
       <BaseContainer>
-        <NameContainer>
-          <NameInfoLabel>Playing as</NameInfoLabel>
-          <NameLabel>{this.state.username}</NameLabel>
-        </NameContainer>
         <FormContainer>
           <Form>
             <Label>Username</Label>
@@ -195,17 +199,17 @@ class Login extends React.Component {
               }}
             />
             <ButtonContainer>
-              <LoginButton
+              <RegisterButton
                 disabled={!this.state.username || !this.state.password}
                 width="50%"
                 onClick={() => {
-                  this.login();
+                  this.register();
                 }}
               >
-                Login
-              </LoginButton>
+                Register
+              </RegisterButton>
             </ButtonContainer>
-            <RegisterLink to="/register">Register Now!</RegisterLink>
+            <div style={{display:"flex",justifyContent:"center"}}><BackLink to="/login">Back to Login</BackLink></div>
           </Form>
         </FormContainer>
       </BaseContainer>
@@ -217,4 +221,4 @@ class Login extends React.Component {
  * You can get access to the history object's properties via the withRouter.
  * withRouter will pass updated match, location, and history props to the wrapped component whenever it renders.
  */
-export default withRouter(Login);
+export default withRouter(Register);

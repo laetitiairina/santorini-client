@@ -1,28 +1,38 @@
 import React from "react";
 import styled from "styled-components";
+import {Slot} from "./design/Slot"
 
 const Container = styled.div`
-  margin: 6px 0;
-  width: 280px;
+  margin: 6px;
+  width: 80%;
   padding: 10px;
   border-radius: 40px;
-  display: flex;
+  display: block;
   align-items: center;
+  text-align:left;
+  display:flex;
   border: 2.5px solid #2167AC;
   background-color: transparent;
+  &:hover {
+    transform: translateY(-2px);
+  }
+  &:active {
+    transform: translateY(4px);
+  }
+  transition: all 0.3s ease;
 `;
 
 const UserName = styled.div`
   font-weight: normal;
   font-family: "American Typewriter",serif;
   font-size: x-large;
-  color: #227BB6;
+  color: #2167AC;
   margin-left: 5px;
 `;
 
 const Symbol = styled.div`
   margin-left: auto;
-  margin-right: 10px;
+  margin-right: 0px;
 `;
 
 /**
@@ -38,7 +48,7 @@ const Player = ({ user }) => {
     <Container>
       <UserName>{user.username}</UserName>
       <Symbol>
-        {/*<img src={circle} alt={"Online"} width={"20px"} height={"auto"}/>*/}
+        <Slot size="15px" enabled={true}></Slot>
       </Symbol>
     </Container>
   );

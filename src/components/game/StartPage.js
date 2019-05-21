@@ -249,7 +249,7 @@ class StartPage extends React.Component {
       inQueue: false,
       foundGame: false,
       amountOfPolls: 0,
-      godColor: "transparent",
+      godColor: "rgba(62,87,116,0.2)",
       simpleColor: "#3E5774",
       startButtonText: "START",
       startButtonTextSize: "50px",
@@ -263,7 +263,10 @@ class StartPage extends React.Component {
     };
   }
   
-  login() {
+  login(user) {
+    // store the token into the local storage
+    localStorage.setItem('user_id', user.id);
+    localStorage.setItem('userToken', user.token);
     this.setState({loggedIn: true});
   }
 
@@ -275,8 +278,8 @@ class StartPage extends React.Component {
   }
 
   componentDidMount() {
-    if (localStorage.getItem('userToken')) {
-      this.login();
+    if (localStorage.getItem('user_id') && localStorage.getItem('userToken')) {
+      this.setState({loggedIn: true});
     }
     
     // Check if user has active game
@@ -497,7 +500,7 @@ class StartPage extends React.Component {
             {!this.state.loggedIn ? (
               <Login login={this.login.bind(this)} />
             ) : (
-              <Users />
+              <Users logout={this.logout.bind(this)}/>
             )}
             <CreditsContainer>
               <CreditsLink to="/credits">Credits</CreditsLink>
@@ -512,10 +515,10 @@ class StartPage extends React.Component {
                             this.setState({godColor: "#3E5774"});
                           }}
                           onMouseOut={() => {
-                            if (!this.state.isGodMode) this.setState({godColor: "transparent"});
+                            if (!this.state.isGodMode) this.setState({godColor: "rgba(62,87,116,0.2)"});
                           }}
                           onClick={() => {
-                            this.setState({isGodMode : true, godColor : "#3E5774", simpleColor : "transparent"});
+                            this.setState({isGodMode : true, godColor : "#3E5774", simpleColor : "rgba(62,87,116,0.2)"});
                           }}
               >
                 {"GOD"}
@@ -526,10 +529,10 @@ class StartPage extends React.Component {
                             this.setState({simpleColor: "#3E5774"});
                           }}
                           onMouseOut={() => {
-                            if (this.state.isGodMode) this.setState({simpleColor: "transparent"});
+                            if (this.state.isGodMode) this.setState({simpleColor: "rgba(62,87,116,0.2)"});
                           }}
                           onClick={() => {
-                            this.setState({isGodMode : false, simpleColor : "#3E5774", godColor : "transparent"});
+                            this.setState({isGodMode : false, simpleColor : "#3E5774", godColor : "rgba(62,87,116,0.2)"});
                           }}
               >
                 {"SIMPLE"}
