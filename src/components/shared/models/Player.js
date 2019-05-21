@@ -11,7 +11,7 @@ class Player {
     this.card = null;
     this.color = null;
     this.isGodMode = null;
-    this.isCurrentPlayer = data["currentPlayer"]; // TODO: look at for some reason only currentPlayer instead of isCurrentPlayer when received per REST
+    this.isCurrentPlayer = false;
     Object.assign(this, data);
   }
 }
