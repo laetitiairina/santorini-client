@@ -317,21 +317,25 @@ class StartPage extends React.Component {
     let bodyContent = {
       isGodMode: this.state.isGodMode
     };
+    let headersContent = {
+      "Content-Type": "application/json"
+    };
     
     // Send userId and token if user is logged in
     if (localStorage.getItem('user_id') && localStorage.getItem('userToken')) {
       bodyContent = {
         userId: localStorage.getItem('user_id'),
-        token: localStorage.getItem('userToken'),
         isGodMode: this.state.isGodMode
+      };
+      headersContent = {
+        "Content-Type": "application/json",
+        "Token": localStorage.getItem('userToken')
       };
     }
     
     fetch(`${getDomain()}/players`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: headersContent,
       body: JSON.stringify(bodyContent)
     })
     .then(response => {
