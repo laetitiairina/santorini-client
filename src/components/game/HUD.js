@@ -2,6 +2,7 @@ import React from "react";
 import styled from "styled-components";
 import {Button} from "../../views/design/Button";
 import {Label} from "../../views/design/Label";
+import {ProgressBar} from "../../views/design/ProgressBar";
 
 const HUDOverlay = styled.div`
   opacity:0.8;
@@ -108,6 +109,15 @@ const ControlsLabel = styled.button`
   background: #007090; /* #1059ff */
 `;
 
+const ProgressBarContainer = styled.div`
+  height: 20px;
+  width: 100%;
+  position: relative;
+  margin-top: 15px;
+  background: rgba(255,255,255,0.5);
+  border-radius: 10px;
+`;
+
 // TODO: Delete this after M3
 const FastForwardButton = styled(Button)`
   pointer-events: all;
@@ -157,6 +167,11 @@ class HUD extends React.Component {
         <TopLeftContainer>
           {this.props.displayMsg ? (
               <MessageLabel><div>{this.props.displayMsg}</div></MessageLabel>
+            ) : (<div></div>)}
+          {this.props.moveTimeLeftSec ? (
+              <ProgressBarContainer>
+                <ProgressBar progress={Math.floor(((this.props.moveTimeLeftSec+15)/135)*100)+"%"} color={(this.props.moveTimeLeftSec < 30) ? ((this.props.moveTimeLeftSec < 10) ? "#ff0000" : "#eeaa00") : null}>{this.props.moveTimeLeftSec+" sec"}</ProgressBar>
+              </ProgressBarContainer>
             ) : (<div></div>)}
         </TopLeftContainer>
         <BottomLeftContainer>

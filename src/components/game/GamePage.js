@@ -33,6 +33,8 @@ class GamePage extends React.Component {
     this.outputHandler = React.createRef();
     
     this.poller = null;
+    
+    this.moveTimer = null;
 
     this.state = {
       status: null,
@@ -47,6 +49,8 @@ class GamePage extends React.Component {
       finishInitGame: false,
       areCameraControlsEnabled: false,
       skipButtonCardNr: null, // Demeter & Hephaestus & Hermes
+      lastServerSystemTimeMillis: null,
+      moveTimeLeftSec: null,
       game: null // game object, ex. {"status":"MOVE", "board": ...}
     };
   }
@@ -88,6 +92,11 @@ class GamePage extends React.Component {
         this.setState({status : response[fields[0]]});
         resolve(response[fields[0]]);
         
+        // Get last server system time to calculate remaining move time
+        if (response["system_time"]) {
+          this.setState({lastServerSystemTimeMillis : response["system_time"]});
+        }
+        
         // Status changed, now:
         // 1. Get new game object from server
         // 2. Performe update action according to game status (switch)
@@ -105,9 +114,8 @@ class GamePage extends React.Component {
 
   componentWillUnmount() {
     document.body.style.overflow = "visible";
-     if (this.poller) {
-      clearInterval(this.poller);
-    }
+    clearInterval(this.poller);
+    clearInterval(this.moveTimer);
   }
   
   // Fetch player
@@ -385,16 +393,20 @@ class GamePage extends React.Component {
           this.setState({endState : "GAME WAS ABORTED!"});
         } else if (this.getPlayer().isCurrentPlayer) {
           // Display winning msg
-          this.setState({displayMsg:"You Won! Congratulations!"});
+          this.setState({displayMsg:"You Won!"});
           this.setState({endState : "CONGRATULATIONS, YOU WON!"});
           if (this.state.game.message) {
-            this.setState({displayMsg:"You Won! Congratulations! " + this.state.game.message});
-            this.setState({endState : "CONGRATULATIONS, YOU WON! " + this.state.game.message});
+            this.setState({displayMsg:"You Won! Other player " + this.state.game.message});
+            this.setState({endState : "CONGRATULATIONS, YOU WON! Other player " + this.state.game.message});
           }
         } else if (this.getOpponentPlayer().isCurrentPlayer) {
           // Display losing msg
           this.setState({displayMsg:"You Lost!"});
           this.setState({endState : "WHAT A BUMMER, YOU LOST!"});
+          if (this.state.game.message) {
+            this.setState({displayMsg:"You Lost! You " + this.state.game.message});
+            this.setState({endState : "WHAT A BUMMER, YOU LOST! You " + this.state.game.message});
+          }
         } else {
           // Game was aborted
           this.setState({displayMsg:"Game was aborted!"});
@@ -407,6 +419,14 @@ class GamePage extends React.Component {
         break;
     }
     
+    // Update display timer of remaining move time
+    if (this.getPlayer() != null && this.getPlayer().isCurrentPlayer && !this.state.gameEnd) {
+      this.setupMoveTimer(this.state.lastServerSystemTimeMillis,this.getPlayer().lastMoveMillis);
+    } else {
+      clearInterval(this.moveTimer);
+      this.setState({moveTimeLeftSec: null});
+    }
+    
     // Always update game board accoriding to this.state.game
     this.outputHandler.current.update();
   }
@@ -415,9 +435,7 @@ class GamePage extends React.Component {
   
   deinitGame() {
     // Stop polling
-    if(this.poller) {
-      clearInterval(this.poller);
-    }
+    clearInterval(this.poller);
 
     // Delete game_id, player_id and playerToken from localStorage
     localStorage.removeItem('game_id');
@@ -435,7 +453,29 @@ class GamePage extends React.Component {
     this.setState({chooseExit:bool});
   }
   
-  // Pop-Up functions
+  // HUD functions
+  
+  // Setup move timer
+  setupMoveTimer = (systemTime,moveTime) => {
+    clearInterval(this.moveTimer);
+    
+    if (systemTime == null || moveTime == null) {
+      this.setState({moveTimeLeftSec: 120});
+    } else {
+      this.setState({moveTimeLeftSec: 120-Math.floor((systemTime-moveTime)/1000)});
+    }
+    
+    this.moveTimer = setInterval(this._updateMoveTimer, 1000)
+  }
+  
+  // Update move timer
+  _updateMoveTimer = () => {
+    this.setState({moveTimeLeftSec: this.state.moveTimeLeftSec-1});
+    if (this.state.moveTimeLeftSec <= 0) {
+      clearInterval(this.moveTimer);
+      this.setState({moveTimeLeftSec: null});
+    }
+  }
   
   // God cards skip button
   skipGodCard = () => {
@@ -602,7 +642,7 @@ class GamePage extends React.Component {
           <EndPopUp appears={this.state.gameEnd} endState={this.state.endState} props={this.props}/>
         </PopupContainer>
         {this.state.finishInitGame ? (
-          <HUD displayMsg={this.state.displayMsg} invalidMoveMsg={this.state.invalidMoveMsg} chooseExit={this.state.chooseExit} displayExit={this.displayExit} setCameraPos={this.setCameraPos} setGraphics={this.setGraphics} setTime={this.setTime} areCameraControlsEnabled={this.state.areCameraControlsEnabled} gameEnd={this.state.gameEnd} skipButtonCardNr={this.state.skipButtonCardNr} skipGodCard={this.skipGodCard.bind(this)} instructions={this.state.instructions} showInstructions={this.showInstructions} fastforwardGame={this.fastforwardGame.bind(this)}/>
+          <HUD displayMsg={this.state.displayMsg} invalidMoveMsg={this.state.invalidMoveMsg} chooseExit={this.state.chooseExit} displayExit={this.displayExit} setCameraPos={this.setCameraPos} setGraphics={this.setGraphics} setTime={this.setTime} areCameraControlsEnabled={this.state.areCameraControlsEnabled} gameEnd={this.state.gameEnd} skipButtonCardNr={this.state.skipButtonCardNr} skipGodCard={this.skipGodCard.bind(this)} instructions={this.state.instructions} showInstructions={this.showInstructions} moveTimeLeftSec={this.state.moveTimeLeftSec} fastforwardGame={this.fastforwardGame.bind(this)}/>
         ) : (<div></div>)}
         <Game game={this.state.game} preload={this.props.preload} updatePreload={this.props.updatePreload} initFinish={this.initFinish} cameraControlsEnabled={this.cameraControlsEnabled} inputHandler={this.inputHandler} skipButtonSet={this.skipButtonSet} ref={this.outputHandler}/>
       </GameContainer>
