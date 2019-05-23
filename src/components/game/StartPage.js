@@ -216,6 +216,7 @@ const TestWarningContainer = styled.div`
   right:10px;
   top:10px;
 `;
+
 const TestWarningLabel= styled.div`
   margin-top: 20px;
   color: #fffff;
@@ -491,11 +492,11 @@ class StartPage extends React.Component {
   render() {
     return (
         <Container>
-          <TestWarningContainer>
+          {/*<TestWarningContainer>
             <TestWarningLabel>
               <h2>M3</h2><p>For Testing:</p><p>It is recommended to use 2 different devices!</p>
             </TestWarningLabel>
-          </TestWarningContainer>
+          </TestWarningContainer>*/}
           <ContainerLeft>
             {!this.state.loggedIn ? (
               <Login login={this.login.bind(this)} />
