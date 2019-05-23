@@ -69,7 +69,7 @@ class GamePage extends React.Component {
   
   startPolling(url, fields) {
     return new Promise((resolve, reject) => {
-      this.poller = setInterval(() => this.poll(url, fields, resolve, reject), 1000)
+      this.poller = setInterval(() => this.poll(url, fields, resolve, reject), 500)
     });
   }
 
