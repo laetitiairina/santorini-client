@@ -18,6 +18,8 @@ const Container = styled(BaseContainer)`
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-gap: 10px;
+  max-width: 1920px;
+  padding:0;
 
   @media only screen and (max-width: 700px){
     grid-template-columns: 1fr;
@@ -28,6 +30,8 @@ const Container = styled(BaseContainer)`
 const ContainerLeft = styled.div`
   grid-column: 1;
   grid-row: 1;
+  padding:0;
+  margin:0;
 
   @media only screen and (max-width: 700px){
     grid-column: 1;
@@ -39,7 +43,9 @@ const ContainerRight = styled.div`
   grid-column: 2;
   grid-row: 1;
   overflow: hidden;
-  height: 500px;
+  height: 100%;
+  padding:0;
+  margin:0;
 
   @media only screen and (max-width: 700px){
     grid-column: 1;
@@ -152,12 +158,10 @@ const LoaderSpinner = styled.div`
 `;
 
 const RejoinContainer = styled.div`
-  overflow: hidden;
-  position: absolute;
-  top: 575px;
-  right: 0px;
-  width: 40%;
-  height: 100px;
+  position: relative;
+  padding:0;
+  margin:0;
+  width: 100%;
 `;
 
 const Appear = keyframes`
@@ -182,9 +186,10 @@ const RejoinButton = styled(Button2)`
   height: 50px;
   border-radius: 50%;
   border-width: 4px;
-  background-color:"transparent";
-  position: absolute;
-  right:20%;
+  background-color:"rgba(62,87,116,0.2)";
+  position: relative;
+  right: -140px;
+  top: -20px;
 
   text-transform: uppercase;
   font-size: 14px;
@@ -254,7 +259,7 @@ class StartPage extends React.Component {
       simpleColor: "#3E5774",
       startButtonText: "START",
       startButtonTextSize: "50px",
-      startButtonColor: "transparent",
+      startButtonColor: "rgba(62,87,116,0.2)",
       animationButton: "normal",
       animationText: "normal",
       loaderStrip: "#2167AC",
@@ -545,7 +550,7 @@ class StartPage extends React.Component {
                            this.setState({startButtonColor: "#3E5774"});
                          }}
                          onMouseOut={() => {
-                           if (!this.state.inQueue) this.setState({ startButtonColor: "transparent"});
+                           if (!this.state.inQueue) this.setState({ startButtonColor: "rgba(62,87,116,0.2)"});
                          }}
                          onClick={() => {
                            this.setState({inQueue : true, activeGameAnimation: Disappear, startButtonColor : "#3E5774", startButtonText : "SEARCHING", startButtonTextSize:"30px", animationButton : Spin, animationText: NoSpin, loaderStrip: "white"});

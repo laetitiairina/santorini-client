@@ -24,6 +24,7 @@ const Contents =  styled.div`
   overflow-y:auto;
   margin-top: 10px;
   background: rgba(0,0,0,0.4);
+  max-height: 500px;
 
   ::-webkit-scrollbar {
     width: 5px;

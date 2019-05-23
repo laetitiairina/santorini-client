@@ -22,6 +22,7 @@ const DataContainer = styled.div`
   display: flex;
   align-items: center;
   border: 1px solid #2167AC;
+  background: rgba(62,87,116,0.2);
 `;
 
 const FieldContainer = styled.div`
@@ -43,13 +44,13 @@ const Field = styled.div`
   font-weight: lighter;
   text-align: right;
   width: 100%;
-  color: #2CA1C2;
+  color: #E4F5B2;
   font-weight: 700;
 `;
 
 const InputField = styled.input`
   &::placeholder {
-    color: #2CA1C277;
+    color: #E4F5B277;
   }
   //height: 35px;
   text-align: right;

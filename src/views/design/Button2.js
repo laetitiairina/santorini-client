@@ -12,7 +12,7 @@ export const Button2 = styled.button`
   padding: 10px;
 
   cursor: ${props => (props.disabled ? "default" : "pointer")};
-  opacity: ${props => (props.disabled ? 0.6 : 1)};
+  opacity: ${props => (props.disabled ? 0.7 : 1)};
 
   background: transparent;
 `;

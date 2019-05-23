@@ -12,7 +12,7 @@ const Container = styled.div`
   text-align:left;
   display:flex;
   border: 2.5px solid #2167AC;
-  background-color: transparent;
+  background: rgba(62,87,116,0.2);
   &:hover {
     transform: translateY(-2px);
   }
@@ -24,7 +24,6 @@ const Container = styled.div`
 
 const UserName = styled.div`
   font-weight: normal;
-  font-family: "American Typewriter",serif;
   font-size: x-large;
   color: #2167AC;
   margin-left: 5px;
