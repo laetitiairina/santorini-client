@@ -22,6 +22,8 @@ const Contents =  styled.div`
   padding: 20px 5px;
   font-size: 15px;
   overflow-y:auto;
+  margin-top: 10px;
+  background: rgba(0,0,0,0.4);
 
   ::-webkit-scrollbar {
     width: 5px;
