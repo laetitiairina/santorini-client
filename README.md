@@ -71,3 +71,5 @@ To learn React, check out the [React documentation](https://reactjs.org/).
 
 
 >Template by Lucas Pelloni, SoPra FS19
+
+>Game by Group 10, SoPra FS19
