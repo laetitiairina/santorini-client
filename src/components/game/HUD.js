@@ -174,13 +174,13 @@ class HUD extends React.Component {
               </ProgressBarContainer>
             ) : (<div></div>)}
         </TopLeftContainer>
-        <BottomLeftContainer>
+        {/*<BottomLeftContainer>
           <FastForwardButton disabled={this.props.gameEnd || this.props.chooseExit || this.props.instructions} onClick={() => {
             this.props.fastforwardGame();
           }}>
             FAST-FORWARD
           </FastForwardButton>
-        </BottomLeftContainer>
+        </BottomLeftContainer>*/}
         <TopRightButtonTable>
           <tbody>
             <tr>
