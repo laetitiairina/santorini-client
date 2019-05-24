@@ -84,6 +84,12 @@ class GamePage extends React.Component {
     .then(response => response.json())
     .then(response => {
       this.setState({amountOfPolls: this.state.amountOfPolls + 1});
+      
+      // Get last server system time to calculate remaining move time
+      if (response["system_time"]) {
+        this.setState({lastServerSystemTimeMillis : response["system_time"]});
+      }
+        
       if (response[fields[0]] !== this.state.status) {
         
         this.setState({prevStatus : this.state.status});
@@ -92,10 +98,12 @@ class GamePage extends React.Component {
         this.setState({status : response[fields[0]]});
         resolve(response[fields[0]]);
         
+        /*
         // Get last server system time to calculate remaining move time
         if (response["system_time"]) {
           this.setState({lastServerSystemTimeMillis : response["system_time"]});
         }
+        */
         
         // Status changed, now:
         // 1. Get new game object from server
