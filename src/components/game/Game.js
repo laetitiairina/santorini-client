@@ -116,7 +116,7 @@ class Game extends React.Component {
   
     // Day / Night
     let hours = (new Date()).getHours();
-    if (hours < 8 || hours > 21) {
+    if (hours < 8 || hours > 17) {
       this.setTime(true,false); // isNight=true, update=false
     }
     

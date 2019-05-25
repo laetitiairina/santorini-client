@@ -141,7 +141,7 @@ class HUD extends React.Component {
       this.setState({minimizeControls:true});
     }
     let hours = (new Date()).getHours();
-    if (hours < 8 || hours > 21) {
+    if (hours < 8 || hours > 17) {
       this.setState({isNight:true});
     }
     if(localStorage.getItem('graphicsLevel') != null) {
